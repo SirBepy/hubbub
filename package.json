@@ -1,0 +1,17 @@
+{
+  "name": "hubbub",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "turbo run build --concurrency=5",
+    "dev": "turbo run dev --concurrency=5",
+    "typecheck": "turbo run typecheck --concurrency=5",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
