@@ -3,3 +3,5 @@ node_modules/
 dist/
 .env
 .for_bepy/screenshots/
+.turbo/
+.playwright-mcp/
