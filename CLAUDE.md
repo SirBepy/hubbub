@@ -43,4 +43,9 @@ Full design in the spec above. Load-bearing invariants a session must not violat
 - **Before building the Spotify Stats game (#3): verify the "no games" policy risk first** - it may apply even to read-only stats. Does not block the framework.
 - Controller is web/PWA only. Native is deferred and, if ever needed, is a Capacitor wrap of the same controller code - never a separate codebase.
 - `needs.motion` games require a secure context (HTTPS) on LAN; touch/button games work on plain-HTTP LAN. Decide the local-cert strategy before Phase 4.
+- **License: MIT.** Copyright holder in `LICENSE` is a placeholder (`Joe`) - swap for the real legal/display name before public release.
+- **Offline LAN = no CDNs.** Bundle Phosphor icons, fonts, and all assets into the apps; never CDN-load. Local mode has no internet. This overrides the usual global CDN habit.
+- **No fixed player cap.** Each game declares `meta.maxPlayers`; the framework supplies a default.
+- **Screen app holds a Wake Lock** so the display doesn't sleep mid-game.
+- Product name is the working codename `hubbub` until a real name is chosen before public launch.
 - Full-auto: yes (this repo imports full-auto.md - proceed across routine decisions without asking; hard stops still hold).

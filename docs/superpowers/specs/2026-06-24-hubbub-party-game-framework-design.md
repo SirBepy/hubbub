@@ -154,6 +154,12 @@ input) are built in early so neither needs a rewrite.
 - **Web/PWA** mobile controllers only; native deferred (Capacitor, no rewrite).
 - **Action-based input** abstraction from Phase 1.
 - **Music audio source = Deezer** (no auth, free 30s MP3 via hidden `<audio>`, minimal terms). **Spotify rejected** for Music Guesser: Developer Policy bans games + `preview_url` is null for new apps. YouTube IFrame is a viable optional mode but forces a *visible* player (no audio-only), so it is secondary.
+- **License = MIT** (max adoption, lowest friction; fork protection deemed unnecessary). Copyright-holder line in `LICENSE` is a placeholder (`Joe`) to swap for the preferred legal/display name before public release.
+- **Product name = working codename `hubbub`;** real public name decided before launch.
+- **No fixed player cap;** each game declares `meta.maxPlayers`, the framework provides a sane default.
+- **Offline LAN = no CDNs.** Bundle all assets (Phosphor icons, fonts, everything) into the apps; never CDN-load, local mode has no internet. (Overrides the usual CDN habit.)
+- **Screen wake-lock:** the screen app holds a Wake Lock so the display never sleeps mid-game.
+- **Cloud room-code security:** private rooms + rate-limiting / non-trivially-enumerable join so strangers can't join via guessed codes. Local LAN exempt.
 
 ## 9. Future work / open risks (captured, not yet prioritized)
 
