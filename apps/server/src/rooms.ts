@@ -1,4 +1,5 @@
-import { newRoomCode, newToken, type Player } from "@hubbub/protocol";
+import { type Player } from "@hubbub/protocol";
+import { newRoomCode, newToken } from "@hubbub/protocol/tokens";
 
 interface StoredPlayer extends Player {
   token: string;
