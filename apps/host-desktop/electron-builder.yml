@@ -1,0 +1,14 @@
+appId: com.hubbub.host
+productName: Hubbub
+directories:
+  output: release
+files:
+  - dist/**
+extraResources:
+  - from: static
+    to: static
+win:
+  target:
+    - portable
+portable:
+  artifactName: Hubbub-portable.exe
