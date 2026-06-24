@@ -19,6 +19,16 @@ describe("protocol messages", () => {
     ).toThrow();
   });
 
+  it("parses an action client message", () => {
+    const msg = parseClientMessage(JSON.stringify({ t: "action", payload: { cell: 4 } }));
+    expect(msg).toEqual({ t: "action", payload: { cell: 4 } });
+  });
+
+  it("parses a gameState server message", () => {
+    const msg = parseServerMessage(JSON.stringify({ t: "gameState", state: { foo: 1 } }));
+    expect(msg).toEqual({ t: "gameState", state: { foo: 1 } });
+  });
+
   it("parses a roomState server message with players", () => {
     const msg = parseServerMessage(
       JSON.stringify({

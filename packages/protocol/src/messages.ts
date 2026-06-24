@@ -16,6 +16,7 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
     name: z.string().min(1).max(24),
     token: z.string().optional(),
   }),
+  z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -24,6 +25,7 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("roomCreated"), code: z.string().length(4) }),
   z.object({ t: z.literal("joined"), playerId: z.string(), token: z.string() }),
   z.object({ t: z.literal("roomState"), players: z.array(PlayerSchema) }),
+  z.object({ t: z.literal("gameState"), state: z.unknown() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),
 ]);
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
