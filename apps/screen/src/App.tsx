@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { WebSocketClientTransport, type Player } from "@hubbub/protocol";
 import { useGameState } from "@hubbub/sdk/react";
-import { TTTScreen } from "@hubbub/game-tictactoe/screen";
-import type { TTTState } from "@hubbub/game-tictactoe";
+import { GameScreen } from "./game";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
 
 export function App() {
@@ -12,7 +11,7 @@ export function App() {
   const [qr, setQr] = useState<string>("");
   const [transport, setTransport] = useState<WebSocketClientTransport | null>(null);
   const transportRef = useRef<WebSocketClientTransport>();
-  const game = useGameState<TTTState>(transport);
+  const game = useGameState<any>(transport);
 
   useEffect(() => {
     const t = new WebSocketClientTransport(SERVER_URL);
@@ -42,7 +41,7 @@ export function App() {
     <main style={{ fontFamily: "system-ui", textAlign: "center", padding: 32 }}>
       <h1>Hubbub · Tic-Tac-Toe</h1>
       {started ? (
-        <TTTScreen state={game} />
+        <GameScreen state={game} />
       ) : (
         <>
           <p>

@@ -1,8 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { WebSocketClientTransport } from "@hubbub/protocol";
 import { useGameState, createActionSender } from "@hubbub/sdk/react";
-import { TTTController } from "@hubbub/game-tictactoe/controller";
-import type { TTTState, TTTAction } from "@hubbub/game-tictactoe";
+import { GameController } from "./game";
 import { SERVER_URL } from "./config";
 
 const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
@@ -15,7 +14,7 @@ export function App() {
   const [playerId, setPlayerId] = useState("");
   const [transport, setTransport] = useState<WebSocketClientTransport | null>(null);
   const transportRef = useRef<WebSocketClientTransport>();
-  const game = useGameState<TTTState>(transport);
+  const game = useGameState<any>(transport);
 
   async function join() {
     setStatus("joining");
@@ -41,10 +40,10 @@ export function App() {
     return (
       <main style={ui}>
         {game ? (
-          <TTTController
+          <GameController
             state={game}
             playerId={playerId}
-            send={createActionSender<TTTAction>(transportRef.current!)}
+            send={createActionSender<any>(transportRef.current!)}
           />
         ) : (
           <p>Waiting for the game…</p>
