@@ -1,7 +1,17 @@
-// One flag flips local vs cloud. In dev, point at the local server.
-export const SERVER_URL =
-  import.meta.env.VITE_SERVER_URL ?? `ws://${location.hostname}:7787`;
+import { resolveConfig, type HubbubConfig } from "./config-resolve";
 
-// The controller app's base URL (where phones join). LAN IP in local mode.
-export const CONTROLLER_URL =
-  import.meta.env.VITE_CONTROLLER_URL ?? `http://${location.hostname}:5174`;
+// Electron's preload injects window.__HUBBUB__ in local host mode.
+declare global {
+  interface Window {
+    __HUBBUB__?: Partial<HubbubConfig>;
+  }
+}
+
+const cfg = resolveConfig(
+  typeof window !== "undefined" ? window.__HUBBUB__ : undefined,
+  import.meta.env as { VITE_SERVER_URL?: string; VITE_CONTROLLER_URL?: string },
+  typeof location !== "undefined" ? location.hostname : "localhost",
+);
+
+export const SERVER_URL = cfg.serverUrl;
+export const CONTROLLER_URL = cfg.controllerUrl;
