@@ -20,9 +20,15 @@ importers:
 
   apps/controller:
     dependencies:
+      '@hubbub/game-tictactoe':
+        specifier: workspace:*
+        version: link:../../packages/games/tictactoe
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@hubbub/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       react:
         specifier: ^18.3.0
         version: 18.3.1
