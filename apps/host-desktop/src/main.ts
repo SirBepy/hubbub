@@ -32,7 +32,10 @@ async function createWindow() {
   await win.loadURL(host.screenUrl + "/");
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createWindow).catch((err) => {
+  console.error("Failed to start Hubbub host:", err);
+  app.quit();
+});
 
 app.on("window-all-closed", async () => {
   await host?.close();
