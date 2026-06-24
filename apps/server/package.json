@@ -2,6 +2,9 @@
   "name": "@hubbub/server",
   "version": "0.0.0",
   "type": "module",
+  "main": "./src/server.ts",
+  "types": "./src/server.ts",
+  "exports": { ".": "./src/server.ts" },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
