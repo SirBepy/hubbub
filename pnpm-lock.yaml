@@ -94,6 +94,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@hubbub/game-tictactoe':
+        specifier: workspace:*
+        version: link:../../packages/games/tictactoe
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
