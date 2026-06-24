@@ -85,6 +85,9 @@ importers:
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@hubbub/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       ws:
         specifier: ^8.18.0
         version: 8.21.0
@@ -98,6 +101,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
 
   packages/protocol:
     dependencies:
