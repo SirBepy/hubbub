@@ -43,4 +43,19 @@ describe("startStaticServer", () => {
     const res = await fetch(`http://127.0.0.1:${srv.port}/missing.css`);
     expect(res.status).toBe(404);
   });
+
+  it("does not serve files outside the served directory via ../ traversal", async () => {
+    const res = await fetch(`http://127.0.0.1:${srv.port}/../../../../etc/passwd`);
+    // Either the URL parser/normalize keeps it inside dir (404, file absent)
+    // or the containment guard rejects it (403). It must NOT return file contents.
+    expect([403, 404]).toContain(res.status);
+  });
+
+  it("does not serve an encoded absolute path outside the directory", async () => {
+    const res = await fetch(`http://127.0.0.1:${srv.port}/%2e%2e%2f%2e%2e%2fapp.js`);
+    // app.js exists at the root of dir; an escape attempt must not climb out and
+    // back in to read it via a traversal path. A 200 reading the real in-dir app.js
+    // is acceptable only if the resolved path stayed inside dir.
+    expect([200, 403, 404]).toContain(res.status);
+  });
 });

@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
-import { join, extname, normalize } from "node:path";
+import { join, extname, normalize, resolve, sep } from "node:path";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -40,19 +40,37 @@ export function startStaticServer(
 ): Promise<StaticServer> {
   const server = createServer(async (req, res) => {
     try {
-      const url = new URL(req.url ?? "/", "http://localhost");
+      const rawPath = req.url ?? "/";
+      // Reject any request whose raw path contains a traversal segment before
+      // the URL parser gets a chance to collapse it.
+      if (/(?:^|[/\\])\.\.(?:[/\\]|$)/.test(decodeURIComponent(rawPath.split("?")[0]))) {
+        res.writeHead(403, { "content-type": "text/plain" });
+        res.end("Forbidden");
+        return;
+      }
+      const url = new URL(rawPath, "http://localhost");
       let pathname = decodeURIComponent(url.pathname);
       if (pathname.endsWith("/")) pathname += "index.html";
       const safe = normalize(pathname)
         .replace(/^(\.\.[/\\])+/, "")
         .replace(/^[/\\]+/, "");
       let filePath = join(dir, safe);
+      const root = resolve(dir);
+      const resolved = resolve(filePath);
+      if (resolved !== root && !resolved.startsWith(root + sep)) {
+        res.writeHead(403, { "content-type": "text/plain" });
+        res.end("Forbidden");
+        return;
+      }
       let ext = extname(filePath);
       let body: Buffer;
       try {
         body = await readFile(filePath);
       } catch {
-        if (ext === "") {
+        // Only fall back to index.html for top-level extension-less routes
+        // (e.g. /lobby, /join). Paths with separators (e.g. etc/passwd) are
+        // not SPA routes and must return 404, not silently serve index.html.
+        if (ext === "" && !safe.includes(sep) && !safe.includes("/")) {
           filePath = join(dir, "index.html");
           ext = ".html";
           body = await readFile(filePath);
