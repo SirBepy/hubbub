@@ -28,27 +28,35 @@ export async function startHost(opts: HostOptions): Promise<RunningHost> {
   const ws = createWsServer(opts.wsPort ?? 7787, opts.game ?? tttLogic);
   const wsPort = (ws.wss.address() as { port: number }).port;
 
-  const controller = await startStaticServer(
-    opts.controllerDir,
-    opts.controllerPort ?? 7780,
-    "0.0.0.0",
-  );
-  const screen = await startStaticServer(
-    opts.screenDir,
-    opts.screenPort ?? 7781,
-    "127.0.0.1",
-  );
+  let controller: Awaited<ReturnType<typeof startStaticServer>> | undefined;
+  let screen: Awaited<ReturnType<typeof startStaticServer>> | undefined;
+  try {
+    controller = await startStaticServer(
+      opts.controllerDir,
+      opts.controllerPort ?? 7780,
+      "0.0.0.0",
+    );
+    screen = await startStaticServer(
+      opts.screenDir,
+      opts.screenPort ?? 7781,
+      "127.0.0.1",
+    );
+  } catch (err) {
+    await ws.close();
+    await controller?.close();
+    throw err;
+  }
 
   return {
     lanIp,
     serverUrl: `ws://localhost:${wsPort}`,
-    controllerUrl: `http://${lanIp}:${controller.port}`,
-    screenUrl: `http://127.0.0.1:${screen.port}`,
+    controllerUrl: `http://${lanIp}:${controller!.port}`,
+    screenUrl: `http://127.0.0.1:${screen!.port}`,
     wsPort,
     close: async () => {
       await ws.close();
-      await controller.close();
-      await screen.close();
+      await controller!.close();
+      await screen!.close();
     },
   };
 }

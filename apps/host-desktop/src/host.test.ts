@@ -10,15 +10,18 @@ let controllerDir: string;
 let host: RunningHost;
 
 const open = (url: string) =>
-  new Promise<WebSocket>((res) => {
+  new Promise<WebSocket>((res, rej) => {
     const ws = new WebSocket(url);
     ws.on("open", () => res(ws));
+    ws.on("error", rej);
   });
 const nextOf = (ws: WebSocket, t: string) =>
-  new Promise<any>((res) => {
+  new Promise<any>((res, rej) => {
+    const timer = setTimeout(() => rej(new Error(`timed out waiting for "${t}"`)), 4000);
     const h = (m: any) => {
       const msg = JSON.parse(m.toString());
       if (msg.t === t) {
+        clearTimeout(timer);
         ws.off("message", h);
         res(msg);
       }
