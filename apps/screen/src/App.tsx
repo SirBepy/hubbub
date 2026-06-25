@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { WebSocketClientTransport, type Player } from "@hubbub/protocol";
-import { useGameState } from "@hubbub/sdk/react";
-import { GameScreen } from "./game";
+import { WebSocketClientTransport, type GameSummary, type Player } from "@hubbub/protocol";
+import { getScreen } from "./game";
+import { Lobby } from "./lobby";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
+
+interface RoomState {
+  players: Player[];
+  hostId: string | null;
+  mode: "lobby" | "in-game";
+  currentGameId: string | null;
+  cursorIndex: number;
+  games: GameSummary[];
+}
+
+interface GameState {
+  gameId: string;
+  state: any;
+}
 
 export function App() {
   const [code, setCode] = useState<string>("");
-  const [players, setPlayers] = useState<Player[]>([]);
   const [qr, setQr] = useState<string>("");
-  const [transport, setTransport] = useState<WebSocketClientTransport | null>(null);
+  const [room, setRoom] = useState<RoomState | null>(null);
+  const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebSocketClientTransport>();
-  const game = useGameState<any>(transport);
 
   useEffect(() => {
     const t = new WebSocketClientTransport(SERVER_URL);
@@ -23,10 +36,18 @@ export function App() {
           setCode(msg.code);
           QRCode.toDataURL(`${CONTROLLER_URL}/?room=${msg.code}`).then(setQr);
         } else if (msg.t === "roomState") {
-          setPlayers(msg.players);
+          setRoom({
+            players: msg.players,
+            hostId: msg.hostId,
+            mode: msg.mode,
+            currentGameId: msg.currentGameId,
+            cursorIndex: msg.cursorIndex,
+            games: msg.games,
+          });
+        } else if (msg.t === "gameState") {
+          setGame({ gameId: msg.gameId, state: msg.state });
         }
       });
-      setTransport(t);
       t.send({ t: "createRoom" });
     });
     return () => {
@@ -35,30 +56,28 @@ export function App() {
     };
   }, []);
 
-  const started = game && Object.keys(game.assignments).length >= 2;
+  const Screen = getScreen(game?.gameId ?? null);
+
+  if (room?.mode === "in-game" && Screen && game) {
+    return (
+      <main style={{ fontFamily: "system-ui", textAlign: "center", padding: 32 }}>
+        <Screen state={game.state} />
+      </main>
+    );
+  }
 
   return (
     <main style={{ fontFamily: "system-ui", textAlign: "center", padding: 32 }}>
-      <h1>Hubbub · Tic-Tac-Toe</h1>
-      {started ? (
-        <GameScreen state={game} />
-      ) : (
-        <>
-          <p>
-            Join at <strong>{CONTROLLER_URL.replace(/^https?:\/\//, "")}</strong>
-          </p>
-          <h2 style={{ fontSize: 64, letterSpacing: 8 }}>{code || "…"}</h2>
-          {qr && <img src={qr} alt="Join QR" width={220} height={220} />}
-          <h3>Players ({players.length}/2)</h3>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {players.map((p) => (
-              <li key={p.id} style={{ opacity: p.connected ? 1 : 0.4 }}>
-                {p.name}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <h1>Hubbub</h1>
+      <Lobby
+        code={code}
+        qr={qr}
+        controllerLabel={CONTROLLER_URL.replace(/^https?:\/\//, "")}
+        players={room?.players ?? []}
+        hostId={room?.hostId ?? null}
+        games={room?.games ?? []}
+        cursorIndex={room?.cursorIndex ?? 0}
+      />
     </main>
   );
 }
