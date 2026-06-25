@@ -5,33 +5,39 @@ import { createServer } from "./server.js";
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
 
-function open(port: number) {
-  const ws = new WebSocket(`ws://localhost:${port}`);
-  return new Promise<WebSocket>((res) => ws.on("open", () => res(ws)));
-}
-function next(ws: WebSocket) {
-  return new Promise<any>((res) => ws.once("message", (m) => res(JSON.parse(m.toString()))));
-}
+const open = (port: number) =>
+  new Promise<WebSocket>((res) => {
+    const ws = new WebSocket(`ws://localhost:${port}`);
+    ws.on("open", () => res(ws));
+  });
+const nextOf = (ws: WebSocket, t: string) =>
+  new Promise<any>((res) => {
+    const h = (m: any) => {
+      const msg = JSON.parse(m.toString());
+      if (msg.t === t) { ws.off("message", h); res(msg); }
+    };
+    ws.on("message", h);
+  });
 
 describe("createServer", () => {
-  it("creates a room then a controller joins and screen sees the player", async () => {
-    handle = createServer(0);
+  it("creates a room then a controller joins and the screen sees the player + lobby context", async () => {
+    handle = createServer(0, {});
     const port = (handle.wss.address() as { port: number }).port;
 
     const screen = await open(port);
     screen.send(JSON.stringify({ t: "createRoom" }));
-    const created = await next(screen);
-    expect(created.t).toBe("roomCreated");
+    const created = await nextOf(screen, "roomCreated");
+    expect(created.code).toHaveLength(4);
 
     const controller = await open(port);
-    controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe" }));
-    const joined = await next(controller);
-    expect(joined.t).toBe("joined");
+    controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe", color: "#4363d8", emoji: "🦊" }));
+    const joined = await nextOf(controller, "joined");
 
-    const state = await next(screen);
-    expect(state.t).toBe("roomState");
-    expect(state.players).toEqual([
-      { id: joined.playerId, name: "Joe", connected: true },
+    const room = await nextOf(screen, "roomState");
+    expect(room.mode).toBe("lobby");
+    expect(room.hostId).toBe(joined.playerId);
+    expect(room.players).toEqual([
+      { id: joined.playerId, name: "Joe", color: "#4363d8", emoji: "🦊", connected: true },
     ]);
 
     screen.close();
