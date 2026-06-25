@@ -60,6 +60,9 @@ importers:
       '@hubbub/game-tictactoe':
         specifier: workspace:*
         version: link:../../packages/games/tictactoe
+      '@hubbub/game-ultimate-tictactoe':
+        specifier: workspace:*
+        version: link:../../packages/games/ultimate-tictactoe
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol

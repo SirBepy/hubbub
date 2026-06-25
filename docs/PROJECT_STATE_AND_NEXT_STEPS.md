@@ -125,7 +125,9 @@ contents. Task 1 is done. Do Tasks 2, 3, 4 in order.
   `useGameState<any>` / `createActionSender<any>`. **Default stays `ttt`** so Phase 3's
   pending phone tests still show plain TTT. Full code in the plan.
 
-**Run Ultimate TTT live:** server with `HUBBUB_GAME=uttt`, dev apps with `VITE_GAME=uttt`.
+**Run Ultimate TTT live:** the `HUBBUB_GAME`/`VITE_GAME` env switches are retired. Every
+app now bundles all games and the host picks one from the lobby game picker at runtime, so
+just start the stack normally and select Ultimate TTT (or any game) on the screen.
 
 ### Open review findings on Task 1 (address during Task 2-4 or note)
 
