@@ -1,8 +1,8 @@
-import { type Player } from "@hubbub/protocol";
+import { type Identity, type Player } from "@hubbub/protocol";
 import { newRoomCode, newToken } from "@hubbub/protocol/tokens";
 
 export type RoomMode = "lobby" | "in-game";
-export interface Identity { name: string; color: string; emoji: string; }
+export type { Identity };
 
 interface StoredPlayer extends Player { token: string; }
 interface Room {
@@ -26,8 +26,6 @@ export class RoomManager {
     this.rooms.set(code, { code, players: new Map(), hostId: null, mode: "lobby", currentGameId: null, cursorIndex: 0 });
     return code;
   }
-
-  hasRoom(code: string): boolean { return this.rooms.has(code); }
 
   join(code: string, identity: Identity, token?: string): JoinOk | JoinErr {
     const room = this.rooms.get(code);

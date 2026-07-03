@@ -11,7 +11,6 @@ describe("RoomManager", () => {
   it("creates a retrievable room in lobby mode", () => {
     const code = rm.createRoom();
     expect(code).toHaveLength(4);
-    expect(rm.hasRoom(code)).toBe(true);
     expect(rm.mode(code)).toBe("lobby");
     expect(rm.hostId(code)).toBeNull();
   });

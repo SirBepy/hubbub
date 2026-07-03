@@ -1,10 +1,14 @@
 import { z } from "zod";
 
-export const PlayerSchema = z.object({
-  id: z.string(),
+export const IdentitySchema = z.object({
   name: z.string().min(1).max(24),
   color: z.string(),
   emoji: z.string().min(1).max(16),
+});
+export type Identity = z.infer<typeof IdentitySchema>;
+
+export const PlayerSchema = IdentitySchema.extend({
+  id: z.string(),
   connected: z.boolean(),
 });
 export type Player = z.infer<typeof PlayerSchema>;
@@ -18,17 +22,11 @@ export const GameSummarySchema = z.object({
 });
 export type GameSummary = z.infer<typeof GameSummarySchema>;
 
-const identity = {
-  name: z.string().min(1).max(24),
-  color: z.string(),
-  emoji: z.string().min(1).max(16),
-};
-
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("createRoom") }),
-  z.object({ t: z.literal("joinRoom"), code: z.string().length(4), ...identity, token: z.string().optional() }),
-  z.object({ t: z.literal("setIdentity"), ...identity }),
+  z.object({ t: z.literal("joinRoom"), code: z.string().length(4), ...IdentitySchema.shape, token: z.string().optional() }),
+  z.object({ t: z.literal("setIdentity"), ...IdentitySchema.shape }),
   z.object({ t: z.literal("lobbyNav"), dir: z.enum(["up", "down", "left", "right"]) }),
   z.object({ t: z.literal("lobbyFocus"), index: z.number().int().min(0) }),
   z.object({ t: z.literal("lobbyConfirm") }),

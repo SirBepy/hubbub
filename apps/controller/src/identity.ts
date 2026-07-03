@@ -1,4 +1,5 @@
-export interface Identity { name: string; color: string; emoji: string; }
+import type { Identity } from "@hubbub/protocol";
+export type { Identity };
 
 const KEY = "hubbub:identity";
 
