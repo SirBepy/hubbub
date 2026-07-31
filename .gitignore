@@ -3,5 +3,7 @@ node_modules/
 dist/
 .env
 .for_bepy/screenshots/
+# third-party app screenshots (Mobbin refs) - keep out of a future public repo
+.for_bepy/design-refs/
 .turbo/
 .playwright-mcp/
