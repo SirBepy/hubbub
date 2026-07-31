@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Lobby (Screen)</title>
+<link rel="preconnect" href="https://unpkg.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  .stage { max-width: 1680px; margin: 0 auto; padding: var(--sp-6) var(--sp-8) var(--sp-8); min-height: 1080px; }
+
+  .top-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--sp-7); }
+  .brand { display: flex; align-items: center; gap: var(--sp-3); }
+  .brand i { font-size: 28px; color: var(--accent); }
+  .brand span { font-family: var(--font-display); font-size: var(--fs-500); letter-spacing: 0.03em; }
+
+  .join-block { display: flex; align-items: center; gap: var(--sp-5); }
+  .join-text { text-align: right; }
+  .join-text .eyebrow { justify-content: flex-end; display: flex; align-items: center; gap: var(--sp-1); }
+
+  h2.section { font-size: var(--fs-100); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; color: var(--text-2); margin: 0 0 var(--sp-3); }
+
+  .players-row { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-7); }
+  .chip .dot { width: 8px; height: 8px; }
+  .chip .emoji { font-size: var(--fs-300); }
+
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--sp-4); }
+  .tile-icon { font-size: 26px; margin-bottom: var(--sp-3); display: block; }
+  .tile .tile-title { font-size: var(--fs-400); }
+  .tile .tile-meta { font-size: var(--fs-200); }
+  .cursor-tag {
+    position: absolute; bottom: -12px; left: var(--sp-4);
+    display: flex; align-items: center; gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill);
+    background: var(--accent); color: #00232a; font-weight: 700; font-size: var(--fs-100);
+  }
+  .badge-stack { display: flex; gap: 1px; margin-right: 2px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="top-row">
+      <div class="brand"><i class="ph-bold ph-broadcast"></i><span class="display">HUBBUB</span></div>
+      <div class="join-block">
+        <div class="join-text">
+          <div class="eyebrow"><i class="ph ph-globe"></i>Join at hubbub.local</div>
+          <div class="room-code">7FQ2</div>
+        </div>
+        <div class="qr-box"><i class="ph ph-qr-code" style="font-size:48px;"></i></div>
+      </div>
+    </div>
+
+    <h2 class="section">Players · 12</h2>
+    <div class="players-row">
+      <div class="chip"><span class="dot" style="background:var(--p-magenta);"></span><span class="emoji">🦊</span><span class="name">Fox</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-cyan);"></span><span class="emoji">🐙</span><span class="name">Ink</span><i class="ph-bold ph-star" style="color:var(--accent);margin-left:2px;font-size:12px;" title="Host"></i></div>
+      <div class="chip"><span class="dot" style="background:var(--p-lime);"></span><span class="emoji">🐝</span><span class="name">Buzz</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-amber);"></span><span class="emoji">🦁</span><span class="name">Leo</span></div>
+      <div class="chip offline"><span class="dot" style="background:var(--p-violet);"></span><span class="emoji">🐢</span><span class="name">Turt</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-blue);"></span><span class="emoji">🐼</span><span class="name">Panda</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-magenta);"></span><span class="emoji">🦉</span><span class="name">Owl</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-cyan);"></span><span class="emoji">🐺</span><span class="name">Wolf</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-lime);"></span><span class="emoji">🐨</span><span class="name">Coa</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-amber);"></span><span class="emoji">🦄</span><span class="name">Uni</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-violet);"></span><span class="emoji">🐧</span><span class="name">Pip</span></div>
+      <div class="chip"><span class="dot" style="background:var(--p-blue);"></span><span class="emoji">🦋</span><span class="name">Moth</span></div>
+    </div>
+
+    <h2 class="section">Games · 8</h2>
+    <div class="tile-grid">
+      <div class="tile focused">
+        <i class="ph-bold ph-x-square tile-icon" style="color:var(--p-cyan);"></i>
+        <div class="tile-title">Tic-Tac-Toe</div>
+        <div class="tile-meta">2 players</div>
+        <div class="cursor-tag"><i class="ph-bold ph-cursor"></i>Host is here</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-dots-nine tile-icon" style="color:var(--p-lime);"></i>
+        <div class="tile-title">Ultimate Tic-Tac-Toe</div>
+        <div class="tile-meta">2 players</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-music-notes tile-icon" style="color:var(--p-violet);"></i>
+        <div class="tile-title">Music Guesser</div>
+        <div class="tile-meta">2–8 players</div>
+      </div>
+      <div class="tile">
+        <span class="badge"><span class="badge-stack">🎨🐝</span>3</span>
+        <i class="ph-bold ph-pencil-simple-line tile-icon" style="color:var(--p-magenta);"></i>
+        <div class="tile-title">Sketch &amp; Guess</div>
+        <div class="tile-meta">3–10 players</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-question tile-icon" style="color:var(--p-amber);"></i>
+        <div class="tile-title">Bluff Trivia</div>
+        <div class="tile-meta">3–12 players</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-users-three tile-icon" style="color:var(--p-blue);"></i>
+        <div class="tile-title">Who's Most Likely</div>
+        <div class="tile-meta">4–16 players</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-dice-six tile-icon" style="color:var(--p-cyan);"></i>
+        <div class="tile-title">Liar's Dice</div>
+        <div class="tile-meta">2–8 players</div>
+      </div>
+      <div class="tile">
+        <i class="ph-bold ph-magnifying-glass tile-icon" style="color:var(--p-magenta);"></i>
+        <div class="tile-title">Spyfall</div>
+        <div class="tile-meta">4–12 players</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

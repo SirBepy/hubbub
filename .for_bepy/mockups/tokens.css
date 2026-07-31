@@ -1,0 +1,173 @@
+/* Hubbub design system v2 — "Neon, but disciplined". Spacing: 4/8px scale. Type: 12/14/16/20/28/44 (+ one display-only exception for wordmark/room code).
+   NOTE: real apps must bundle Inter + a display face + Phosphor icons locally (offline LAN rule, no CDNs in production). */
+
+:root {
+  /* -- surfaces: 3 neutral dark elevations, separated by border + tint, never glow -- */
+  --bg: #0a0a0e;
+  --surface: #131318;
+  --surface-raised: #1c1c23;
+  --border: #26262f;
+  --border-strong: #34343f;
+
+  /* -- text -- */
+  --text-1: #f3f3f6;
+  --text-2: #9c9caa;
+  --text-3: #63636f;
+
+  /* -- product accent (primary actions, host cursor, single-focus states) -- */
+  --accent: #00d4e6;
+  --accent-tint: #00d4e61a;
+
+  /* -- player / per-game accents (6, flat unless explicitly focused) -- */
+  --p-magenta: #f0359e;
+  --p-cyan: #00d4e6;
+  --p-lime: #a8e639;
+  --p-amber: #f0a836;
+  --p-violet: #8a63f0;
+  --p-blue: #3d7cf0;
+
+  /* -- radius: cards vs controls vs compact pills (chips/badges only) -- */
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-pill: 999px;
+
+  /* -- the one glow, used on at most one element per screen -- */
+  --focus-ring: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-tint);
+
+  /* -- spacing scale (4/8px) -- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+
+  /* -- type scale: 12/14/16/20/28/44, shared by TV and phone -- */
+  --fs-100: 12px; --fs-200: 14px; --fs-300: 16px;
+  --fs-400: 20px; --fs-500: 28px; --fs-600: 44px;
+  /* display-only exception, wordmark/room-code alone */
+  --fs-display: clamp(40px, 4.5vw, 56px);
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+.display { font-family: var(--font-display); letter-spacing: 0.01em; }
+
+/* -- card: the base elevated surface -- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: var(--sp-5);
+}
+.card.raised { background: var(--surface-raised); border-color: var(--border-strong); }
+
+/* -- buttons -- */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-300);
+  color: var(--text-1);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-control);
+  padding: var(--sp-3) var(--sp-5);
+  cursor: pointer;
+}
+.btn-accent {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #00232a;
+}
+
+/* -- badge (suggestion pin): a small semantic mark, flat -- */
+.badge {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--r-pill);
+  background: var(--surface-raised);
+  border: 1px solid var(--p-lime);
+  color: var(--p-lime);
+  font-size: var(--fs-100);
+  font-weight: 700;
+}
+
+/* -- player chip: flat dot, no glow -- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.chip .emoji { font-size: var(--fs-300); line-height: 1; }
+.chip .name { font-weight: 600; font-size: var(--fs-200); }
+.chip.offline { opacity: 0.45; }
+
+/* -- game tile: flat by default, glow reserved for .focused only -- */
+.tile {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: var(--sp-4);
+  text-align: left;
+}
+.tile.focused { border-color: var(--accent); box-shadow: var(--focus-ring); background: var(--surface-raised); }
+.tile.dim { opacity: 0.5; }
+.tile .tile-title { font-weight: 600; font-size: var(--fs-300); }
+.tile .tile-meta { color: var(--text-2); font-size: var(--fs-100); margin-top: var(--sp-1); }
+
+/* -- phone frame -- */
+.phone-frame {
+  width: 390px;
+  border-radius: 40px;
+  border: 8px solid #050507;
+  background: var(--bg);
+  box-shadow: 0 24px 60px -20px #000000cc;
+  overflow: hidden;
+}
+.phone-screen { padding: var(--sp-5) var(--sp-4) var(--sp-6); min-height: 700px; }
+
+/* -- room code / qr: solid color, no gradient text, no per-letter rainbow -- */
+.room-code {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--text-1);
+}
+.qr-box {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--r-control);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: var(--fs-100);
+  font-weight: 600;
+  color: var(--text-2);
+}

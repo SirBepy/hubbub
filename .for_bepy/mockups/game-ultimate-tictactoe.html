@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Ultimate Tic-Tac-Toe</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  /* per-game identity: lime X vs blue O, distinct from TTT's cyan/magenta pair */
+  .layout { display: flex; gap: var(--sp-7); align-items: flex-start; justify-content: center; padding: var(--sp-7); flex-wrap: wrap; }
+  .tv-panel { width: 680px; text-align: center; }
+
+  .turn-banner {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-5); border-radius: var(--r-pill);
+    background: var(--surface); border: 1px solid var(--border);
+    font-weight: 600; font-size: var(--fs-400); color: var(--p-lime);
+    margin-bottom: var(--sp-6);
+  }
+
+  .macro-board {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3);
+    width: 560px; margin: 0 auto var(--sp-6); padding: var(--sp-3);
+    background: var(--bg); border-radius: var(--r-card); border: 1px solid var(--border);
+  }
+  .sub-board {
+    aspect-ratio: 1; border-radius: var(--r-control); border: 1px solid var(--border);
+    background: var(--surface); padding: var(--sp-1);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+  }
+  .sub-board.active { border-color: var(--p-lime); box-shadow: var(--focus-ring); }
+  .sub-board.won-x, .sub-board.won-o {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 600; font-size: 64px;
+  }
+  .sub-board.won-x { color: var(--p-lime); background: color-mix(in srgb, var(--p-lime) 14%, var(--surface)); border-color: var(--border); }
+  .sub-board.won-o { color: var(--p-blue); background: color-mix(in srgb, var(--p-blue) 14%, var(--surface)); border-color: var(--border); }
+  .mini-cell {
+    background: var(--surface-raised); border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 600; font-size: var(--fs-300);
+  }
+  .mini-cell.x { color: var(--p-lime); }
+  .mini-cell.o { color: var(--p-blue); }
+
+  .scoreboard { display: flex; gap: var(--sp-3); justify-content: center; }
+  .score-chip {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4); border-radius: var(--r-card);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .score-chip .mark { font-family: var(--font-display); font-size: var(--fs-400); font-weight: 600; }
+  .score-chip.x .mark { color: var(--p-lime); }
+  .score-chip.o .mark { color: var(--p-blue); }
+  .score-chip .wins { font-size: var(--fs-300); font-weight: 700; }
+
+  /* phone controller: active mini-board + macro strip */
+  .macro-strip { display: flex; gap: var(--sp-1); justify-content: center; margin-bottom: var(--sp-5); }
+  .macro-strip .dot { width: 16px; height: 16px; border-radius: 3px; background: var(--surface); border: 1px solid var(--border); }
+  .macro-strip .dot.won-x { background: var(--p-lime); border-color: var(--p-lime); }
+  .macro-strip .dot.won-o { background: var(--p-blue); border-color: var(--p-blue); }
+  .macro-strip .dot.active { border-color: var(--p-lime); box-shadow: var(--focus-ring); }
+  .ph-status { text-align: center; margin-bottom: var(--sp-4); }
+  .ph-status .who { font-weight: 700; font-size: var(--fs-400); color: var(--p-lime); }
+  .ph-status .sub { font-size: var(--fs-100); color: var(--text-2); margin-top: var(--sp-1); }
+  .ph-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+  .ph-cell {
+    aspect-ratio: 1; background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 30px; font-weight: 600;
+  }
+  .ph-cell.x { color: var(--p-lime); }
+  .ph-cell.o { color: var(--p-blue); }
+  .ph-cell.open { color: var(--text-3); }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="tv-panel">
+      <div class="turn-banner"><i class="ph-bold ph-crosshair"></i>Ink's turn — send them to board 6</div>
+      <div class="macro-board">
+        <div class="sub-board won-x">X</div>
+        <div class="sub-board">
+          <div class="mini-cell x">X</div><div class="mini-cell"></div><div class="mini-cell o">O</div>
+          <div class="mini-cell"></div><div class="mini-cell o">O</div><div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell x">X</div><div class="mini-cell"></div>
+        </div>
+        <div class="sub-board won-o">O</div>
+
+        <div class="sub-board">
+          <div class="mini-cell o">O</div><div class="mini-cell"></div><div class="mini-cell"></div>
+          <div class="mini-cell x">X</div><div class="mini-cell x">X</div><div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell o">O</div>
+        </div>
+        <div class="sub-board active">
+          <div class="mini-cell"></div><div class="mini-cell o">O</div><div class="mini-cell"></div>
+          <div class="mini-cell x">X</div><div class="mini-cell"></div><div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell x">X</div>
+        </div>
+        <div class="sub-board won-x">X</div>
+
+        <div class="sub-board">
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell x">X</div>
+          <div class="mini-cell"></div><div class="mini-cell o">O</div><div class="mini-cell"></div>
+          <div class="mini-cell o">O</div><div class="mini-cell"></div><div class="mini-cell"></div>
+        </div>
+        <div class="sub-board">
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell x">X</div><div class="mini-cell"></div>
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell"></div>
+        </div>
+        <div class="sub-board won-o">O</div>
+      </div>
+      <div class="scoreboard">
+        <div class="score-chip x"><span class="mark">X</span><span>Ink</span><span class="wins">3</span></div>
+        <div class="score-chip o"><span class="mark">O</span><span>Fox</span><span class="wins">3</span></div>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="macro-strip">
+          <span class="dot won-x"></span><span class="dot"></span><span class="dot won-o"></span>
+          <span class="dot"></span><span class="dot active"></span><span class="dot won-x"></span>
+        </div>
+        <div class="ph-status">
+          <div class="who">Your turn — X</div>
+          <div class="sub">Playing in board 5 · win sends opponent to board 6</div>
+        </div>
+        <div class="ph-board">
+          <div class="ph-cell open">·</div><div class="ph-cell o">O</div><div class="ph-cell open">·</div>
+          <div class="ph-cell x">X</div><div class="ph-cell open">·</div><div class="ph-cell open">·</div>
+          <div class="ph-cell open">·</div><div class="ph-cell open">·</div><div class="ph-cell x">X</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

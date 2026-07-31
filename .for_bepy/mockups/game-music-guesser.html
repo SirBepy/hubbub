@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Music Guesser</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  /* per-game identity: violet/amber, distinct from both TTT games */
+  .layout { display: flex; gap: var(--sp-7); align-items: flex-start; justify-content: center; padding: var(--sp-7); flex-wrap: wrap; }
+  .tv-panel { width: 720px; text-align: center; }
+
+  .now-playing { display: flex; align-items: center; justify-content: center; gap: var(--sp-6); margin-bottom: var(--sp-6); }
+
+  .countdown-ring {
+    width: 84px; height: 84px; border-radius: 50%;
+    background: conic-gradient(var(--p-violet) 0deg 252deg, var(--surface-raised) 252deg 360deg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .countdown-ring .inner {
+    width: 68px; height: 68px; border-radius: 50%; background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: var(--fs-400); font-weight: 600; color: var(--p-violet);
+  }
+
+  /* small EQ motif, header only — no spinning vinyl centerpiece */
+  .eq { display: flex; align-items: flex-end; gap: 3px; height: 32px; }
+  .eq span { width: 5px; border-radius: 2px; background: var(--p-amber); animation: bounce 1s ease-in-out infinite; }
+  .eq span:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .eq span:nth-child(2) { height: 90%; animation-delay: 0.1s; }
+  .eq span:nth-child(3) { height: 60%; animation-delay: 0.2s; }
+  .eq span:nth-child(4) { height: 100%; animation-delay: 0.3s; }
+  .eq span:nth-child(5) { height: 55%; animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+
+  .answers { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+  .answer-card {
+    padding: var(--sp-4); border-radius: var(--r-card); text-align: left;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; gap: var(--sp-3);
+  }
+  .answer-card .letter {
+    width: 32px; height: 32px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: var(--fs-200);
+    background: var(--surface-raised); color: var(--text-2);
+  }
+  .answer-card.leading { border-color: var(--p-amber); }
+  .answer-card.leading .letter { background: var(--p-amber); color: #2a1700; }
+  .answer-card .title { font-weight: 600; font-size: var(--fs-300); }
+  .answer-card .artist { font-size: var(--fs-100); color: var(--text-2); }
+
+  /* phone controller */
+  .ph-timer { text-align: center; font-weight: 600; font-size: var(--fs-200); color: var(--p-violet); margin-bottom: var(--sp-4); display: flex; align-items: center; justify-content: center; gap: var(--sp-1); }
+  .ph-answers { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .ph-answer-btn {
+    padding: var(--sp-3) var(--sp-4); border-radius: var(--r-control); text-align: left;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-1);
+    font-family: var(--font-body); font-size: var(--fs-200); font-weight: 600;
+    display: flex; align-items: center; gap: var(--sp-2);
+  }
+  .ph-answer-btn .letter { color: var(--p-amber); font-family: var(--font-display); }
+  .ph-answer-btn.picked { border-color: var(--p-violet); box-shadow: var(--focus-ring); }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="tv-panel">
+      <div class="now-playing">
+        <div class="eq"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="countdown-ring"><div class="inner">18</div></div>
+      </div>
+
+      <div class="answers">
+        <div class="answer-card leading"><span class="letter">A</span><div><div class="title">Midnight City</div><div class="artist">M83</div></div></div>
+        <div class="answer-card"><span class="letter">B</span><div><div class="title">Instant Crush</div><div class="artist">Daft Punk</div></div></div>
+        <div class="answer-card"><span class="letter">C</span><div><div class="title">電気予報</div><div class="artist">Perfume</div></div></div>
+        <div class="answer-card"><span class="letter">D</span><div><div class="title">Take On Me</div><div class="artist">a-ha</div></div></div>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="ph-timer"><i class="ph-bold ph-timer"></i>18s left</div>
+        <div class="ph-answers">
+          <button class="ph-answer-btn"><span class="letter">A</span>Midnight City</button>
+          <button class="ph-answer-btn"><span class="letter">B</span>Instant Crush</button>
+          <button class="ph-answer-btn picked"><span class="letter">C</span>電気予報</button>
+          <button class="ph-answer-btn"><span class="letter">D</span>Take On Me</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

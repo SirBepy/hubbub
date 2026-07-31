@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Design Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  .wrap { max-width: 960px; margin: 0 auto; padding: var(--sp-8) var(--sp-5) 100px; }
+  .brand { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-1); }
+  .brand i { font-size: 26px; color: var(--accent); }
+  .brand span { font-family: var(--font-display); font-size: var(--fs-500); letter-spacing: 0.03em; }
+  .subtitle { color: var(--text-2); margin: var(--sp-2) 0 var(--sp-7); font-size: var(--fs-300); }
+
+  h2.group { font-size: var(--fs-100); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; color: var(--text-2); margin: var(--sp-7) 0 var(--sp-4); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-4); }
+  a.link-card {
+    text-decoration: none; color: inherit;
+    display: block; padding: var(--sp-5); border-radius: var(--r-card);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  a.link-card:hover { border-color: var(--accent, var(--accent)); }
+  .link-card i { font-size: var(--fs-500); color: var(--accent, var(--accent)); }
+  .link-card .t { font-weight: 600; font-size: var(--fs-300); margin: var(--sp-3) 0 var(--sp-1); }
+  .link-card .d { font-size: var(--fs-200); color: var(--text-2); line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><i class="ph-bold ph-broadcast"></i><span class="display">HUBBUB</span></div>
+    <p class="subtitle">Neon, but disciplined — v2 design system. Static mockups, not wired to the app.</p>
+
+    <h2 class="group">System</h2>
+    <div class="grid">
+      <a class="link-card" href="tokens.css"><i class="ph-bold ph-palette"></i><div class="t">tokens.css</div><div class="d">Surfaces, one product accent, 6 player colors, 4/8px spacing, 12/14/16/20/28/44 type scale.</div></a>
+    </div>
+
+    <h2 class="group">Lobby</h2>
+    <div class="grid">
+      <a class="link-card" href="lobby-screen.html"><i class="ph-bold ph-television"></i><div class="t">Lobby — Screen</div><div class="d">Room code, QR, 12 player chips, 8-game grid at scale, one focused tile.</div></a>
+      <a class="link-card" href="lobby-controller.html"><i class="ph-bold ph-device-mobile"></i><div class="t">Lobby — Controller</div><div class="d">Identity header, scrollable 8-game list, 12-player list with host marker.</div></a>
+    </div>
+
+    <h2 class="group">Games</h2>
+    <div class="grid">
+      <a class="link-card" href="game-tictactoe.html"><i class="ph-bold ph-x-square" style="color:var(--p-cyan);"></i><div class="t">Tic-Tac-Toe</div><div class="d">Cyan X vs magenta O — flat board, hairline grid, one focused cell.</div></a>
+      <a class="link-card" href="game-ultimate-tictactoe.html"><i class="ph-bold ph-dots-nine" style="color:var(--p-lime);"></i><div class="t">Ultimate Tic-Tac-Toe</div><div class="d">Lime X vs blue O — 9-board macro grid, flat won-board tint, one active-board glow.</div></a>
+      <a class="link-card" href="game-music-guesser.html"><i class="ph-bold ph-music-notes" style="color:var(--p-violet);"></i><div class="t">Music Guesser</div><div class="d">Violet/amber — countdown ring, 4 answer cards, small header EQ motif.</div></a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Lobby (Controller)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  body { display: flex; justify-content: center; padding: var(--sp-8) var(--sp-4); }
+  .identity-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-2) var(--sp-3); border-radius: var(--r-pill);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .identity-me { display: flex; align-items: center; gap: var(--sp-2); }
+  .identity-me .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: var(--fs-300);
+    background: var(--surface-raised); border: 1px solid var(--p-magenta);
+  }
+  .identity-me .name { font-weight: 700; font-size: var(--fs-200); }
+  .identity-me .role { font-size: var(--fs-100); color: var(--text-2); }
+  .gear { font-size: 20px; color: var(--text-2); }
+
+  h3.section { font-size: var(--fs-100); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; color: var(--text-2); margin: var(--sp-6) 0 var(--sp-3); display: flex; justify-content: space-between; }
+
+  .ph-game-list { display: flex; flex-direction: column; gap: var(--sp-2); max-height: 320px; overflow-y: auto; padding-right: 2px; }
+  .ph-tile {
+    position: relative;
+    display: flex; align-items: center; gap: var(--sp-3);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card);
+    padding: var(--sp-3);
+  }
+  .ph-tile i.game-icon { font-size: 22px; flex: none; }
+  .ph-tile .tile-title { font-weight: 600; font-size: var(--fs-200); }
+  .ph-tile .tile-meta { font-size: var(--fs-100); color: var(--text-2); }
+  .ph-tile.suggested { border-color: var(--p-lime); }
+  .suggest-tag {
+    margin-left: auto;
+    display: flex; align-items: center; gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-2); border-radius: var(--r-pill);
+    background: var(--p-lime); color: #0e1400; font-weight: 700; font-size: var(--fs-100);
+  }
+
+  .ph-players { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--sp-2); max-height: 300px; overflow-y: auto; padding-right: 2px; }
+  .ph-players li { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-control); background: var(--surface); border: 1px solid var(--border); }
+  .ph-players .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .ph-players .name { font-size: var(--fs-200); font-weight: 600; flex: 1; }
+  .ph-players .tag { font-size: var(--fs-100); color: var(--accent); display: flex; align-items: center; gap: 2px; }
+  .ph-players li.offline { opacity: 0.45; }
+</style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <div class="identity-bar">
+        <div class="identity-me">
+          <div class="avatar">🦊</div>
+          <div>
+            <div class="name">Fox</div>
+            <div class="role">Lobby · not host</div>
+          </div>
+        </div>
+        <i class="ph-bold ph-gear-six gear"></i>
+      </div>
+
+      <h3 class="section"><span>Pick a game</span><span>8</span></h3>
+      <div class="ph-game-list">
+        <div class="ph-tile">
+          <i class="ph-bold ph-x-square game-icon" style="color:var(--p-cyan);"></i>
+          <div><div class="tile-title">Tic-Tac-Toe</div><div class="tile-meta">2 players</div></div>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-dots-nine game-icon" style="color:var(--p-lime);"></i>
+          <div><div class="tile-title">Ultimate Tic-Tac-Toe</div><div class="tile-meta">2 players</div></div>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-music-notes game-icon" style="color:var(--p-violet);"></i>
+          <div><div class="tile-title">Music Guesser</div><div class="tile-meta">2–8 players</div></div>
+        </div>
+        <div class="ph-tile suggested">
+          <i class="ph-bold ph-pencil-simple-line game-icon" style="color:var(--p-magenta);"></i>
+          <div><div class="tile-title">Sketch &amp; Guess</div><div class="tile-meta">3–10 players</div></div>
+          <span class="suggest-tag"><i class="ph-bold ph-hand-heart"></i>You</span>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-question game-icon" style="color:var(--p-amber);"></i>
+          <div><div class="tile-title">Bluff Trivia</div><div class="tile-meta">3–12 players</div></div>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-users-three game-icon" style="color:var(--p-blue);"></i>
+          <div><div class="tile-title">Who's Most Likely</div><div class="tile-meta">4–16 players</div></div>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-dice-six game-icon" style="color:var(--p-cyan);"></i>
+          <div><div class="tile-title">Liar's Dice</div><div class="tile-meta">2–8 players</div></div>
+        </div>
+        <div class="ph-tile">
+          <i class="ph-bold ph-magnifying-glass game-icon" style="color:var(--p-magenta);"></i>
+          <div><div class="tile-title">Spyfall</div><div class="tile-meta">4–12 players</div></div>
+        </div>
+      </div>
+
+      <h3 class="section"><span>Players</span><span>12</span></h3>
+      <ul class="ph-players">
+        <li><span class="dot" style="background:var(--p-magenta);"></span><span class="name">Fox (you)</span></li>
+        <li><span class="dot" style="background:var(--p-cyan);"></span><span class="name">Ink</span><span class="tag"><i class="ph-bold ph-star"></i>host</span></li>
+        <li><span class="dot" style="background:var(--p-lime);"></span><span class="name">Buzz</span></li>
+        <li><span class="dot" style="background:var(--p-amber);"></span><span class="name">Leo</span></li>
+        <li class="offline"><span class="dot" style="background:var(--p-violet);"></span><span class="name">Turt</span></li>
+        <li><span class="dot" style="background:var(--p-blue);"></span><span class="name">Panda</span></li>
+        <li><span class="dot" style="background:var(--p-magenta);"></span><span class="name">Owl</span></li>
+        <li><span class="dot" style="background:var(--p-cyan);"></span><span class="name">Wolf</span></li>
+        <li><span class="dot" style="background:var(--p-lime);"></span><span class="name">Coa</span></li>
+        <li><span class="dot" style="background:var(--p-amber);"></span><span class="name">Uni</span></li>
+        <li><span class="dot" style="background:var(--p-violet);"></span><span class="name">Pip</span></li>
+        <li><span class="dot" style="background:var(--p-blue);"></span><span class="name">Moth</span></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

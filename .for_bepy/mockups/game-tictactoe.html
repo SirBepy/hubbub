@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Hubbub — Tic-Tac-Toe</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  /* per-game identity: cyan X vs magenta O, flat surfaces, hairline grid */
+  .layout { display: flex; gap: var(--sp-7); align-items: flex-start; justify-content: center; padding: var(--sp-7); flex-wrap: wrap; }
+  .tv-panel { width: 720px; text-align: center; }
+
+  .turn-banner {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-5); border-radius: var(--r-pill);
+    background: var(--surface); border: 1px solid var(--border);
+    font-weight: 600; font-size: var(--fs-400); color: var(--p-cyan);
+    margin-bottom: var(--sp-6);
+  }
+
+  .board {
+    display: grid; grid-template-columns: repeat(3, 160px); grid-template-rows: repeat(3, 160px);
+    gap: 1px; justify-content: center; margin: 0 auto var(--sp-6);
+    background: var(--border); border-radius: var(--r-card); overflow: hidden; border: 1px solid var(--border);
+  }
+  .cell {
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 84px; font-weight: 600;
+  }
+  .cell.x { color: var(--p-cyan); }
+  .cell.o { color: var(--p-magenta); }
+  .cell.active { box-shadow: var(--focus-ring); position: relative; z-index: 1; }
+
+  .scoreboard { display: flex; gap: var(--sp-3); justify-content: center; }
+  .score-chip {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4); border-radius: var(--r-card);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .score-chip .mark { font-family: var(--font-display); font-size: var(--fs-400); font-weight: 600; }
+  .score-chip.x .mark { color: var(--p-cyan); }
+  .score-chip.o .mark { color: var(--p-magenta); }
+  .score-chip .wins { font-size: var(--fs-300); font-weight: 700; }
+
+  /* phone controller */
+  .ph-status { text-align: center; margin-bottom: var(--sp-4); }
+  .ph-status .who { font-weight: 700; font-size: var(--fs-400); color: var(--p-cyan); }
+  .ph-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+  .ph-cell {
+    aspect-ratio: 1; background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 34px; font-weight: 600;
+  }
+  .ph-cell.x { color: var(--p-cyan); }
+  .ph-cell.o { color: var(--p-magenta); }
+  .ph-cell.open { color: var(--text-3); }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="tv-panel">
+      <div class="turn-banner"><i class="ph-bold ph-flag-checkered"></i>Ink's turn — playing X</div>
+      <div class="board">
+        <div class="cell x">X</div><div class="cell o">O</div><div class="cell active"></div>
+        <div class="cell"></div><div class="cell x">X</div><div class="cell o">O</div>
+        <div class="cell o">O</div><div class="cell"></div><div class="cell x">X</div>
+      </div>
+      <div class="scoreboard">
+        <div class="score-chip x"><span class="mark">X</span><span>Ink</span><span class="wins">2</span></div>
+        <div class="score-chip o"><span class="mark">O</span><span>Fox</span><span class="wins">1</span></div>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="ph-status"><div class="who">Your turn — X</div></div>
+        <div class="ph-board">
+          <div class="ph-cell x">X</div><div class="ph-cell o">O</div><div class="ph-cell open">·</div>
+          <div class="ph-cell open">·</div><div class="ph-cell x">X</div><div class="ph-cell o">O</div>
+          <div class="ph-cell o">O</div><div class="ph-cell open">·</div><div class="ph-cell x">X</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
