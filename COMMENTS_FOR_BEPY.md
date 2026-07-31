@@ -1,5 +1,14 @@
 # Comments for Bepy
 
+## 2026-07-03 - /autopilot overnight run (in progress)
+
+Task: grind the work queue - ai_todos refactors, game suggestions, mid-game join, lobby UX
+polish, Split Opinions port, Phase 4 LAN-HTTPS decision doc. Oracle: each chunk lands with
+pnpm typecheck + test + build green, committed via /commit; final NEXT_AI_PROMPT.md handoff.
+
+### RUN_LEDGER (chunk -> outcome -> sha)
+- Chunk 1: three ai_todos (dedup GameSummary + Identity into protocol, remove dead hasRoom); floor green (9 typecheck, 72 tests, 4 builds); todo files deleted -> 18c7a4a
+
 ## 2026-06-25 02:30 - /autopilot: multi-game lobby & game picker
 
 Built the full AirConsole-style lobby per the approved spec/plan. No dev-blocking judgment
