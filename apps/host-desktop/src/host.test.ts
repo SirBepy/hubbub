@@ -74,7 +74,7 @@ describe("startHost", () => {
     expect(created.code).toHaveLength(4);
 
     const phone = await open(host.serverUrl);
-    phone.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Ada", color: "#4363d8", emoji: "🦊" }));
+    phone.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Ada", colorId: 3, emoji: "🦊" }));
     const joined = await nextOf(phone, "joined");
     expect(joined.playerId).toBeTruthy();
 

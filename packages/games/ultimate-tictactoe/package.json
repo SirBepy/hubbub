@@ -10,7 +10,7 @@
     "./controller": "./src/controller.tsx"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "@hubbub/sdk": "workspace:*", "zod": "^3.23.0" },
+  "dependencies": { "@hubbub/sdk": "workspace:*", "@hubbub/ui": "workspace:*", "zod": "^3.23.0" },
   "peerDependencies": { "react": "^18.3.0" },
   "peerDependenciesMeta": { "react": { "optional": true } },
   "devDependencies": { "typescript": "^5.5.0", "react": "^18.3.0", "@types/react": "^18.3.0" }

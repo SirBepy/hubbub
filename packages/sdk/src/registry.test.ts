@@ -27,4 +27,13 @@ describe("gameSummaries", () => {
       ["b", true],
     ]);
   });
+
+  it("propagates category and identityColors from meta", () => {
+    const reg: GameRegistry = {
+      a: { ...fake("Alpha", 2, 2), meta: { name: "Alpha", minPlayers: 2, maxPlayers: 2, category: "Strategy", identityColors: [1, 0] } },
+    };
+    expect(gameSummaries(reg)).toEqual([
+      { id: "a", name: "Alpha", minPlayers: 2, maxPlayers: 2, featured: true, category: "Strategy", identityColors: [1, 0] },
+    ]);
+  });
 });

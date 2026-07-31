@@ -10,6 +10,7 @@
   "dependencies": {
     "@hubbub/protocol": "workspace:*",
     "@hubbub/sdk": "workspace:*",
+    "@hubbub/ui": "workspace:*",
     "@hubbub/game-tictactoe": "workspace:*",
     "@hubbub/game-ultimate-tictactoe": "workspace:*",
     "react": "^18.3.0",

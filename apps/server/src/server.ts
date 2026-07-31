@@ -1,5 +1,5 @@
 import { WebSocketServer, type WebSocket } from "ws";
-import { parseClientMessage, type ServerMessage } from "@hubbub/protocol";
+import { parseClientMessage, type GameSummary, type ServerMessage } from "@hubbub/protocol";
 import { GameInstance, gameSummaries, type GameRegistry, type PlayerInfo } from "@hubbub/sdk";
 import { RoomManager } from "./rooms.js";
 
@@ -38,9 +38,7 @@ export function createServer(port: number, games: GameRegistry) {
   const connectedInfo = (code: string): PlayerInfo[] =>
     rooms.connectedPlayers(code).map((p) => ({ id: p.id, name: p.name }));
 
-  function launchAtCursor(code: string) {
-    const summary = summaries[rooms.cursorIndex(code)];
-    if (!summary) return;
+  function launchGame(code: string, summary: GameSummary) {
     const players = connectedInfo(code);
     if (players.length < summary.minPlayers) return;
     instances.set(code, new GameInstance(games[summary.id], players));
@@ -48,6 +46,10 @@ export function createServer(port: number, games: GameRegistry) {
     rooms.clearSuggestions(code);
     broadcastRoomState(code);
     broadcastGameState(code);
+  }
+  function launchAtCursor(code: string) {
+    const summary = summaries[rooms.cursorIndex(code)];
+    if (summary) launchGame(code, summary);
   }
 
   wss.on("connection", (ws) => {
@@ -68,7 +70,7 @@ export function createServer(port: number, games: GameRegistry) {
       }
 
       if (msg.t === "joinRoom") {
-        const result = rooms.join(msg.code, { name: msg.name, color: msg.color, emoji: msg.emoji }, msg.token);
+        const result = rooms.join(msg.code, { name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
         if (!result.ok) { send(ws, { t: "error", code: result.code, message: result.message }); return; }
         cs.role = "controller"; cs.roomCode = msg.code; cs.playerId = result.playerId;
         sockets.get(msg.code)?.add(ws);
@@ -83,12 +85,12 @@ export function createServer(port: number, games: GameRegistry) {
 
       if (msg.t === "setIdentity") {
         if (!cs.playerId) return;
-        rooms.setIdentity(code, cs.playerId, { name: msg.name, color: msg.color, emoji: msg.emoji });
+        rooms.setIdentity(code, cs.playerId, { name: msg.name, colorId: msg.colorId, emoji: msg.emoji });
         broadcastRoomState(code);
         return;
       }
 
-      if (msg.t === "lobbyNav" || msg.t === "lobbyFocus" || msg.t === "lobbyConfirm" || msg.t === "returnToLobby" || msg.t === "transferHost") {
+      if (msg.t === "lobbyNav" || msg.t === "lobbyFocus" || msg.t === "lobbyConfirm" || msg.t === "returnToLobby" || msg.t === "transferHost" || msg.t === "rematch") {
         if (!cs.playerId || !rooms.isHost(code, cs.playerId)) return;
         if (msg.t === "lobbyNav") {
           if (rooms.mode(code) !== "lobby") return;
@@ -108,6 +110,10 @@ export function createServer(port: number, games: GameRegistry) {
           broadcastRoomState(code);
         } else if (msg.t === "transferHost") {
           if (rooms.transferHost(code, cs.playerId, msg.toPlayerId)) broadcastRoomState(code);
+        } else if (msg.t === "rematch") {
+          if (rooms.mode(code) !== "in-game") return;
+          const summary = summaries.find((s) => s.id === rooms.currentGameId(code));
+          if (summary) launchGame(code, summary);
         }
         return;
       }

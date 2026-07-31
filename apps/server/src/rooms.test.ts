@@ -4,8 +4,8 @@ import { RoomManager, type Identity } from "./rooms.js";
 let rm: RoomManager;
 beforeEach(() => (rm = new RoomManager()));
 
-const ann: Identity = { name: "Ann", color: "#e6194B", emoji: "🦊" };
-const bo: Identity = { name: "Bo", color: "#3cb44b", emoji: "🐼" };
+const ann: Identity = { name: "Ann", colorId: 0, emoji: "🦊" };
+const bo: Identity = { name: "Bo", colorId: 1, emoji: "🐼" };
 
 describe("RoomManager", () => {
   it("creates a retrievable room in lobby mode", () => {
@@ -20,7 +20,7 @@ describe("RoomManager", () => {
     const r = rm.join(code, ann);
     expect(r.ok).toBe(true);
     expect(rm.players(code)).toEqual([
-      { id: (r as any).playerId, name: "Ann", color: "#e6194B", emoji: "🦊", connected: true },
+      { id: (r as any).playerId, name: "Ann", colorId: 0, emoji: "🦊", connected: true },
     ]);
     expect(rm.hostId(code)).toBe((r as any).playerId);
     expect(rm.isHost(code, (r as any).playerId)).toBe(true);
@@ -82,8 +82,8 @@ describe("RoomManager", () => {
   it("updates identity in place", () => {
     const code = rm.createRoom();
     const a = rm.join(code, ann) as any;
-    rm.setIdentity(code, a.playerId, { name: "Annie", color: "#000", emoji: "🐱" });
-    expect(rm.players(code)[0]).toMatchObject({ name: "Annie", color: "#000", emoji: "🐱" });
+    rm.setIdentity(code, a.playerId, { name: "Annie", colorId: 2, emoji: "🐱" });
+    expect(rm.players(code)[0]).toMatchObject({ name: "Annie", colorId: 2, emoji: "🐱" });
   });
 
   it("moves and clamps the lobby cursor and sets it absolutely", () => {

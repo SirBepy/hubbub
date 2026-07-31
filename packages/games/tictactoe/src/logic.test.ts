@@ -72,4 +72,27 @@ describe("tic-tac-toe logic", () => {
     for (const [id, cell] of order) s = tttLogic.onAction(s, id, { cell });
     expect(s.winner).toBe("draw");
   });
+
+  it("result() is null while the game is in progress", () => {
+    expect(tttLogic.result!(fresh())).toBeNull();
+  });
+
+  it("result() reports the winning player's id on a win", () => {
+    let s = fresh();
+    for (const [id, cell] of [["a", 0], ["b", 3], ["a", 1], ["b", 4], ["a", 2]] as const) {
+      s = tttLogic.onAction(s, id, { cell });
+    }
+    expect(tttLogic.result!(s)).toEqual({ winnerId: "a", isDraw: false });
+  });
+
+  it("result() reports isDraw on a draw", () => {
+    const order: Array<["a" | "b", number]> = [
+      ["a", 0], ["b", 1], ["a", 2],
+      ["b", 4], ["a", 3], ["b", 5],
+      ["a", 7], ["b", 6], ["a", 8],
+    ];
+    let s = fresh();
+    for (const [id, cell] of order) s = tttLogic.onAction(s, id, { cell });
+    expect(tttLogic.result!(s)).toEqual({ winnerId: null, isDraw: true });
+  });
 });

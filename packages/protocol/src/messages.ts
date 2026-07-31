@@ -1,8 +1,11 @@
 import { z } from "zod";
 
+/** Canonical order of the fixed six player colors; protocol stores only the index. */
+export const PLAYER_COLOR_NAMES = ["magenta", "cyan", "lime", "amber", "violet", "blue"] as const;
+
 export const IdentitySchema = z.object({
   name: z.string().min(1).max(24),
-  color: z.string(),
+  colorId: z.number().int().min(0).max(5),
   emoji: z.string().min(1).max(16),
 });
 export type Identity = z.infer<typeof IdentitySchema>;
@@ -19,6 +22,8 @@ export const GameSummarySchema = z.object({
   minPlayers: z.number().int(),
   maxPlayers: z.number().int().optional(),
   featured: z.boolean(),
+  category: z.string().optional(),
+  identityColors: z.tuple([z.number().int(), z.number().int()]).optional(),
 });
 export type GameSummary = z.infer<typeof GameSummarySchema>;
 
@@ -39,6 +44,7 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("returnToLobby") }),
   z.object({ t: z.literal("transferHost"), toPlayerId: z.string() }),
   z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
+  z.object({ t: z.literal("rematch") }),
   z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;

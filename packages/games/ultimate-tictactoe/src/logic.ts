@@ -54,7 +54,7 @@ function assign(players: PlayerInfo[]): Record<string, Mark> {
 }
 
 export const utttLogic: GameLogic<UTTTState, UTTTAction> = {
-  meta: { name: "Ultimate Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2 },
+  meta: { name: "Ultimate Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, category: "Strategy", identityColors: [3, 5] },
   actionSchema,
 
   init: (players) => ({
@@ -108,5 +108,12 @@ export const utttLogic: GameLogic<UTTTState, UTTTAction> = {
       activeBoard: winner ? null : nextActive,
       winner,
     };
+  },
+
+  result: (state) => {
+    if (state.winner === null) return null;
+    if (state.winner === "draw") return { winnerId: null, isDraw: true };
+    const winnerId = Object.keys(state.assignments).find((id) => state.assignments[id] === state.winner) ?? null;
+    return { winnerId, isDraw: false };
   },
 };

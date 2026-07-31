@@ -11,6 +11,8 @@ export function gameSummaries(registry: GameRegistry, featured?: Set<string>): G
     name: game.meta.name,
     minPlayers: game.meta.minPlayers,
     maxPlayers: game.meta.maxPlayers,
+    category: game.meta.category,
+    identityColors: game.meta.identityColors,
     featured: featured ? featured.has(id) : true,
   }));
 }

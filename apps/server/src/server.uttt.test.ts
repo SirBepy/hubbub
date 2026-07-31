@@ -19,7 +19,7 @@ const nextOf = (ws: WebSocket, t: string) =>
     ws.on("message", h);
   });
 const join = (ws: WebSocket, code: string, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", code, name, color: "#fff", emoji: "🐱" }));
+  ws.send(JSON.stringify({ t: "joinRoom", code, name, colorId: 0, emoji: "🐱" }));
 
 describe("lobby session with real games", () => {
   it("launches ttt, returns to lobby, then launches uttt with the same players", async () => {
@@ -51,6 +51,39 @@ describe("lobby session with real games", () => {
     const uttt = await nextOf(screen, "gameState");
     expect(uttt.gameId).toBe("uttt");
     expect(uttt.state.boards).toHaveLength(9);
+
+    screen.close(); host.close(); guest.close();
+  });
+});
+
+describe("rematch", () => {
+  it("host rematch re-inits the current game fresh; non-host rematch is ignored", async () => {
+    handle = createServer(0, registry);
+    const port = (handle.wss.address() as { port: number }).port;
+    const screen = await open(port);
+    screen.send(JSON.stringify({ t: "createRoom" }));
+    const created = await nextOf(screen, "roomCreated");
+
+    const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
+    const guest = await open(port); join(guest, created.code, "Bo"); await nextOf(guest, "joined");
+
+    host.send(JSON.stringify({ t: "lobbyConfirm" })); // launch ttt (index 0)
+    const ttt = await nextOf(screen, "gameState");
+    expect(ttt.gameId).toBe("ttt");
+
+    host.send(JSON.stringify({ t: "action", payload: { cell: 0 } }));
+    const played = await nextOf(screen, "gameState");
+    expect(played.state.board[0]).toBe("X");
+
+    // non-host rematch is ignored: no new gameState arrives, board stays played
+    guest.send(JSON.stringify({ t: "rematch" }));
+    await new Promise((r) => setTimeout(r, 150));
+
+    host.send(JSON.stringify({ t: "rematch" }));
+    const fresh = await nextOf(screen, "gameState");
+    expect(fresh.gameId).toBe("ttt");
+    expect(fresh.state.board.every((c: unknown) => c === null)).toBe(true);
+    expect(fresh.state.winner).toBeNull();
 
     screen.close(); host.close(); guest.close();
   });

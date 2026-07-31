@@ -35,7 +35,7 @@ export class RoomManager {
     if (token) {
       for (const p of room.players.values()) {
         if (p.token === token) {
-          p.name = identity.name; p.color = identity.color; p.emoji = identity.emoji;
+          p.name = identity.name; p.colorId = identity.colorId; p.emoji = identity.emoji;
           p.connected = true;
           this.ensureHost(room);
           return { ok: true, playerId: p.id, token: p.token };
@@ -45,14 +45,14 @@ export class RoomManager {
 
     const id = newToken();
     const tok = newToken();
-    room.players.set(id, { id, name: identity.name, color: identity.color, emoji: identity.emoji, connected: true, token: tok });
+    room.players.set(id, { id, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, connected: true, token: tok });
     this.ensureHost(room);
     return { ok: true, playerId: id, token: tok };
   }
 
   setIdentity(code: string, playerId: string, identity: Identity): void {
     const p = this.rooms.get(code)?.players.get(playerId);
-    if (p) { p.name = identity.name; p.color = identity.color; p.emoji = identity.emoji; }
+    if (p) { p.name = identity.name; p.colorId = identity.colorId; p.emoji = identity.emoji; }
   }
 
   setConnected(code: string, playerId: string, connected: boolean): void {

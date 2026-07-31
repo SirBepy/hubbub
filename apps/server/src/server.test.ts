@@ -30,14 +30,14 @@ describe("createServer", () => {
     expect(created.code).toHaveLength(4);
 
     const controller = await open(port);
-    controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe", color: "#4363d8", emoji: "🦊" }));
+    controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe", colorId: 3, emoji: "🦊" }));
     const joined = await nextOf(controller, "joined");
 
     const room = await nextOf(screen, "roomState");
     expect(room.mode).toBe("lobby");
     expect(room.hostId).toBe(joined.playerId);
     expect(room.players).toEqual([
-      { id: joined.playerId, name: "Joe", color: "#4363d8", emoji: "🦊", connected: true },
+      { id: joined.playerId, name: "Joe", colorId: 3, emoji: "🦊", connected: true },
     ]);
 
     screen.close();

@@ -207,5 +207,17 @@ describe("ultimate tic-tac-toe logic", () => {
     // Post-win lockout: no further moves accepted
     const after = move(s, "b", 3, 4); // O tries a legal-looking move in an undecided board
     expect(after).toBe(s);            // state unchanged
+    expect(utttLogic.result!(s)).toEqual({ winnerId: "a", isDraw: false });
+  });
+
+  it("result() is null while the game is in progress", () => {
+    expect(utttLogic.result!(fresh())).toBeNull();
+  });
+
+  it("result() reports isDraw when the big board result is a draw", () => {
+    // Force a top-level draw by directly constructing a decided-but-unwon big board.
+    let s = fresh();
+    s = { ...s, bigBoard: ["X", "O", "X", "O", "X", "O", "O", "X", "O"], winner: "draw" };
+    expect(utttLogic.result!(s)).toEqual({ winnerId: null, isDraw: true });
   });
 });

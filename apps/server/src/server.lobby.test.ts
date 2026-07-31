@@ -44,7 +44,7 @@ async function setup() {
   return { port, screen, code: created.code };
 }
 const join = (ws: WebSocket, code: string, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", code, name, color: "#fff", emoji: "🐱" }));
+  ws.send(JSON.stringify({ t: "joinRoom", code, name, colorId: 0, emoji: "🐱" }));
 
 describe("lobby mechanics", () => {
   it("first joiner is host, second is not; non-host confirm is ignored", async () => {

@@ -42,7 +42,7 @@ function assign(players: PlayerInfo[]): Record<string, Mark> {
 }
 
 export const tttLogic: GameLogic<TTTState, TTTAction> = {
-  meta: { name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2 },
+  meta: { name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, category: "Strategy", identityColors: [1, 0] },
   actionSchema,
 
   init: (players) => ({
@@ -83,5 +83,12 @@ export const tttLogic: GameLogic<TTTState, TTTAction> = {
       turn: mark === "X" ? "O" : "X",
       winner: winnerOf(board),
     };
+  },
+
+  result: (state) => {
+    if (state.winner === null) return null;
+    if (state.winner === "draw") return { winnerId: null, isDraw: true };
+    const winnerId = Object.keys(state.assignments).find((id) => state.assignments[id] === state.winner) ?? null;
+    return { winnerId, isDraw: false };
   },
 };

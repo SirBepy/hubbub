@@ -32,6 +32,12 @@ importers:
       '@hubbub/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@hubbub/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@phosphor-icons/react':
+        specifier: ^2.1.7
+        version: 2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.0
         version: 18.3.1
@@ -109,6 +115,9 @@ importers:
       '@hubbub/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@hubbub/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       qrcode:
         specifier: ^1.5.3
         version: 1.5.4
@@ -174,6 +183,9 @@ importers:
       '@hubbub/sdk':
         specifier: workspace:*
         version: link:../../sdk
+      '@hubbub/ui':
+        specifier: workspace:*
+        version: link:../../ui
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -193,6 +205,9 @@ importers:
       '@hubbub/sdk':
         specifier: workspace:*
         version: link:../../sdk
+      '@hubbub/ui':
+        specifier: workspace:*
+        version: link:../../ui
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -231,6 +246,28 @@ importers:
       zod:
         specifier: ^3.23.0
         version: 3.25.76
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      '@fontsource/big-shoulders-display':
+        specifier: ^5.1.0
+        version: 5.3.0
+      '@fontsource/inter':
+        specifier: ^5.1.0
+        version: 5.3.0
+      '@phosphor-icons/react':
+        specifier: ^2.1.7
+        version: 2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@types/react':
         specifier: ^18.3.0
@@ -665,6 +702,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@fontsource/big-shoulders-display@5.3.0':
+    resolution: {integrity: sha512-d4+Tcsq/WfoKeqWfB6wFdeNDsSYYnilJbSNNpf5w53MlWrGHAc9YvkAjC6id6PgFDiGaFKsXfP0RFAQtpt0bog==}
+
+  '@fontsource/inter@5.3.0':
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
@@ -714,6 +757,13 @@ packages:
   '@peculiar/webcrypto@1.7.1':
     resolution: {integrity: sha512-ODOov0sGMJMf3jPonOkgGqPknTsu+DdQ7kD++gz8aI+aFMOMHFbWAA2taqXXVTdP+OTOQR/znGvSpmkeI0WTYQ==}
     engines: {node: '>=14.18.0'}
+
+  '@phosphor-icons/react@2.1.10':
+    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -2599,6 +2649,10 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
+  '@fontsource/big-shoulders-display@5.3.0': {}
+
+  '@fontsource/inter@5.3.0': {}
+
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
       minipass: 7.1.3
@@ -2660,6 +2714,11 @@ snapshots:
       '@peculiar/utils': 2.0.3
       tslib: 2.8.1
       webcrypto-core: 1.9.2
+
+  '@phosphor-icons/react@2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
