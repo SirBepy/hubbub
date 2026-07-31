@@ -1,4 +1,4 @@
-import { type Identity, type Player } from "@hubbub/protocol";
+import { type Identity, type Player, type Suggestion } from "@hubbub/protocol";
 import { newRoomCode, newToken } from "@hubbub/protocol/tokens";
 
 export type RoomMode = "lobby" | "in-game";
@@ -12,6 +12,7 @@ interface Room {
   mode: RoomMode;
   currentGameId: string | null;
   cursorIndex: number;
+  suggestions: Map<string, string>; // playerId -> gameId (latest wins)
 }
 
 export interface JoinOk { ok: true; playerId: string; token: string; }
@@ -23,7 +24,7 @@ export class RoomManager {
   createRoom(): string {
     let code = newRoomCode();
     while (this.rooms.has(code)) code = newRoomCode();
-    this.rooms.set(code, { code, players: new Map(), hostId: null, mode: "lobby", currentGameId: null, cursorIndex: 0 });
+    this.rooms.set(code, { code, players: new Map(), hostId: null, mode: "lobby", currentGameId: null, cursorIndex: 0, suggestions: new Map() });
     return code;
   }
 
@@ -105,6 +106,25 @@ export class RoomManager {
     const room = this.rooms.get(code);
     if (!room || count <= 0) return;
     room.cursorIndex = Math.min(count - 1, Math.max(0, index));
+  }
+
+  /** Sets a player's suggestion (latest wins); suggesting the same game again toggles it off. */
+  suggest(code: string, playerId: string, gameId: string): void {
+    const room = this.rooms.get(code);
+    if (!room || !room.players.has(playerId)) return;
+    if (room.suggestions.get(playerId) === gameId) room.suggestions.delete(playerId);
+    else room.suggestions.set(playerId, gameId);
+  }
+  dropSuggestion(code: string, playerId: string): void {
+    this.rooms.get(code)?.suggestions.delete(playerId);
+  }
+  clearSuggestions(code: string): void {
+    this.rooms.get(code)?.suggestions.clear();
+  }
+  suggestions(code: string): Suggestion[] {
+    const room = this.rooms.get(code);
+    if (!room) return [];
+    return [...room.suggestions].map(([playerId, gameId]) => ({ gameId, playerId }));
   }
 
   connectedPlayers(code: string): Player[] {

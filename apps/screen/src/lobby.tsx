@@ -1,7 +1,7 @@
-import type { GameSummary, Player } from "@hubbub/protocol";
+import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 
 export function Lobby({
-  code, qr, controllerLabel, players, hostId, games, cursorIndex,
+  code, qr, controllerLabel, players, hostId, games, cursorIndex, suggestions,
 }: {
   code: string;
   qr: string;
@@ -10,9 +10,12 @@ export function Lobby({
   hostId: string | null;
   games: GameSummary[];
   cursorIndex: number;
+  suggestions: Suggestion[];
 }) {
   const connectedCount = players.filter((p) => p.connected).length;
   const featured = games.filter((g) => g.featured);
+  const suggestersOf = (gameId: string) =>
+    suggestions.filter((s) => s.gameId === gameId).map((s) => players.find((p) => p.id === s.playerId));
 
   return (
     <div style={{ fontFamily: "system-ui", textAlign: "center" }}>
@@ -31,14 +34,27 @@ export function Lobby({
         {games.map((g, i) => {
           const playable = connectedCount >= g.minPlayers;
           const focused = i === cursorIndex;
+          const suggesters = suggestersOf(g.id);
           return (
             <div key={g.id} style={{
+              position: "relative",
               padding: 20,
               border: focused ? "3px solid #22aa77" : "2px solid #ccc",
               borderRadius: 12,
               opacity: playable ? 1 : 0.45,
               background: focused ? "#eafff6" : "#fff",
             }}>
+              {suggesters.length > 0 && (
+                <span title="Suggested by players" style={{
+                  position: "absolute", top: -10, right: -8,
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "2px 8px", borderRadius: 999,
+                  background: "#22aa77", color: "#fff", fontSize: 12, fontWeight: 600,
+                }}>
+                  {suggesters.map((p, j) => p && <span key={j}>{p.emoji}</span>)}
+                  {suggesters.length}
+                </span>
+              )}
               <div style={{ fontSize: 18, fontWeight: 600 }}>{g.name}</div>
               <div style={{ fontSize: 12, color: "#777" }}>
                 {g.minPlayers}{g.maxPlayers ? `-${g.maxPlayers}` : "+"} players{playable ? "" : " - need more"}

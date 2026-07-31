@@ -24,6 +24,11 @@ describe("protocol messages", () => {
     expect(parseClientMessage(JSON.stringify({ t: "returnToLobby" }))).toEqual({ t: "returnToLobby" });
     expect(parseClientMessage(JSON.stringify({ t: "transferHost", toPlayerId: "p2" }))).toEqual({ t: "transferHost", toPlayerId: "p2" });
     expect(parseClientMessage(JSON.stringify({ t: "setIdentity", name: "Jo", color: "#000", emoji: "🐼" }))).toEqual({ t: "setIdentity", name: "Jo", color: "#000", emoji: "🐼" });
+    expect(parseClientMessage(JSON.stringify({ t: "suggestGame", gameId: "ttt" }))).toEqual({ t: "suggestGame", gameId: "ttt" });
+  });
+
+  it("rejects suggestGame without a gameId", () => {
+    expect(() => parseClientMessage(JSON.stringify({ t: "suggestGame" }))).toThrow();
   });
 
   it("rejects lobbyNav with a bad direction", () => {
@@ -44,7 +49,17 @@ describe("protocol messages", () => {
       currentGameId: null,
       cursorIndex: 0,
       games: [{ id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, featured: true }],
+      suggestions: [{ gameId: "ttt", playerId: "p1" }],
     };
     expect(parseServerMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
+  it("rejects a roomState missing suggestions", () => {
+    expect(() =>
+      parseServerMessage(JSON.stringify({
+        t: "roomState", players: [], hostId: null, mode: "lobby",
+        currentGameId: null, cursorIndex: 0, games: [],
+      }))
+    ).toThrow();
   });
 });

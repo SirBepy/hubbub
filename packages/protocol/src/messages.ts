@@ -22,6 +22,12 @@ export const GameSummarySchema = z.object({
 });
 export type GameSummary = z.infer<typeof GameSummarySchema>;
 
+export const SuggestionSchema = z.object({
+  gameId: z.string(),
+  playerId: z.string(),
+});
+export type Suggestion = z.infer<typeof SuggestionSchema>;
+
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("createRoom") }),
@@ -32,6 +38,7 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("lobbyConfirm") }),
   z.object({ t: z.literal("returnToLobby") }),
   z.object({ t: z.literal("transferHost"), toPlayerId: z.string() }),
+  z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
   z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -48,6 +55,7 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
     currentGameId: z.string().nullable(),
     cursorIndex: z.number().int(),
     games: z.array(GameSummarySchema),
+    suggestions: z.array(SuggestionSchema),
   }),
   z.object({ t: z.literal("gameState"), gameId: z.string(), state: z.unknown() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),

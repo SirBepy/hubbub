@@ -26,6 +26,7 @@ export function createServer(port: number, games: GameRegistry) {
       currentGameId: rooms.currentGameId(code),
       cursorIndex: rooms.cursorIndex(code),
       games: summaries,
+      suggestions: rooms.suggestions(code),
     });
   }
   function broadcastGameState(code: string) {
@@ -44,6 +45,7 @@ export function createServer(port: number, games: GameRegistry) {
     if (players.length < summary.minPlayers) return;
     instances.set(code, new GameInstance(games[summary.id], players));
     rooms.setMode(code, "in-game", summary.id);
+    rooms.clearSuggestions(code);
     broadcastRoomState(code);
     broadcastGameState(code);
   }
@@ -102,10 +104,19 @@ export function createServer(port: number, games: GameRegistry) {
         } else if (msg.t === "returnToLobby") {
           instances.delete(code);
           rooms.setMode(code, "lobby", null);
+          rooms.clearSuggestions(code);
           broadcastRoomState(code);
         } else if (msg.t === "transferHost") {
           if (rooms.transferHost(code, cs.playerId, msg.toPlayerId)) broadcastRoomState(code);
         }
+        return;
+      }
+
+      if (msg.t === "suggestGame") {
+        if (!cs.playerId || rooms.mode(code) !== "lobby") return;
+        if (!games[msg.gameId]) return;
+        rooms.suggest(code, cs.playerId, msg.gameId);
+        broadcastRoomState(code);
         return;
       }
 
@@ -125,6 +136,7 @@ export function createServer(port: number, games: GameRegistry) {
       sockets.get(cs.roomCode)?.delete(ws);
       if (cs.role === "controller" && cs.playerId) {
         rooms.setConnected(cs.roomCode, cs.playerId, false);
+        rooms.dropSuggestion(cs.roomCode, cs.playerId);
         broadcastRoomState(cs.roomCode);
       }
     });

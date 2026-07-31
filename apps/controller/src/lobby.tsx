@@ -1,16 +1,29 @@
-import type { GameSummary, Player } from "@hubbub/protocol";
+import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 
 type Dir = "up" | "down" | "left" | "right";
 export function ControllerLobby({
-  players, hostId, games, cursorIndex, playerId, isHost,
-  onNav, onFocus, onConfirm, onTransferHost, onOpenSettings,
+  players, hostId, games, cursorIndex, suggestions, playerId, isHost,
+  onNav, onFocus, onConfirm, onTransferHost, onSuggest, onOpenSettings,
 }: {
-  players: Player[]; hostId: string | null; games: GameSummary[]; cursorIndex: number;
+  players: Player[]; hostId: string | null; games: GameSummary[]; cursorIndex: number; suggestions: Suggestion[];
   playerId: string; isHost: boolean;
   onNav: (d: Dir) => void; onFocus: (i: number) => void; onConfirm: () => void;
-  onTransferHost: (id: string) => void; onOpenSettings: () => void;
+  onTransferHost: (id: string) => void; onSuggest: (gameId: string) => void; onOpenSettings: () => void;
 }) {
   const connectedCount = players.filter((p) => p.connected).length;
+  const suggestersOf = (gameId: string) =>
+    suggestions.filter((s) => s.gameId === gameId).map((s) => players.find((p) => p.id === s.playerId));
+  const badge = (suggesters: (Player | undefined)[]) => suggesters.length > 0 && (
+    <span style={{
+      position: "absolute", top: -8, right: -6,
+      display: "inline-flex", alignItems: "center", gap: 2,
+      padding: "1px 6px", borderRadius: 999,
+      background: "#22aa77", color: "#fff", fontSize: 10, fontWeight: 600,
+    }}>
+      {suggesters.map((p, j) => p && <span key={j}>{p.emoji}</span>)}
+      {suggesters.length}
+    </span>
+  );
   return (
     <main style={{ fontFamily: "system-ui", padding: 16, maxWidth: 380, margin: "0 auto", textAlign: "center" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -33,7 +46,8 @@ export function ControllerLobby({
               return (
                 <button key={g.id} disabled={!playable}
                   onClick={() => { onFocus(i); onConfirm(); }}
-                  style={{ padding: 12, border: i === cursorIndex ? "3px solid #22aa77" : "2px solid #ccc", borderRadius: 10, opacity: playable ? 1 : 0.5 }}>
+                  style={{ position: "relative", padding: 12, border: i === cursorIndex ? "3px solid #22aa77" : "2px solid #ccc", borderRadius: 10, opacity: playable ? 1 : 0.5 }}>
+                  {badge(suggestersOf(g.id))}
                   <div style={{ fontWeight: 600 }}>{g.name}</div>
                   <div style={{ fontSize: 11, color: "#777" }}>{g.minPlayers}{g.maxPlayers ? `-${g.maxPlayers}` : "+"}</div>
                 </button>
@@ -42,7 +56,22 @@ export function ControllerLobby({
           </div>
         </>
       ) : (
-        <p style={{ margin: "24px 0" }}>Waiting for the host to pick a game…</p>
+        <>
+          <p style={{ margin: "16px 0 8px" }}>Waiting for the host to pick a game… tap to suggest one</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+            {games.map((g) => {
+              const mine = suggestions.some((s) => s.gameId === g.id && s.playerId === playerId);
+              return (
+                <button key={g.id} onClick={() => onSuggest(g.id)}
+                  style={{ position: "relative", padding: 12, border: mine ? "3px solid #22aa77" : "2px solid #ccc", borderRadius: 10 }}>
+                  {badge(suggestersOf(g.id))}
+                  <div style={{ fontWeight: 600 }}>{g.name}</div>
+                  <div style={{ fontSize: 11, color: "#777" }}>{g.minPlayers}{g.maxPlayers ? `-${g.maxPlayers}` : "+"}</div>
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <h3>Players ({connectedCount})</h3>

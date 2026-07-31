@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { WebSocketClientTransport, type GameSummary, type Player } from "@hubbub/protocol";
+import { WebSocketClientTransport, type GameSummary, type Player, type Suggestion } from "@hubbub/protocol";
 import { getScreen } from "./game";
 import { Lobby } from "./lobby";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
@@ -12,6 +12,7 @@ interface RoomState {
   currentGameId: string | null;
   cursorIndex: number;
   games: GameSummary[];
+  suggestions: Suggestion[];
 }
 
 interface GameState {
@@ -43,6 +44,7 @@ export function App() {
             currentGameId: msg.currentGameId,
             cursorIndex: msg.cursorIndex,
             games: msg.games,
+            suggestions: msg.suggestions,
           });
         } else if (msg.t === "gameState") {
           setGame({ gameId: msg.gameId, state: msg.state });
@@ -77,6 +79,7 @@ export function App() {
         hostId={room?.hostId ?? null}
         games={room?.games ?? []}
         cursorIndex={room?.cursorIndex ?? 0}
+        suggestions={room?.suggestions ?? []}
       />
     </main>
   );

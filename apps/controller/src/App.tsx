@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from "react";
-import { WebSocketClientTransport } from "@hubbub/protocol";
+import { WebSocketClientTransport, type Suggestion } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { getController } from "./game";
 import { ControllerLobby } from "./lobby";
@@ -16,6 +16,7 @@ type RoomState = {
   currentGameId: string | null;
   cursorIndex: number;
   games: { id: string; name: string; minPlayers: number; maxPlayers?: number; featured: boolean }[];
+  suggestions: Suggestion[];
 };
 type GameSlot = { gameId: string; state: any };
 
@@ -117,12 +118,14 @@ export function App() {
         hostId={room.hostId}
         games={room.games}
         cursorIndex={room.cursorIndex}
+        suggestions={room.suggestions}
         playerId={playerId}
         isHost={isHost}
         onNav={(dir) => transportRef.current?.send({ t: "lobbyNav", dir })}
         onFocus={(index) => transportRef.current?.send({ t: "lobbyFocus", index })}
         onConfirm={() => transportRef.current?.send({ t: "lobbyConfirm" })}
         onTransferHost={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
+        onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
         onOpenSettings={() => setSettingsOpen(true)}
       />
     );
