@@ -173,14 +173,27 @@ command if it appears.
 Hubbub-side registration changes (Step 5) get committed in `hubbub` via a separate
 `/commit` call - the two repos never share a commit.
 
-## Step 7 - hand off implementation
+## Step 7 - mockup gate (BEFORE any implementation)
+
+Joe approves visuals before real code gets written - always (see the
+"disciplined design taste" project memory: mockup-approval loop before real code).
+Run `/mockup` for the game's two views (screen + controller, phone-framed for the
+controller), reusing `@hubbub/ui` tokens/components and honoring the design
+one-liners in Notes below. Show Joe the result and wait for his approval; iterate
+on his feedback. Only a user prompt that explicitly says to skip visuals (e.g.
+"no mockup, just build it") bypasses this gate - full-auto/autonomous mode does NOT
+bypass it: if Joe is AFK, stop after the mockup and park implementation until he
+reacts. The approved mockup files/screenshots become part of the builder's brief in
+Step 8.
+
+## Step 8 - hand off implementation
 
 Two modes:
 
 - **(a) Same-session (default unless the user said otherwise):** dispatch a
-  builder subagent with `KICKOFF.md` as its brief, working in
-  `..\hubbub-game-<gameId>`. Subagents stage but never commit - the dispatch prompt
-  must say so explicitly, per the global rule.
+  builder subagent with `KICKOFF.md` + the approved Step 7 mockup as its brief,
+  working in `..\hubbub-game-<gameId>`. Subagents stage but never commit - the
+  dispatch prompt must say so explicitly, per the global rule.
 - **(b) Next-session:** tell the user the repo is ready and that a fresh session
   started in `..\hubbub-game-<gameId>` should begin with "read KICKOFF.md and
   build".
