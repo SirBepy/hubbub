@@ -34,6 +34,16 @@ From the user's idea prompt, decide:
   `hubbub-game-template/src/screen.tsx` does.
 - Controller interaction shape: timed/full-bleed single-button (like the sample's
   `GlowButton` tap target) vs a grid of choices - whichever matches the idea.
+  **Dual-input rule (Joe, 2026-08-01): phones are not the only controllers** - keyboard
+  and gamepad are first-class future inputs (spec section 9). Design every interaction
+  as logical actions a D-pad can drive: cursor + select over free-pointer taps, discrete
+  choice grids over sliders/gestures, text entry only where genuinely unavoidable (e.g.
+  pasting a URL) and never on the core play loop.
+- Visual identity: **every game gets its own background treatment, distinct from the
+  lobby and from other games** (Joe, 2026-08-01: "i dont want the color palette to look
+  the same for every game"). CSS-only (no image assets): e.g. identityColors-tinted
+  gradients, a subtle thematic motif in pure CSS. Still bound by the design rules -
+  tokens/colorHex only, surfaces never animate, one glow per view.
 
 Only ask the user (AskUserQuestion, per global rules) if the idea is genuinely
 ambiguous on a product-level fork (e.g. turn-based vs real-time changes the whole
