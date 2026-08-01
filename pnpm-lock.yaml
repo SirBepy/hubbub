@@ -168,6 +168,9 @@ importers:
 
   packages/games-manifest:
     dependencies:
+      '@hubbub/game-music-guesser':
+        specifier: link:../../../hubbub-game-music-guesser
+        version: link:../../../hubbub-game-music-guesser
       '@hubbub/game-tap-race':
         specifier: link:../../../hubbub-game-tap-race
         version: link:../../../hubbub-game-tap-race

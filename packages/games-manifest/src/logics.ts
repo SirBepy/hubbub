@@ -5,11 +5,13 @@ import type { GameRegistry } from "@hubbub/sdk";
 import { tttLogic } from "@hubbub/game-tictactoe";
 import { utttLogic } from "@hubbub/game-ultimate-tictactoe";
 import { tapRaceLogic } from "@hubbub/game-tap-race";
+import { musicGuesserLogic } from "@hubbub/game-music-guesser";
 
 export const GAME_LOGICS: GameRegistry = {
   ttt: tttLogic,
   uttt: utttLogic,
   "tap-race": tapRaceLogic,
+  "music-guesser": musicGuesserLogic,
 };
 
 export const GAME_IDS = Object.keys(GAME_LOGICS);
