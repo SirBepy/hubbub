@@ -1,7 +1,14 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import { parseClientMessage, type GameSummary, type ServerMessage } from "@hubbub/protocol";
-import { GameInstance, gameSummaries, type GameRegistry, type PlayerInfo } from "@hubbub/sdk";
+import { GameInstance, gameSummaries, visibleSettingsFields, type GameRegistry, type PlayerInfo, type SettingsField } from "@hubbub/sdk";
+import { getSettingsSchema } from "@hubbub/games/settings";
 import { RoomManager } from "./rooms.js";
+
+function defaultConfigValues(schema: SettingsField[]): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const f of schema) values[f.key] = f.default;
+  return values;
+}
 
 interface ConnState { roomCode?: string; playerId?: string; role?: "screen" | "controller"; }
 
@@ -29,6 +36,7 @@ export function createServer(port: number, games: GameRegistry) {
       cursorIndex: rooms.cursorIndex(code),
       games: summaries,
       suggestions: rooms.suggestions(code),
+      config: rooms.config(code),
     });
   }
   function broadcastGameState(code: string) {
@@ -81,6 +89,7 @@ export function createServer(port: number, games: GameRegistry) {
     lastOptions.set(code, options);
     instances.set(code, new GameInstance(logic, players, setupData, Date.now()));
     rooms.setMode(code, "in-game", summary.id);
+    rooms.clearConfig(code);
     rooms.clearSuggestions(code);
     broadcastRoomState(code);
     broadcastGameState(code);
@@ -163,6 +172,56 @@ export function createServer(port: number, games: GameRegistry) {
         if (!games[msg.gameId]) return;
         rooms.suggest(code, cs.playerId, msg.gameId);
         broadcastRoomState(code);
+        return;
+      }
+
+      if (msg.t === "configStart") {
+        if (!cs.playerId || !rooms.isHost(code, cs.playerId)) return;
+        if (rooms.mode(code) !== "lobby") return;
+        const summary = summaries[rooms.cursorIndex(code)];
+        if (!summary) return;
+        const schema = getSettingsSchema(summary.id);
+        // No schema (ttt/uttt/tap-race) - skip configuring entirely, start exactly as today.
+        if (!schema) { launchAtCursor(code, undefined, ws); return; }
+        rooms.startConfig(code, summary.id, defaultConfigValues(schema));
+        broadcastRoomState(code);
+        return;
+      }
+
+      if (msg.t === "configCursor" || msg.t === "configAdjust" || msg.t === "configSet" || msg.t === "configConfirm" || msg.t === "configCancel") {
+        if (!cs.playerId || !rooms.isHost(code, cs.playerId)) return;
+        if (rooms.mode(code) !== "configuring") return;
+        const cfg = rooms.config(code);
+        if (!cfg) return;
+        const schema = getSettingsSchema(cfg.gameId) ?? [];
+
+        if (msg.t === "configCursor") {
+          rooms.moveConfigCursor(code, msg.dir, visibleSettingsFields(schema, cfg.values).length);
+          broadcastRoomState(code);
+        } else if (msg.t === "configAdjust") {
+          const field = schema.find((f) => f.key === msg.field && f.type === "choice");
+          if (field?.options?.length) {
+            const curIdx = Math.max(0, field.options.findIndex((o) => o.value === cfg.values[msg.field]));
+            const delta = msg.dir === "left" ? -1 : 1;
+            const opts = field.options;
+            const nextIdx = ((curIdx + delta) % opts.length + opts.length) % opts.length;
+            rooms.setConfigValue(code, msg.field, opts[nextIdx].value);
+            rooms.clampConfigCursor(code, visibleSettingsFields(schema, rooms.config(code)!.values).length);
+            broadcastRoomState(code);
+          }
+        } else if (msg.t === "configSet") {
+          const field = schema.find((f) => f.key === msg.field && f.type === "text");
+          if (field) {
+            rooms.setConfigValue(code, msg.field, msg.value);
+            broadcastRoomState(code);
+          }
+        } else if (msg.t === "configConfirm") {
+          const summary = summaries.find((s) => s.id === cfg.gameId);
+          if (summary) void launchGame(code, summary, { ...cfg.values }, ws);
+        } else if (msg.t === "configCancel") {
+          rooms.cancelConfig(code);
+          broadcastRoomState(code);
+        }
         return;
       }
 

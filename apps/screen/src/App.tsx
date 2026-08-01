@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { WebSocketClientTransport, type GameSummary, type Player, type Suggestion } from "@hubbub/protocol";
+import { WebSocketClientTransport, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { visibleSettingsFields } from "@hubbub/sdk";
 import { TVStage, GameTopBar, PlayerPill, EndOfRoundScreen, colorHex } from "@hubbub/ui";
-import { getScreen, getLogic } from "./game";
+import { getScreen, getLogic, getSettingsSchema } from "./game";
 import { Lobby } from "./lobby";
+import { ConfigPanel } from "./config-panel";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
 
 interface RoomState {
   players: Player[];
   hostId: string | null;
-  mode: "lobby" | "in-game";
+  mode: "lobby" | "configuring" | "in-game";
   currentGameId: string | null;
   cursorIndex: number;
   games: GameSummary[];
   suggestions: Suggestion[];
+  config: RoomConfig | null;
 }
 
 interface GameState {
@@ -46,6 +49,7 @@ export function App() {
             cursorIndex: msg.cursorIndex,
             games: msg.games,
             suggestions: msg.suggestions,
+            config: msg.config ?? null,
           });
         } else if (msg.t === "gameState") {
           setGame({ gameId: msg.gameId, state: msg.state });
@@ -108,6 +112,22 @@ export function App() {
             <Screen state={game.state} players={players} />
           </div>
         </div>
+      </TVStage>
+    );
+  }
+
+  if (room?.mode === "configuring" && room.config) {
+    const schema = getSettingsSchema(room.config.gameId) ?? [];
+    const gameName = room.games.find((g) => g.id === room.config!.gameId)?.name ?? "";
+    return (
+      <TVStage>
+        <ConfigPanel
+          code={code}
+          gameName={gameName}
+          fields={visibleSettingsFields(schema, room.config.values)}
+          values={room.config.values}
+          cursorIndex={room.config.cursorIndex}
+        />
       </TVStage>
     );
   }

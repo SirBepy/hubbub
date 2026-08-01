@@ -33,6 +33,16 @@ export const SuggestionSchema = z.object({
 });
 export type Suggestion = z.infer<typeof SuggestionSchema>;
 
+// Draft state for the "configuring" room mode - server-owned, initialized from the game's
+// SettingsSchema defaults (packages/sdk). Values are always strings; the game's own setup()
+// coerces them (see hubbub-game-music-guesser's setup.ts).
+export const RoomConfigSchema = z.object({
+  gameId: z.string(),
+  cursorIndex: z.number().int(),
+  values: z.record(z.string()),
+});
+export type RoomConfig = z.infer<typeof RoomConfigSchema>;
+
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("createRoom") }),
@@ -48,6 +58,14 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
   z.object({ t: z.literal("rematch") }),
   z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
+  // Pre-game config phase (host-only, server-enforced) - the TV renders the panel, the phone is
+  // the remote. Schema-less games never see these; their lobbyConfirm path is untouched above.
+  z.object({ t: z.literal("configStart") }),
+  z.object({ t: z.literal("configCursor"), dir: z.enum(["up", "down"]) }),
+  z.object({ t: z.literal("configAdjust"), field: z.string(), dir: z.enum(["left", "right"]) }),
+  z.object({ t: z.literal("configSet"), field: z.string(), value: z.string() }),
+  z.object({ t: z.literal("configConfirm") }),
+  z.object({ t: z.literal("configCancel") }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -59,11 +77,12 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
     t: z.literal("roomState"),
     players: z.array(PlayerSchema),
     hostId: z.string().nullable(),
-    mode: z.enum(["lobby", "in-game"]),
+    mode: z.enum(["lobby", "configuring", "in-game"]),
     currentGameId: z.string().nullable(),
     cursorIndex: z.number().int(),
     games: z.array(GameSummarySchema),
     suggestions: z.array(SuggestionSchema),
+    config: RoomConfigSchema.nullable().optional(),
   }),
   z.object({ t: z.literal("gameState"), gameId: z.string(), state: z.unknown() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),

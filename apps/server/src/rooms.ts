@@ -1,8 +1,10 @@
 import { type Identity, type Player, type Suggestion } from "@hubbub/protocol";
 import { newRoomCode, newToken } from "@hubbub/protocol/tokens";
 
-export type RoomMode = "lobby" | "in-game";
+export type RoomMode = "lobby" | "configuring" | "in-game";
 export type { Identity };
+
+export interface RoomConfig { gameId: string; cursorIndex: number; values: Record<string, string>; }
 
 interface StoredPlayer extends Player { token: string; }
 interface Room {
@@ -13,6 +15,7 @@ interface Room {
   currentGameId: string | null;
   cursorIndex: number;
   suggestions: Map<string, string>; // playerId -> gameId (latest wins)
+  config: RoomConfig | null;
 }
 
 export interface JoinOk { ok: true; playerId: string; token: string; }
@@ -24,7 +27,7 @@ export class RoomManager {
   createRoom(): string {
     let code = newRoomCode();
     while (this.rooms.has(code)) code = newRoomCode();
-    this.rooms.set(code, { code, players: new Map(), hostId: null, mode: "lobby", currentGameId: null, cursorIndex: 0, suggestions: new Map() });
+    this.rooms.set(code, { code, players: new Map(), hostId: null, mode: "lobby", currentGameId: null, cursorIndex: 0, suggestions: new Map(), config: null });
     return code;
   }
 
@@ -94,6 +97,44 @@ export class RoomManager {
     if (!room) return;
     room.mode = mode;
     room.currentGameId = gameId;
+  }
+
+  config(code: string): RoomConfig | null { return this.rooms.get(code)?.config ?? null; }
+
+  startConfig(code: string, gameId: string, defaults: Record<string, string>): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    room.mode = "configuring";
+    room.config = { gameId, cursorIndex: 0, values: { ...defaults } };
+  }
+
+  moveConfigCursor(code: string, dir: "up" | "down", fieldCount: number): void {
+    const room = this.rooms.get(code);
+    if (!room?.config || fieldCount <= 0) return;
+    const delta = dir === "up" ? -1 : 1;
+    room.config.cursorIndex = Math.min(fieldCount - 1, Math.max(0, room.config.cursorIndex + delta));
+  }
+  /** Re-clamps the cursor after a showIf toggle changes the visible field count. */
+  clampConfigCursor(code: string, fieldCount: number): void {
+    const room = this.rooms.get(code);
+    if (!room?.config || fieldCount <= 0) return;
+    room.config.cursorIndex = Math.min(fieldCount - 1, Math.max(0, room.config.cursorIndex));
+  }
+
+  setConfigValue(code: string, field: string, value: string): void {
+    const room = this.rooms.get(code);
+    if (room?.config) room.config.values[field] = value;
+  }
+
+  cancelConfig(code: string): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    room.mode = "lobby";
+    room.config = null;
+  }
+  clearConfig(code: string): void {
+    const room = this.rooms.get(code);
+    if (room) room.config = null;
   }
 
   moveCursor(code: string, dir: "up" | "down" | "left" | "right", count: number): void {

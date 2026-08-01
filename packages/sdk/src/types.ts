@@ -19,6 +19,27 @@ export interface GameResult {
   isDraw: boolean;
 }
 
+export interface SettingsFieldOption {
+  value: string;
+  label: string;
+}
+
+/** One row of a pre-game config schema. Values are always strings - numbers are discrete
+ * choice options (D-pad drivable), never free numeric input. */
+export interface SettingsField {
+  key: string;
+  label: string;
+  type: "choice" | "text";
+  /** Required when type is "choice"; cycled left/right via configAdjust. */
+  options?: SettingsFieldOption[];
+  default: string;
+  placeholder?: string;
+  /** Field only visible (and skipped by cursor/cycle) when values[field] === value. */
+  showIf?: { field: string; value: string };
+}
+
+export type SettingsSchema = SettingsField[];
+
 /** Server clock at the moment something happened. Games read `now` from here, never call Date.now() themselves. */
 export interface ActionContext {
   now: number;

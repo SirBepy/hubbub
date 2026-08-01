@@ -1,9 +1,11 @@
 import { useRef, useState, type CSSProperties } from "react";
-import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary } from "@hubbub/protocol";
+import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
+import { visibleSettingsFields } from "@hubbub/sdk";
 import { Avatar, GlowButton, NeutralButton, colorHex, colorName } from "@hubbub/ui";
-import { getController, getLogic, getSettings } from "./game";
+import { getController, getLogic, getSettingsSchema } from "./game";
 import { ControllerLobby } from "./lobby";
+import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { SERVER_URL } from "./config";
@@ -13,11 +15,12 @@ const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
 type RoomState = {
   players: Player[];
   hostId: string | null;
-  mode: "lobby" | "in-game";
+  mode: "lobby" | "configuring" | "in-game";
   currentGameId: string | null;
   cursorIndex: number;
   games: GameSummary[];
   suggestions: Suggestion[];
+  config: RoomConfig | null;
 };
 type GameSlot = { gameId: string; state: any };
 
@@ -30,8 +33,7 @@ export function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
-  const [gameSetupError, setGameSetupError] = useState("");
+  const [configError, setConfigError] = useState("");
   const transportRef = useRef<WebSocketClientTransport>();
 
   const isHost = room?.hostId === playerId;
@@ -53,10 +55,9 @@ export function App() {
         setGame({ gameId: msg.gameId, state: msg.state });
       } else if (msg.t === "error") {
         // A failed per-game setup (e.g. Music Guesser's Deezer fetch) happens mid-room, after
-        // join - surface it back into the settings panel instead of ejecting to the join screen.
+        // join - surface it back into the config remote instead of ejecting to the join screen.
         if (msg.code === "setup_failed") {
-          setGameSetupError(msg.message);
-          setGameSettingsOpen(true);
+          setConfigError(msg.message);
         } else {
           setError(msg.message);
           setStatus("error");
@@ -99,19 +100,22 @@ export function App() {
       );
     }
 
-    const focusedGame = room.games[room.cursorIndex] ?? null;
-    const GameSettings = getSettings(focusedGame?.id ?? null);
-
-    if (gameSettingsOpen && GameSettings) {
+    if (room.mode === "configuring" && room.config) {
+      const schema = getSettingsSchema(room.config.gameId) ?? [];
+      const gameName = room.games.find((g) => g.id === room.config!.gameId)?.name ?? "";
       return (
-        <GameSettings
-          error={gameSetupError}
-          onConfirm={(options) => {
-            setGameSetupError("");
-            transportRef.current?.send({ t: "lobbyConfirm", options });
-            setGameSettingsOpen(false);
-          }}
-          onCancel={() => { setGameSetupError(""); setGameSettingsOpen(false); }}
+        <ConfigRemote
+          gameName={gameName}
+          fields={visibleSettingsFields(schema, room.config.values)}
+          values={room.config.values}
+          cursorIndex={room.config.cursorIndex}
+          isHost={isHost}
+          error={configError}
+          onCursor={(dir) => transportRef.current?.send({ t: "configCursor", dir })}
+          onAdjust={(field, dir) => transportRef.current?.send({ t: "configAdjust", field, dir })}
+          onSet={(field, value) => transportRef.current?.send({ t: "configSet", field, value })}
+          onConfirm={() => { setConfigError(""); transportRef.current?.send({ t: "configConfirm" }); }}
+          onCancel={() => { setConfigError(""); transportRef.current?.send({ t: "configCancel" }); }}
         />
       );
     }
@@ -186,10 +190,7 @@ export function App() {
         playerId={playerId}
         isHost={isHost}
         onFocus={(index) => transportRef.current?.send({ t: "lobbyFocus", index })}
-        onConfirm={() => {
-          if (GameSettings) setGameSettingsOpen(true);
-          else transportRef.current?.send({ t: "lobbyConfirm" });
-        }}
+        onConfirm={() => transportRef.current?.send({ t: "configStart" })}
         onTransferHost={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
         onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
         onOpenSettings={() => setSettingsOpen(true)}
