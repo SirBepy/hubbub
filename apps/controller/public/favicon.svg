@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Hubbub">
+  <rect width="64" height="64" rx="14" fill="#a8e639"/>
+  <g transform="translate(6.7 6.7) scale(0.79)">
+    <path d="M31,5 C48,3 61,15 58,32 C55,50 43,61 26,57 C11,54 3,42 7,26 C10,13 19,6 31,5 Z"
+          fill="#ffffff" stroke="#0a0a0e" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="22" cy="25" r="5.5" fill="#0a0a0e"/>
+    <circle cx="43" cy="29" r="4" fill="#0a0a0e"/>
+    <path d="M19,36 Q31,53 45,38 Z" fill="#0a0a0e" stroke="#0a0a0e" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M27,37 h7 v6 h-7 z" fill="#ffffff"/>
+    <path d="M28,46 q6,6 11,-1 q-6,-3 -11,1 z" fill="#f0a836"/>
+  </g>
+</svg>
