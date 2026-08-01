@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/logics.ts",
     "./screens": "./src/screens.ts",
-    "./controllers": "./src/controllers.ts"
+    "./controllers": "./src/controllers.ts",
+    "./settings": "./src/settings.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": {

@@ -28,6 +28,11 @@ describe("protocol messages", () => {
     expect(parseClientMessage(JSON.stringify({ t: "rematch" }))).toEqual({ t: "rematch" });
   });
 
+  it("parses lobbyConfirm carrying per-game start options", () => {
+    const raw = { t: "lobbyConfirm", options: { roundCount: 5, source: { kind: "category", categoryId: "80s" } } };
+    expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
   it("rejects suggestGame without a gameId", () => {
     expect(() => parseClientMessage(JSON.stringify({ t: "suggestGame" }))).toThrow();
   });

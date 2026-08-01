@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { Avatar, GlowButton, NeutralButton, colorHex, colorName } from "@hubbub/ui";
-import { getController, getLogic } from "./game";
+import { getController, getLogic, getSettings } from "./game";
 import { ControllerLobby } from "./lobby";
 import { Settings } from "./settings";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
@@ -30,6 +30,8 @@ export function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
+  const [gameSetupError, setGameSetupError] = useState("");
   const transportRef = useRef<WebSocketClientTransport>();
 
   const isHost = room?.hostId === playerId;
@@ -50,8 +52,15 @@ export function App() {
       } else if (msg.t === "gameState") {
         setGame({ gameId: msg.gameId, state: msg.state });
       } else if (msg.t === "error") {
-        setError(msg.message);
-        setStatus("error");
+        // A failed per-game setup (e.g. Music Guesser's Deezer fetch) happens mid-room, after
+        // join - surface it back into the settings panel instead of ejecting to the join screen.
+        if (msg.code === "setup_failed") {
+          setGameSetupError(msg.message);
+          setGameSettingsOpen(true);
+        } else {
+          setError(msg.message);
+          setStatus("error");
+        }
       }
     });
     const token = localStorage.getItem(`hubbub:token:${code}`) ?? undefined;
@@ -86,6 +95,23 @@ export function App() {
           onCancel={() => setSettingsOpen(false)}
           roomPlayers={room.players}
           ownPlayerId={playerId}
+        />
+      );
+    }
+
+    const focusedGame = room.games[room.cursorIndex] ?? null;
+    const GameSettings = getSettings(focusedGame?.id ?? null);
+
+    if (gameSettingsOpen && GameSettings) {
+      return (
+        <GameSettings
+          error={gameSetupError}
+          onConfirm={(options) => {
+            setGameSetupError("");
+            transportRef.current?.send({ t: "lobbyConfirm", options });
+            setGameSettingsOpen(false);
+          }}
+          onCancel={() => { setGameSetupError(""); setGameSettingsOpen(false); }}
         />
       );
     }
@@ -160,7 +186,10 @@ export function App() {
         playerId={playerId}
         isHost={isHost}
         onFocus={(index) => transportRef.current?.send({ t: "lobbyFocus", index })}
-        onConfirm={() => transportRef.current?.send({ t: "lobbyConfirm" })}
+        onConfirm={() => {
+          if (GameSettings) setGameSettingsOpen(true);
+          else transportRef.current?.send({ t: "lobbyConfirm" });
+        }}
         onTransferHost={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
         onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
         onOpenSettings={() => setSettingsOpen(true)}

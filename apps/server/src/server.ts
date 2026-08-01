@@ -10,6 +10,8 @@ export function createServer(port: number, games: GameRegistry) {
   const rooms = new RoomManager();
   const sockets = new Map<string, Set<WebSocket>>();
   const instances = new Map<string, GameInstance<any, any>>();
+  const lastOptions = new Map<string, unknown>();
+  const timers = new Map<string, NodeJS.Timeout>();
   const state = new WeakMap<WebSocket, ConnState>();
   const summaries = gameSummaries(games);
   const count = summaries.length;
@@ -38,18 +40,55 @@ export function createServer(port: number, games: GameRegistry) {
   const connectedInfo = (code: string): PlayerInfo[] =>
     rooms.connectedPlayers(code).map((p) => ({ id: p.id, name: p.name }));
 
-  function launchGame(code: string, summary: GameSummary) {
+  function clearTimer(code: string) {
+    const t = timers.get(code);
+    if (t) { clearTimeout(t); timers.delete(code); }
+  }
+  // Reschedules the room's single pending timeout to the game's own next deadline (if any). Games
+  // without nextDeadline/onTimeout never get a timer - this is a no-op for ttt/uttt/tap-race.
+  function scheduleTimer(code: string) {
+    clearTimer(code);
+    const inst = instances.get(code);
+    const deadline = inst?.nextDeadline();
+    if (deadline === null || deadline === undefined) return;
+    const delay = Math.max(0, deadline - Date.now());
+    timers.set(code, setTimeout(() => {
+      const cur = instances.get(code);
+      if (cur?.checkTimeout(Date.now())) broadcastGameState(code);
+      scheduleTimer(code);
+    }, delay));
+  }
+
+  async function launchGame(code: string, summary: GameSummary, options: unknown, notifyWs?: WebSocket) {
     const players = connectedInfo(code);
     if (players.length < summary.minPlayers) return;
-    instances.set(code, new GameInstance(games[summary.id], players));
+    const logic = games[summary.id];
+    let setupData: unknown;
+    if (logic.setup) {
+      try {
+        setupData = await logic.setup(options, players);
+      } catch (err) {
+        if (notifyWs) {
+          send(notifyWs, {
+            t: "error",
+            code: "setup_failed",
+            message: err instanceof Error ? err.message : "Game setup failed",
+          });
+        }
+        return;
+      }
+    }
+    lastOptions.set(code, options);
+    instances.set(code, new GameInstance(logic, players, setupData, Date.now()));
     rooms.setMode(code, "in-game", summary.id);
     rooms.clearSuggestions(code);
     broadcastRoomState(code);
     broadcastGameState(code);
+    scheduleTimer(code);
   }
-  function launchAtCursor(code: string) {
+  function launchAtCursor(code: string, options: unknown, notifyWs?: WebSocket) {
     const summary = summaries[rooms.cursorIndex(code)];
-    if (summary) launchGame(code, summary);
+    if (summary) void launchGame(code, summary, options, notifyWs);
   }
 
   wss.on("connection", (ws) => {
@@ -102,8 +141,9 @@ export function createServer(port: number, games: GameRegistry) {
           broadcastRoomState(code);
         } else if (msg.t === "lobbyConfirm") {
           if (rooms.mode(code) !== "lobby") return;
-          launchAtCursor(code);
+          launchAtCursor(code, msg.options, ws);
         } else if (msg.t === "returnToLobby") {
+          clearTimer(code);
           instances.delete(code);
           rooms.setMode(code, "lobby", null);
           rooms.clearSuggestions(code);
@@ -113,7 +153,7 @@ export function createServer(port: number, games: GameRegistry) {
         } else if (msg.t === "rematch") {
           if (rooms.mode(code) !== "in-game") return;
           const summary = summaries.find((s) => s.id === rooms.currentGameId(code));
-          if (summary) launchGame(code, summary);
+          if (summary) void launchGame(code, summary, lastOptions.get(code), ws);
         }
         return;
       }
@@ -130,8 +170,9 @@ export function createServer(port: number, games: GameRegistry) {
         if (!cs.playerId || rooms.mode(code) !== "in-game") return;
         const inst = instances.get(code);
         if (!inst) return;
-        inst.applyAction(cs.playerId, msg.payload);
+        inst.applyAction(cs.playerId, msg.payload, Date.now());
         broadcastGameState(code);
+        scheduleTimer(code);
         return;
       }
     });
@@ -151,6 +192,8 @@ export function createServer(port: number, games: GameRegistry) {
   return {
     wss,
     close: () => new Promise<void>((resolve) => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
       wss.clients.forEach((c) => c.terminate());
       wss.close(() => resolve());
     }),

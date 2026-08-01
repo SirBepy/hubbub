@@ -40,7 +40,9 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("setIdentity"), ...IdentitySchema.shape }),
   z.object({ t: z.literal("lobbyNav"), dir: z.enum(["up", "down", "left", "right"]) }),
   z.object({ t: z.literal("lobbyFocus"), index: z.number().int().min(0) }),
-  z.object({ t: z.literal("lobbyConfirm") }),
+  // options: raw per-game start config (e.g. Music Guesser's song pool/round settings), validated
+  // by the game's own setup() - the protocol only needs to carry it, never interpret it.
+  z.object({ t: z.literal("lobbyConfirm"), options: z.unknown().optional() }),
   z.object({ t: z.literal("returnToLobby") }),
   z.object({ t: z.literal("transferHost"), toPlayerId: z.string() }),
   z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
