@@ -1,11 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
-import { tttLogic } from "@hubbub/game-tictactoe";
-import { utttLogic } from "@hubbub/game-ultimate-tictactoe";
-import type { GameRegistry } from "@hubbub/sdk";
+import { GAME_LOGICS as registry } from "@hubbub/games"; // index 0 = ttt, 1 = uttt
 import { createServer } from "./server.js";
-
-const registry: GameRegistry = { ttt: tttLogic, uttt: utttLogic }; // index 0 = ttt, 1 = uttt
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());

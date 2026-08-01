@@ -20,12 +20,9 @@ importers:
 
   apps/controller:
     dependencies:
-      '@hubbub/game-tictactoe':
+      '@hubbub/games':
         specifier: workspace:*
-        version: link:../../packages/games/tictactoe
-      '@hubbub/game-ultimate-tictactoe':
-        specifier: workspace:*
-        version: link:../../packages/games/ultimate-tictactoe
+        version: link:../../packages/games-manifest
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -63,12 +60,9 @@ importers:
 
   apps/host-desktop:
     dependencies:
-      '@hubbub/game-tictactoe':
+      '@hubbub/games':
         specifier: workspace:*
-        version: link:../../packages/games/tictactoe
-      '@hubbub/game-ultimate-tictactoe':
-        specifier: workspace:*
-        version: link:../../packages/games/ultimate-tictactoe
+        version: link:../../packages/games-manifest
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -103,12 +97,9 @@ importers:
 
   apps/screen:
     dependencies:
-      '@hubbub/game-tictactoe':
+      '@hubbub/games':
         specifier: workspace:*
-        version: link:../../packages/games/tictactoe
-      '@hubbub/game-ultimate-tictactoe':
-        specifier: workspace:*
-        version: link:../../packages/games/ultimate-tictactoe
+        version: link:../../packages/games-manifest
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -149,12 +140,9 @@ importers:
 
   apps/server:
     dependencies:
-      '@hubbub/game-tictactoe':
+      '@hubbub/games':
         specifier: workspace:*
-        version: link:../../packages/games/tictactoe
-      '@hubbub/game-ultimate-tictactoe':
-        specifier: workspace:*
-        version: link:../../packages/games/ultimate-tictactoe
+        version: link:../../packages/games-manifest
       '@hubbub/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -177,6 +165,34 @@ importers:
       zod:
         specifier: ^3.23.0
         version: 3.25.76
+
+  packages/games-manifest:
+    dependencies:
+      '@hubbub/game-tap-race':
+        specifier: link:../../../hubbub-game-tap-race
+        version: link:../../../hubbub-game-tap-race
+      '@hubbub/game-tictactoe':
+        specifier: workspace:*
+        version: link:../games/tictactoe
+      '@hubbub/game-ultimate-tictactoe':
+        specifier: workspace:*
+        version: link:../games/ultimate-tictactoe
+      '@hubbub/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@hubbub/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      react:
+        specifier: ^18.3.0
+        version: 18.3.1
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
 
   packages/games/tictactoe:
     dependencies:

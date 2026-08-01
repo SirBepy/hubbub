@@ -1,0 +1,27 @@
+{
+  "name": "@hubbub/games",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/logics.ts",
+  "types": "./src/logics.ts",
+  "exports": {
+    ".": "./src/logics.ts",
+    "./screens": "./src/screens.ts",
+    "./controllers": "./src/controllers.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@hubbub/sdk": "workspace:*",
+    "@hubbub/protocol": "workspace:*",
+    "@hubbub/game-tictactoe": "workspace:*",
+    "@hubbub/game-ultimate-tictactoe": "workspace:*",
+    "@hubbub/game-tap-race": "link:../../../hubbub-game-tap-race"
+  },
+  "peerDependencies": { "react": "^18.3.0" },
+  "peerDependenciesMeta": { "react": { "optional": true } },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "react": "^18.3.0",
+    "@types/react": "^18.3.0"
+  }
+}

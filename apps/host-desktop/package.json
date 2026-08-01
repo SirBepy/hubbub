@@ -13,8 +13,7 @@
     "@hubbub/server": "workspace:*",
     "@hubbub/sdk": "workspace:*",
     "@hubbub/protocol": "workspace:*",
-    "@hubbub/game-tictactoe": "workspace:*",
-    "@hubbub/game-ultimate-tictactoe": "workspace:*",
+    "@hubbub/games": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {
