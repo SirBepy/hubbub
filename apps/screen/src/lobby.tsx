@@ -1,5 +1,6 @@
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
-import { Avatar, GlowButton, KeyArt, SuggestionBadge, colorHex } from "@hubbub/ui";
+import { Avatar, KeyArt, colorHex } from "@hubbub/ui";
+import { User } from "@phosphor-icons/react";
 
 function playerCountLabel(g: GameSummary): string {
   if (g.maxPlayers === undefined) return `${g.minPlayers}+ players`;
@@ -10,6 +11,10 @@ function playerCountLabel(g: GameSummary): string {
 function tileMeta(g: GameSummary): string {
   const range = g.maxPlayers && g.maxPlayers !== g.minPlayers ? `${g.minPlayers}-${g.maxPlayers}` : `${g.minPlayers}+`;
   return g.category ? `${g.category} · ${range}` : range;
+}
+
+function gamePairHexes(g: GameSummary): [string, string] {
+  return g.identityColors ? [colorHex(g.identityColors[0]), colorHex(g.identityColors[1])] : [colorHex(1), colorHex(0)];
 }
 
 export function Lobby({
@@ -28,181 +33,231 @@ export function Lobby({
   const focused = games[cursorIndex] ?? null;
   const suggestersOf = (gameId: string) =>
     suggestions.filter((s) => s.gameId === gameId).map((s) => players.find((p) => p.id === s.playerId)).filter(Boolean) as Player[];
-  const categories = Array.from(new Set(games.map((g) => g.category).filter((c): c is string => !!c)));
-  const dense = players.length > 16;
-  const avatarSize = dense ? 44 : 56;
+  const voteCountOf = (gameId: string) => suggestions.filter((s) => s.gameId === gameId).length;
+  const votedGames = games
+    .map((g) => ({ game: g, voters: suggestersOf(g.id) }))
+    .filter((row) => row.voters.length > 0)
+    .sort((a, b) => b.voters.length - a.voters.length);
 
   return (
-    <div style={{ width: 1920, height: 1080, display: "flex", flexDirection: "column", color: "var(--text-primary)" }}>
-      <style>{`@keyframes hb-player-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "grid",
+        gridTemplateColumns: "minmax(0,1fr) clamp(230px, 19vw, 380px)",
+        gridTemplateRows: "auto minmax(0,1fr) auto auto",
+        gridTemplateAreas: '"top top" "hero votes" "row row" "rail rail"',
+        gap: "calc(var(--u)*1.1) calc(var(--u)*1.4)",
+        padding: "calc(var(--u)*1.5) calc(var(--u)*2) calc(var(--u)*1)",
+        minWidth: 0,
+        color: "var(--text-primary)",
+      }}
+    >
+      {/* Top: wordmark + join card */}
+      <div style={{ gridArea: "top", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--u)", minWidth: 0, minHeight: 0 }}>
+        <div
+          style={{
+            fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*2.6)", lineHeight: 0.88,
+            letterSpacing: "-0.02em", color: "#f7f1e2",
+            textShadow: "0 2px 0 #6b5a37, 0 3px 0 rgba(0,0,0,.55), 0 10px 26px rgba(0,0,0,.5)",
+          }}
+        >
+          HUB<span style={{ color: "var(--accent)" }}>BUB</span>
+        </div>
 
-      {/* Header */}
-      <div
-        style={{
-          height: 56, flex: "none", padding: "0 48px",
-          borderBottom: "1px solid var(--divider)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}
-      >
-        <div style={{ font: "700 34px var(--font-display)", letterSpacing: "0.03em" }}>HUBBUB</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ font: "400 22px var(--font-ui)", color: "var(--text-muted)" }}>{controllerLabel} · room</span>
-          <span style={{ font: "700 40px var(--font-display)", letterSpacing: "0.08em" }}>{code || "…"}</span>
-          {qr ? (
-            <div style={{ width: 40, height: 40, padding: 4, borderRadius: 4, background: "var(--text-primary)" }}>
-              <img src={qr} alt="Join QR" width={32} height={32} style={{ display: "block" }} />
+        <div
+          style={{
+            flex: "none", display: "flex", alignItems: "stretch", gap: "calc(var(--u)*.7)",
+            padding: "calc(var(--u)*.5)", borderRadius: "calc(var(--u)*.5)",
+            background: "linear-gradient(180deg,var(--kraft-light),var(--kraft-mid) 55%,var(--kraft-dark))",
+            boxShadow: "0 3px 0 #7d6242, 0 calc(var(--u)*.7) calc(var(--u)*1.4) rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.45)",
+          }}
+        >
+          <div
+            style={{
+              width: "calc(var(--u)*4.4)", height: "calc(var(--u)*4.4)", flex: "none",
+              background: "#f4efe2", borderRadius: "calc(var(--u)*.25)", padding: "calc(var(--u)*.25)",
+            }}
+          >
+            {qr ? <img src={qr} alt="Join QR" style={{ display: "block", width: "100%", height: "100%" }} /> : null}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center", padding: "0 calc(var(--u)*.7)" }}>
+            <div style={{ fontSize: "calc(var(--u)*.7)", letterSpacing: "0.24em", fontWeight: 700, color: "var(--kraft-ink-mid)", textTransform: "uppercase" }}>
+              Join anytime
             </div>
-          ) : null}
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*2.8)", lineHeight: 0.98, letterSpacing: "0.1em", color: "var(--kraft-ink)" }}>
+              {code || "…"}
+            </div>
+            <div style={{ fontSize: "calc(var(--u)*.76)", fontWeight: 600, color: "var(--kraft-ink-mid)" }}>{controllerLabel}</div>
+          </div>
         </div>
       </div>
 
-      {/* Hero */}
+      {/* Hero: focused game */}
       <div
         style={{
-          flex: 1, margin: "24px 48px 0", borderRadius: "var(--radius-lg)",
-          background: "var(--surface-1)", border: "1px solid var(--divider-heavy)",
-          overflow: "hidden", position: "relative",
+          gridArea: "hero", display: "grid", gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr)",
+          overflow: "hidden", borderRadius: "calc(var(--u)*.7)", border: "1px solid rgba(0,0,0,.6)",
+          background: "linear-gradient(180deg,#2a2118,#1b1610)",
+          boxShadow: "0 calc(var(--u)*1) calc(var(--u)*2.4) rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.07)",
+          minWidth: 0, minHeight: 0,
         }}
       >
         {focused ? (
           <>
-            <KeyArt
-              pairHexes={focused.identityColors ? [colorHex(focused.identityColors[0]), colorHex(focused.identityColors[1])] : [colorHex(1), colorHex(0)]}
-              title={focused.name}
-              style={{ position: "absolute", inset: "0 0 0 640px" }}
-            />
-            <div
-              style={{
-                position: "absolute", inset: 0, pointerEvents: "none",
-                background: "linear-gradient(to right, #1D1F2E 0, #1D1F2E 240px, rgba(29,31,46,0) 560px)",
-              }}
-            />
-            <div
-              style={{
-                position: "relative", zIndex: 2, width: 880, height: "100%", padding: 48,
-                display: "flex", flexDirection: "column", justifyContent: "space-between",
-              }}
-            >
-              {focused.category ? (
+            <div style={{ minWidth: 0, minHeight: 0, overflow: "hidden", padding: "calc(var(--u)*1.5)", display: "flex", flexDirection: "column", justifyContent: "center", gap: "calc(var(--u)*.6)" }}>
+              <div style={{ fontSize: "calc(var(--u)*.8)", letterSpacing: "0.3em", fontWeight: 700, color: "var(--accent)", textTransform: "uppercase" }}>
+                {focused.category ? `${focused.category} · ${playerCountLabel(focused)}` : playerCountLabel(focused)}
+              </div>
+              <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*3.5)", lineHeight: 0.92, letterSpacing: "-0.025em", color: "#f7f1e2" }}>
+                {focused.name}
+              </h1>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "calc(var(--u)*.45)" }}>
                 <span
                   style={{
-                    alignSelf: "flex-start", font: "500 22px var(--font-ui)", letterSpacing: "0.10em",
-                    color: "var(--text-muted)", border: "1px solid rgba(233,233,237,.18)",
-                    borderRadius: "var(--radius-pill)", padding: "6px 18px",
+                    padding: "calc(var(--u)*.3) calc(var(--u)*.8)", borderRadius: "999px",
+                    border: "2px solid rgba(242,234,217,.22)", fontSize: "calc(var(--u)*.86)", fontWeight: 600,
+                    color: "rgba(242,234,217,.72)",
                   }}
                 >
-                  {focused.category.toUpperCase()}
+                  {playerCountLabel(focused)}
                 </span>
-              ) : <span />}
-              <div style={{ font: "600 100px var(--font-ui)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{focused.name}</div>
-              <div style={{ display: "flex", gap: 24, font: "500 26px var(--font-ui)", color: "var(--text-muted)" }}>
-                <span>{playerCountLabel(focused)}</span>
-                {focused.category ? <span>{focused.category}</span> : null}
               </div>
-              <GlowButton colorHex={colorHex(1)} height={80} label="Start game" fullWidth={false} />
             </div>
+            <KeyArt pairHexes={gamePairHexes(focused)} title={focused.name} style={{ minWidth: 0, minHeight: 0 }} />
           </>
         ) : null}
       </div>
 
-      {/* Category row — only when the catalog spans more than one category */}
-      {categories.length > 1 ? (
-        <div style={{ flex: "none", padding: "24px 48px 0", display: "flex", alignItems: "center", gap: 12 }}>
-          <span
-            style={{
-              font: "400 26px var(--font-ui)", padding: "8px 24px", borderRadius: "var(--radius-md)",
-              background: "rgba(145,132,217,.16)", border: "1px solid var(--accent)", color: "var(--text-primary)",
-            }}
-          >
-            All
-          </span>
-          {categories.map((c) => (
-            <span
-              key={c}
-              style={{
-                font: "400 26px var(--font-ui)", padding: "8px 24px", borderRadius: "var(--radius-md)",
-                background: "var(--surface-1)", border: "1px solid var(--divider)", color: "var(--text-secondary)",
-              }}
-            >
-              {c}
-            </span>
-          ))}
-          {games.length > 20 ? (
-            <span style={{ marginLeft: "auto", font: "400 24px var(--font-ui)", color: "var(--text-faint)" }}>
-              ▸ page for {games.length - 20} more
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* Catalog grid */}
-      <div style={{ flex: "none", padding: "16px 48px 0", display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16 }}>
-        {games.map((g, i) => {
-          const isFocused = i === cursorIndex;
-          const suggesters = suggestersOf(g.id);
-          return (
-            <div
-              key={g.id}
-              style={{
-                position: "relative", height: 212, borderRadius: "var(--radius-md)", overflow: "hidden",
-                display: "flex", flexDirection: "column",
-                background: isFocused
-                  ? "linear-gradient(rgba(233,233,237,.04), rgba(233,233,237,.04)), var(--surface-1)"
-                  : "var(--surface-1)",
-                border: isFocused ? "1px solid rgba(233,233,237,.20)" : "1px solid var(--divider)",
-              }}
-            >
-              <KeyArt
-                pairHexes={g.identityColors ? [colorHex(g.identityColors[0]), colorHex(g.identityColors[1])] : [colorHex(1), colorHex(0)]}
-                title={g.name}
-                style={{ height: 120, flex: "none" }}
-              />
-              {suggesters.length > 0 ? (
-                <div style={{ position: "absolute", top: 8, left: 8 }}>
-                  <SuggestionBadge emoji={suggesters[0].emoji} label="ROOM PICK" count={suggesters.length} />
-                </div>
-              ) : null}
-              <div style={{ padding: "12px 16px" }}>
-                <div style={{ font: "600 28px var(--font-ui)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</div>
-                <div style={{ font: "400 22px var(--font-ui)", color: "var(--text-muted)" }}>{tileMeta(g)}</div>
+      {/* Vote rack: color swatch, name, voter names, tally - no "votes" label */}
+      <div style={{ gridArea: "votes", display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "calc(var(--u)*.55)", overflow: "hidden", minHeight: 0 }}>
+          {votedGames.map(({ game, voters }) => {
+            const [hexA, hexB] = gamePairHexes(game);
+            return (
+              <div
+                key={game.id}
+                style={{
+                  display: "flex", alignItems: "center", gap: "calc(var(--u)*.65)", flex: "none",
+                  padding: "calc(var(--u)*.5) calc(var(--u)*.7)", borderRadius: "calc(var(--u)*.35)",
+                  background: "linear-gradient(180deg,var(--kraft-light),var(--kraft-dark))", color: "var(--kraft-ink)",
+                  boxShadow: "0 calc(var(--u)*.35) calc(var(--u)*.8) rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.4)",
+                }}
+              >
+                <span style={{ flex: "none", width: "calc(var(--u)*1.3)", height: "calc(var(--u)*1.7)", borderRadius: "calc(var(--u)*.15)", background: `linear-gradient(180deg,${hexA},${hexB})` }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*.98)", lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {game.name}
+                  </span>
+                  <span
+                    style={{
+                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                      fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: "calc(var(--u)*.72)", color: "rgba(59,42,20,.62)",
+                      marginTop: 1, lineHeight: 1.25,
+                    }}
+                  >
+                    {voters.map((v) => v.name).join(", ")}
+                  </span>
+                </span>
+                <span
+                  style={{
+                    flex: "none", display: "flex", alignItems: "center", gap: "calc(var(--u)*.22)",
+                    padding: "calc(var(--u)*.22) calc(var(--u)*.55)", borderRadius: "999px", background: "var(--kraft-ink)",
+                    color: "var(--ink-amber-highlight)", fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*.95)", lineHeight: 1.2,
+                  }}
+                >
+                  <User weight="fill" size="1em" style={{ fontSize: "calc(var(--u)*.9)" }} />
+                  {voters.length}
+                </span>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* All games, horizontal - never rotated/vertical text */}
+      <div style={{ gridArea: "row", overflow: "hidden", minWidth: 0, minHeight: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "calc(var(--u)*.5)" }}>
+          <h2 style={{ margin: 0, fontSize: "calc(var(--u)*.8)", letterSpacing: "0.26em", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+            All games · {games.length}
+          </h2>
+        </div>
+        <div style={{ display: "flex", gap: "calc(var(--u)*.8)", overflow: "hidden", padding: "calc(var(--u)*.5) 0 calc(var(--u)*.6)" }}>
+          {games.map((g, i) => {
+            const isFocused = i === cursorIndex;
+            const votes = voteCountOf(g.id);
+            const [hexA, hexB] = gamePairHexes(g);
+            return (
+              <div
+                key={g.id}
+                style={{
+                  position: "relative", flex: "none", width: "calc(var(--u)*10.5)", borderRadius: "calc(var(--u)*.4)",
+                  overflow: "hidden", background: isFocused ? "rgba(247,207,99,.1)" : "rgba(242,234,217,.05)",
+                  border: isFocused ? "1px solid var(--ink-amber-highlight)" : "1px solid rgba(242,234,217,.12)",
+                  boxShadow: isFocused ? "0 0 calc(var(--u)*1.6) rgba(247,207,99,.25)" : "none",
+                }}
+              >
+                <div style={{ height: "calc(var(--u)*3.2)", background: `linear-gradient(160deg,${hexA},${hexB})` }} />
+                {votes > 0 ? (
+                  <div
+                    style={{
+                      position: "absolute", top: "calc(var(--u)*.4)", right: "calc(var(--u)*.4)", display: "flex",
+                      alignItems: "center", gap: "calc(var(--u)*.2)", padding: "calc(var(--u)*.16) calc(var(--u)*.45)",
+                      borderRadius: "999px", background: "rgba(20,14,6,.82)", color: "var(--ink-amber-highlight)",
+                      fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*.8)", lineHeight: 1.2,
+                    }}
+                  >
+                    <User weight="fill" size="1em" style={{ fontSize: "calc(var(--u)*.78)" }} />
+                    {votes}
+                  </div>
+                ) : null}
+                <div style={{ padding: "calc(var(--u)*.45) calc(var(--u)*.6) calc(var(--u)*.6)" }}>
+                  <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*.92)", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {g.name}
+                  </b>
+                  <span style={{ display: "block", marginTop: 2, fontSize: "calc(var(--u)*.74)", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {tileMeta(g)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Player rail */}
       <div
         style={{
-          flex: "none", minHeight: 132, marginTop: 24, background: "var(--surface-1)",
-          borderTop: "1px solid var(--divider-heavy)", padding: "0 48px",
-          display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap",
+          gridArea: "rail", display: "flex", alignItems: "center", gap: "calc(var(--u)*1.4)", overflow: "hidden",
+          padding: "calc(var(--u)*.7) 0 calc(var(--u)*.9)", borderTop: "1px solid var(--divider)", minWidth: 0, minHeight: 0,
         }}
       >
-        <div style={{ flex: "none", display: "flex", flexDirection: "column", gap: 4, padding: "16px 0" }}>
-          <span style={{ font: "600 30px var(--font-ui)" }}>{connectedCount} connected</span>
-          <span style={{ font: "500 20px var(--font-ui)", letterSpacing: "0.10em", color: "var(--text-faint)" }}>
-            JOIN ANYTIME · {code || "…"}
+        <div style={{ flex: "none" }}>
+          <b style={{ display: "block", fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*1.9)", lineHeight: 1, color: "#f7f1e2" }}>{connectedCount}</b>
+          <span style={{ display: "block", fontSize: "calc(var(--u)*.72)", letterSpacing: "0.2em", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>
+            at the table
           </span>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: dense ? 8 : 20, padding: "16px 0" }}>
+        <div style={{ display: "flex", gap: "calc(var(--u)*.85)", overflow: "hidden", flex: 1, minWidth: 0 }}>
           {players.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                width: 88, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                animation: "hb-player-in 200ms ease-out",
-              }}
-            >
-              <Avatar size={avatarSize} colorHex={colorHex(p.colorId)} emoji={p.emoji} surface={2} disconnected={!p.connected} host={p.id === hostId} />
+            <div key={p.id} style={{ flex: "none", width: "calc(var(--u)*3)", textAlign: "center", opacity: p.connected ? 1 : 0.32 }}>
+              <div style={{ width: "calc(var(--u)*1.9)", margin: "0 auto" }}>
+                <Avatar size={32} colorHex={colorHex(p.colorId)} emoji={p.emoji} surface={2} />
+              </div>
               <span
                 style={{
-                  font: `500 ${dense ? 20 : 22}px var(--font-ui)`, color: "var(--text-secondary)",
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 88,
+                  display: "block", marginTop: "calc(var(--u)*.2)", fontSize: "calc(var(--u)*.76)", fontWeight: 600,
+                  color: "rgba(242,234,217,.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                 }}
               >
                 {p.name}
               </span>
+              {p.id === hostId ? (
+                <span style={{ display: "block", fontSize: "calc(var(--u)*.6)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--accent)" }}>
+                  HOST
+                </span>
+              ) : null}
             </div>
           ))}
         </div>

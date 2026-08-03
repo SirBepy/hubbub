@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { WebSocketClientTransport, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import { TVStage, GameTopBar, PlayerPill, EndOfRoundScreen, colorHex } from "@hubbub/ui";
+import { TVStage, GameTopBar, EndOfRoundScreen, colorHex, type GameTopBarPlayer } from "@hubbub/ui";
 import { getScreen, getLogic, getSettingsSchema } from "./game";
 import { Lobby } from "./lobby";
 import { ConfigPanel } from "./config-panel";
@@ -22,6 +22,32 @@ interface RoomState {
 interface GameState {
   gameId: string;
   state: any;
+}
+
+/** Fluid by default. With an aspectRatio, letterboxes to the largest centred box of
+ * that ratio via inset:0 + auto margins + aspect-ratio - no JS measuring needed. */
+function GameSlot({ aspectRatio, children }: { aspectRatio?: number; children: ReactNode }) {
+  if (!aspectRatio) {
+    return <div style={{ flex: 1, minHeight: 0, position: "relative" }}>{children}</div>;
+  }
+  return (
+    <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          margin: "auto",
+          aspectRatio: String(aspectRatio),
+          maxWidth: "100%",
+          maxHeight: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export function App() {
@@ -100,17 +126,21 @@ export function App() {
       );
     }
 
+    const topBarPlayers: GameTopBarPlayer[] = players.map((p) => ({
+      name: p.name,
+      colorHex: colorHex(p.colorId),
+      emoji: p.emoji,
+      host: p.id === room.hostId,
+      connected: p.connected,
+    }));
+
     return (
       <TVStage>
-        <div style={{ width: 1920, height: 1080, display: "flex", flexDirection: "column" }}>
-          <GameTopBar title={(summary?.name ?? "").toUpperCase()} pairHexes={pairHexes} roomCode={code}>
-            {players.map((p) => (
-              <PlayerPill key={p.id} colorHex={colorHex(p.colorId)} emoji={p.emoji} locked={p.connected} />
-            ))}
-          </GameTopBar>
-          <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <GameTopBar title={summary?.name ?? ""} pairHexes={pairHexes} roomCode={code} players={topBarPlayers} />
+          <GameSlot aspectRatio={summary?.aspectRatio}>
             <Screen state={game.state} players={players} />
-          </div>
+          </GameSlot>
         </div>
       </TVStage>
     );
