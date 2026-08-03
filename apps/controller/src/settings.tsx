@@ -1,8 +1,8 @@
 import { useState, type CSSProperties } from "react";
-import { GlowButton, NeutralButton, Avatar } from "@hubbub/ui";
+import { GlowButton, NeutralButton, Avatar, AVATAR_SETS, randomAvatarId } from "@hubbub/ui";
 import type { Player } from "@hubbub/protocol";
 import { NEUTRAL_RING, BackHeader } from "./header";
-import { EMOJIS, type Identity } from "./identity";
+import type { Identity } from "./identity";
 
 export function Settings({
   initial,
@@ -14,17 +14,17 @@ export function Settings({
   initial?: Identity;
   onSave: (id: Identity) => void;
   onCancel?: () => void;
-  /** Connected players in the current room, for the taken-emoji check. Empty pre-join. */
+  /** Connected players in the current room, for the taken-character check. Empty pre-join. */
   roomPlayers?: Player[];
   ownPlayerId?: string;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
-  const [emoji, setEmoji] = useState(initial?.emoji ?? EMOJIS[0]);
+  const others = (roomPlayers ?? []).filter((p) => p.connected && p.id !== ownPlayerId);
+  const [emoji, setEmoji] = useState(initial?.emoji ?? (() => randomAvatarId(others.map((p) => p.emoji))));
   // Colour is no longer player-facing; a fresh identity still needs one on the wire
   // for games that draw pieces by colorId, so it's picked once here and never shown.
   const [colorId] = useState(initial?.colorId ?? Math.floor(Math.random() * 6));
 
-  const others = (roomPlayers ?? []).filter((p) => p.connected && p.id !== ownPlayerId);
   const emojiTaken = (e: string) => others.some((p) => p.emoji === e);
 
   return (
@@ -41,28 +41,37 @@ export function Settings({
         </div>
       </div>
 
-      <div style={{ padding: "16px 14px 0", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        <div style={sectionLabel}>Pick a piece</div>
-        <div style={emojiGrid}>
-          {EMOJIS.map((e) => {
-            const taken = emojiTaken(e) && e !== emoji;
-            return (
-              <button
-                key={e}
-                type="button"
-                disabled={taken}
-                onClick={() => setEmoji(e)}
-                style={{ ...emojiCell, opacity: taken ? 0.26 : 1, cursor: taken ? "default" : "pointer", borderColor: emoji === e ? "var(--ink-amber-highlight)" : "transparent" }}
-              >
-                {e}
-              </button>
-            );
-          })}
-        </div>
+      <div style={{ padding: "16px 14px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
+        {AVATAR_SETS.map((set) => (
+          <div key={set.id} style={setGroup}>
+            <div style={setHeaderRow}>
+              <span style={sectionLabel}>{set.name}</span>
+              <span style={licenceTag}>{set.licenseName}</span>
+            </div>
+            <div style={attribLine}>{set.attribution}</div>
+            <div style={emojiGrid}>
+              {set.characters.map((c) => {
+                const taken = emojiTaken(c.id) && c.id !== emoji;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    disabled={taken}
+                    onClick={() => setEmoji(c.id)}
+                    title={c.label}
+                    style={{ ...emojiCell, opacity: taken ? 0.26 : 1, cursor: taken ? "default" : "pointer", borderColor: emoji === c.id ? "var(--ink-amber-highlight)" : "transparent" }}
+                  >
+                    <Avatar size={40} colorHex={NEUTRAL_RING} emoji={c.id} surface={1} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div style={footer}>
-        <div style={hint}>Faded pieces are already taken by someone in the room.</div>
+        <div style={hint}>Faded characters are already taken by someone in the room.</div>
         <div style={footerRow}>
           {onCancel ? <NeutralButton height={48} label="Cancel" onClick={onCancel} fullWidth={false} /> : null}
           <div style={{ flex: 1 }}>
@@ -94,14 +103,25 @@ const nameInput: CSSProperties = {
   color: "var(--text-primary)",
   font: "600 16px var(--font-ui)",
 };
-const sectionLabel: CSSProperties = { font: "700 11px var(--font-ui)", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 };
-const emojiGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 9, flex: 1, minHeight: 0, overflowY: "auto", alignContent: "start" };
+const sectionLabel: CSSProperties = { font: "700 11px var(--font-ui)", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-muted)" };
+const setGroup: CSSProperties = { marginBottom: 22 };
+const setHeaderRow: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 };
+const licenceTag: CSSProperties = {
+  flex: "none",
+  font: "700 9px var(--font-ui)",
+  letterSpacing: "0.08em",
+  color: "var(--text-faint)",
+  border: "1px solid var(--divider-heavy)",
+  borderRadius: 4,
+  padding: "2px 6px",
+};
+const attribLine: CSSProperties = { font: "500 10.5px var(--font-ui)", lineHeight: 1.4, color: "var(--text-faint)", marginBottom: 10 };
+const emojiGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 9 };
 const emojiCell: CSSProperties = {
   aspectRatio: "1",
   borderRadius: "var(--radius-lg)",
   background: "rgba(242,234,217,.05)",
   border: "2px solid transparent",
-  fontSize: 26,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

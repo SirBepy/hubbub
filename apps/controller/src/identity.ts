@@ -3,9 +3,6 @@ export type { Identity };
 
 const KEY = "hubbub:identity";
 
-// Offline-safe: system unicode emoji. Never CDN-loaded.
-export const EMOJIS = ["😀", "😎", "🐱", "🐶", "🦊", "🐼", "🐸", "🐵", "🦄", "🐙", "🍕", "🍔", "🚀", "⚡", "🌟", "🎮"];
-
 export function loadIdentity(): Identity | null {
   try {
     const raw = localStorage.getItem(KEY);
