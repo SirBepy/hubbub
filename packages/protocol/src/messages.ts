@@ -24,6 +24,9 @@ export const GameSummarySchema = z.object({
   featured: z.boolean(),
   category: z.string().optional(),
   identityColors: z.tuple([z.number().int(), z.number().int()]).optional(),
+  // width/height. Bounded to reject garbage (0, negative, NaN, Infinity) at the boundary;
+  // 0.2-5 comfortably spans portrait phone-ish to ultra-wide.
+  aspectRatio: z.number().positive().finite().min(0.2).max(5).optional(),
 });
 export type GameSummary = z.infer<typeof GameSummarySchema>;
 

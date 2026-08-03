@@ -13,6 +13,7 @@ export function gameSummaries(registry: GameRegistry, featured?: Set<string>): G
     maxPlayers: game.meta.maxPlayers,
     category: game.meta.category,
     identityColors: game.meta.identityColors,
+    aspectRatio: game.meta.aspectRatio,
     featured: featured ? featured.has(id) : true,
   }));
 }

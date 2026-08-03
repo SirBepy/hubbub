@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseClientMessage, parseServerMessage } from "./messages.js";
+import { parseClientMessage, parseServerMessage, GameSummarySchema } from "./messages.js";
 
 describe("protocol messages", () => {
   it("parses a valid joinRoom with identity", () => {
@@ -67,5 +67,23 @@ describe("protocol messages", () => {
         currentGameId: null, cursorIndex: 0, games: [],
       }))
     ).toThrow();
+  });
+
+  it("accepts a GameSummary with a valid aspectRatio", () => {
+    const raw = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4, featured: true, aspectRatio: 16 / 9 };
+    expect(GameSummarySchema.parse(raw)).toEqual(raw);
+  });
+
+  it("accepts a GameSummary omitting aspectRatio", () => {
+    const raw = { id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, featured: true };
+    expect(GameSummarySchema.parse(raw).aspectRatio).toBeUndefined();
+  });
+
+  it("rejects a GameSummary with a malformed aspectRatio", () => {
+    const base = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4, featured: true };
+    expect(() => GameSummarySchema.parse({ ...base, aspectRatio: 0 })).toThrow();
+    expect(() => GameSummarySchema.parse({ ...base, aspectRatio: -1.5 })).toThrow();
+    expect(() => GameSummarySchema.parse({ ...base, aspectRatio: "16:9" })).toThrow();
+    expect(() => GameSummarySchema.parse({ ...base, aspectRatio: 100 })).toThrow();
   });
 });

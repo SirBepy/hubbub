@@ -36,4 +36,16 @@ describe("gameSummaries", () => {
       { id: "a", name: "Alpha", minPlayers: 2, maxPlayers: 2, featured: true, category: "Strategy", identityColors: [1, 0] },
     ]);
   });
+
+  it("propagates aspectRatio from meta when declared", () => {
+    const reg: GameRegistry = {
+      a: { ...fake("Racer", 1, 4), meta: { name: "Racer", minPlayers: 1, maxPlayers: 4, aspectRatio: 16 / 9 } },
+    };
+    expect(gameSummaries(reg)[0].aspectRatio).toBe(16 / 9);
+  });
+
+  it("leaves aspectRatio undefined for a fluid game that omits it", () => {
+    const reg: GameRegistry = { a: fake("Alpha", 2, 2) };
+    expect(gameSummaries(reg)[0].aspectRatio).toBeUndefined();
+  });
 });

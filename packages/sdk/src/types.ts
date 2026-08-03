@@ -12,6 +12,9 @@ export interface GameMeta {
   category?: string;
   /** Indexes into protocol's PLAYER_COLOR_NAMES for the game's two roles, e.g. [X, O]. */
   identityColors?: [number, number];
+  /** width/height. Omit for fluid layout (default); set only when the game needs a fixed
+   * frame (3D, a racer) - the screen app letterboxes to this ratio. Never a pixel size. */
+  aspectRatio?: number;
 }
 
 export interface GameResult {
