@@ -1,48 +1,33 @@
-import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-const STAGE_WIDTH = 1920;
-const STAGE_HEIGHT = 1080;
-
-function computeScale(): number {
-  if (typeof window === "undefined") return 1;
-  return Math.min(window.innerWidth / STAGE_WIDTH, window.innerHeight / STAGE_HEIGHT);
-}
-
 /**
- * Fills the viewport, letterboxes, and renders a fixed 1920x1080 stage scaled
- * to fit. Every TV screen renders inside this.
+ * Fluid full-viewport TV container: felt ground gradient + dot texture, sets
+ * up the flex column every TV screen renders into. No fixed canvas/scale —
+ * screens size off the --u custom property (see styles.css) instead.
  */
 export function TVStage({ children }: { children: ReactNode }) {
-  const [scale, setScale] = useState(computeScale);
-
-  useEffect(() => {
-    const onResize = () => setScale(computeScale());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
   return (
     <div
       style={{
+        position: "relative",
         width: "100vw",
-        height: "100vh",
-        background: "var(--surface-0)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        height: "100dvh",
         overflow: "hidden",
+        background:
+          "radial-gradient(120% 92% at 32% -6%, var(--surface-2) 0%, var(--surface-1) 46%, var(--surface-0) 100%)",
+        color: "var(--text-primary)",
+        fontFamily: "var(--font-ui)",
       }}
     >
+      <div className="hb-felt" />
       <div
         style={{
-          width: STAGE_WIDTH,
-          height: STAGE_HEIGHT,
-          flex: "none",
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
           position: "relative",
-          background: "var(--surface-0)",
+          zIndex: 2,
+          height: "100%",
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {children}

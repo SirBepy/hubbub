@@ -1,34 +1,58 @@
 /* Fontsource: bundled locally, offline-LAN safe. Only the weights the design system uses. */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/big-shoulders-display/700.css";
+@import "@fontsource/archivo/400.css";
+@import "@fontsource/archivo/500.css";
+@import "@fontsource/archivo/600.css";
+@import "@fontsource/archivo/700.css";
+@import "@fontsource/archivo-black/400.css";
 
 :root {
-  /* Surfaces */
-  --surface-0: #161826;
-  --surface-1: #1d1f2e;
-  --surface-2: #232532;
-  --surface-sunken: #0f101a;
+  /* Fluid scale unit: every TV size is a multiple of this, so the screen adapts
+     to any viewport instead of a fixed canvas. Source: Table Night mockups. */
+  --u: clamp(8px, 1.15vh + 0.34vw, 19px);
 
-  /* Text ramp */
-  --text-primary: #e9e9ed;
-  --text-secondary: rgba(233, 233, 237, 0.65);
-  --text-muted: rgba(233, 233, 237, 0.45);
-  --text-faint: rgba(233, 233, 237, 0.35);
-  --divider: rgba(233, 233, 237, 0.1);
-  --divider-heavy: rgba(233, 233, 237, 0.14);
+  /* Felt ground, darkest to lightest (table-night-a4-lobby.html .screen gradient) */
+  --surface-sunken: #0a0d09;
+  --surface-0: #0a0d09;
+  --surface-1: #141b13;
+  --surface-2: #253320;
 
-  /* Player identity palette (fixed six, join order) */
-  --player-magenta: #ff3d9a;
-  --player-cyan: #22e0e8;
-  --player-lime: #a8f03c;
-  --player-amber: #ffb020;
-  --player-violet: #b48cff;
-  --player-blue: #4c8dff;
+  /* Kraft cardboard: chits, vote cards, anything you'd physically pick up */
+  --kraft-light: #d9ba88;
+  --kraft-mid: #c8a87c;
+  --kraft-dark: #b08f63;
+  --kraft-ink: #3b2a14;
+  --kraft-ink-mid: #6b4f2c;
+
+  /* Component inks: saturated, flat, no gradients on characters */
+  --ink-amber: #e4b33c;
+  --ink-amber-highlight: #f7cf63;
+  --ink-red: #c4452f;
+  --ink-green: #5fa046;
+  --ink-blue: #4c7fc0;
+  --ink-violet: #8e6bc0;
+  --ink-pink: #d97ba8;
+  --ink-teal: #3e8f86;
+  --ink-orange: #b8683c;
+
+  /* Text ramp on felt */
+  --text-primary: #f2ead9;
+  --text-secondary: rgba(242, 234, 217, 0.72);
+  --text-muted: rgba(242, 234, 217, 0.42);
+  --text-faint: rgba(242, 234, 217, 0.22);
+  --divider: rgba(242, 234, 217, 0.12);
+  --divider-heavy: rgba(242, 234, 217, 0.18);
+
+  /* Player identity palette (fixed six, join order) — same ids/names, retuned to
+     Table Night inks. Consumed by sibling game repos: never rename or reorder. */
+  --player-magenta: #d97ba8;
+  --player-cyan: #3e8f86;
+  --player-lime: #5fa046;
+  --player-amber: #e4b33c;
+  --player-violet: #8e6bc0;
+  --player-blue: #4c7fc0;
 
   /* Product accent — chrome only, never player/game identity */
-  --accent: #9184d9;
+  --accent: #e4b33c;
 
   /* Radii */
   --radius-sm: 4px;
@@ -37,8 +61,8 @@
   --radius-pill: 999px;
 
   /* Fonts */
-  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Big Shoulders Display", var(--font-ui);
+  --font-ui: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Archivo Black", var(--font-ui);
 }
 
 *,
@@ -54,20 +78,35 @@ body {
   font-family: var(--font-ui);
 }
 
+/* Two-layer dot texture that reads as felt. Place absolute+inset over a ground
+   gradient, give sibling content position:relative z-index:2 to sit above it. */
+.hb-felt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1.2px),
+    radial-gradient(rgba(0, 0, 0, 0.35) 1px, transparent 1.2px);
+  background-size: 5px 5px, 7px 7px;
+  background-position: 0 0, 3px 4px;
+}
+
 /* Themed focus ring: 2px accent ring at 2px offset, never browser default. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* One-shot confetti: pieces fall, rotate, fade, then stay gone (no loop). */
+/* One-shot confetti: pieces fall, rotate, fade, then stay gone (no loop).
+   vh-based fall distance so it clears the screen regardless of viewport height. */
 @keyframes hb-confetti-fall {
   from {
     transform: translateY(-40px) rotate(0deg);
     opacity: 1;
   }
   to {
-    transform: translateY(760px) rotate(540deg);
+    transform: translateY(120vh) rotate(540deg);
     opacity: 0;
   }
 }

@@ -78,7 +78,7 @@ export type EndOfRoundScreenProps = {
   onBack?: () => void;
 };
 
-/** The reusable 1g end-of-round template — platform-level, game-agnostic. */
+/** The reusable end-of-round template — platform-level, game-agnostic. Fluid, sized off --u. */
 export function EndOfRoundScreen({
   gameName,
   roundLabel,
@@ -94,8 +94,9 @@ export function EndOfRoundScreen({
   return (
     <div
       style={{
-        width: 1920,
-        height: 1080,
+        flex: 1,
+        minHeight: 0,
+        width: "100%",
         background: "var(--surface-0)",
         position: "relative",
         overflow: "hidden",
@@ -107,65 +108,68 @@ export function EndOfRoundScreen({
         style={{
           position: "relative",
           height: "100%",
-          padding: "48px 64px",
+          padding: "calc(var(--u)*2.5) calc(var(--u)*3.4)",
           display: "flex",
           flexDirection: "column",
-          gap: 32,
+          gap: "calc(var(--u)*1.7)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <div style={{ font: "700 40px var(--font-display)", letterSpacing: "0.02em", color: "rgba(233,233,237,.7)" }}>
-              HUBBUB
+          <div style={{ display: "flex", alignItems: "center", gap: "calc(var(--u)*1.3)" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*2.1)", letterSpacing: "0.02em", color: "#f7f1e2" }}>
+              HUB<span style={{ color: "var(--accent)" }}>BUB</span>
             </div>
-            <div style={{ font: "600 28px var(--font-ui)", color: "rgba(233,233,237,.6)" }}>
+            <div style={{ fontSize: "calc(var(--u)*1.5)", fontWeight: 600, color: "rgba(242,234,217,.6)" }}>
               {gameName} · {roundLabel}
             </div>
           </div>
-          <div style={{ font: "500 26px var(--font-ui)", color: "rgba(233,233,237,.45)" }}>
+          <div style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 500, color: "rgba(242,234,217,.45)" }}>
             Room {roomCode} · {playerCount} players
           </div>
         </div>
 
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 64 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "calc(var(--u)*3.4)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "calc(var(--u)*.85)" }}>
             <div
               style={{
-                font: "700 520px/0.8 var(--font-display)",
-                color: winner ? winner.colorHex : "rgba(233,233,237,.45)",
-                textShadow: winner ? `0 0 60px ${hexToRgba(winner.colorHex, 0.35)}` : "none",
+                fontFamily: "var(--font-display)",
+                fontSize: "calc(var(--u)*27)",
+                lineHeight: 0.8,
+                color: winner ? winner.colorHex : "rgba(242,234,217,.45)",
+                textShadow: winner ? `0 0 calc(var(--u)*3) ${hexToRgba(winner.colorHex, 0.35)}` : "none",
                 animation: "hb-rank-in 400ms cubic-bezier(.2,.8,.2,1) 1 both",
               }}
             >
               {winner ? winner.rankLabel : "—"}
             </div>
             {winner ? (
-              <div style={{ font: "600 64px var(--font-display)", color: "rgba(233,233,237,.5)", letterSpacing: "0.08em" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*3.4)", color: "rgba(242,234,217,.5)", letterSpacing: "0.08em" }}>
                 {winner.rankSuffix}
               </div>
             ) : null}
           </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16, maxWidth: 760 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "calc(var(--u)*.85)", maxWidth: "calc(var(--u)*40)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "calc(var(--u)*.85)" }}>
               {winner ? (
                 <>
-                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: winner.colorHex }} />
-                  <span style={{ fontSize: 44, lineHeight: 1 }}>{winner.emoji}</span>
-                  <span style={{ font: "600 56px var(--font-ui)" }}>{winner.name}</span>
+                  <span style={{ width: "calc(var(--u)*1.05)", height: "calc(var(--u)*1.05)", borderRadius: "50%", background: winner.colorHex }} />
+                  <span style={{ fontSize: "calc(var(--u)*2.3)", lineHeight: 1 }}>{winner.emoji}</span>
+                  <span style={{ fontSize: "calc(var(--u)*2.9)", fontWeight: 600 }}>{winner.name}</span>
                 </>
               ) : (
-                <span style={{ font: "600 56px var(--font-ui)", color: "rgba(233,233,237,.65)" }}>It's a draw</span>
+                <span style={{ fontSize: "calc(var(--u)*2.9)", fontWeight: 600, color: "rgba(242,234,217,.65)" }}>It's a draw</span>
               )}
             </div>
-            <div style={{ height: 1, background: "rgba(233,233,237,.14)" }} />
+            <div style={{ height: 1, background: "var(--divider-heavy)" }} />
             {breakdown?.map((row) => (
-              <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0" }}>
-                <span style={{ font: "400 30px var(--font-ui)", color: "rgba(233,233,237,.65)" }}>{row.label}</span>
+              <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "calc(var(--u)*.65) 0" }}>
+                <span style={{ fontSize: "calc(var(--u)*1.6)", color: "rgba(242,234,217,.65)" }}>{row.label}</span>
                 <span
                   style={{
-                    font: "600 30px var(--font-ui)",
-                    color: row.positive ? "var(--player-lime)" : "rgba(233,233,237,.45)",
+                    fontSize: "calc(var(--u)*1.6)",
+                    fontWeight: 600,
+                    color: row.positive ? "var(--player-lime)" : "rgba(242,234,217,.45)",
                   }}
                 >
                   {row.value}
@@ -173,16 +177,16 @@ export function EndOfRoundScreen({
               </div>
             ))}
             {showActions ? (
-              <div style={{ display: "flex", gap: 16, marginTop: 16, height: 88 }}>
-                <GlowButton colorHex={colorHex(1)} height={88} label="Rematch" onClick={onRematch} fullWidth={false} />
-                <NeutralButton height={88} label="Back to lobby" onClick={onBack} fullWidth={false} />
+              <div style={{ display: "flex", gap: "calc(var(--u)*.85)", marginTop: "calc(var(--u)*.85)", height: 64 }}>
+                <GlowButton colorHex={colorHex(1)} height={64} label="Rematch" onClick={onRematch} fullWidth={false} />
+                <NeutralButton height={64} label="Back to lobby" onClick={onBack} fullWidth={false} />
               </div>
             ) : null}
           </div>
 
           {standings?.length ? (
-            <div style={{ width: 420, display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ font: "600 22px var(--font-ui)", letterSpacing: "0.14em", color: "rgba(233,233,237,.45)", marginBottom: 8 }}>
+            <div style={{ width: "calc(var(--u)*22)", display: "flex", flexDirection: "column", gap: "calc(var(--u)*.45)" }}>
+              <div style={{ fontSize: "calc(var(--u)*1.2)", fontWeight: 600, letterSpacing: "0.14em", color: "rgba(242,234,217,.45)", marginBottom: "calc(var(--u)*.45)" }}>
                 STANDINGS
               </div>
               {standings.map((row) => (
@@ -191,18 +195,18 @@ export function EndOfRoundScreen({
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
+                    gap: "calc(var(--u)*.65)",
                     background: "var(--surface-1)",
                     border: "1px solid var(--divider)",
                     borderRadius: "var(--radius-md)",
-                    padding: "12px 16px",
+                    padding: "calc(var(--u)*.65) calc(var(--u)*.85)",
                   }}
                 >
-                  <span style={{ font: "600 26px var(--font-ui)", color: "rgba(233,233,237,.4)", width: 32 }}>{row.position}</span>
-                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: row.colorHex }} />
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>{row.emoji}</span>
-                  <span style={{ flex: 1, font: "500 26px var(--font-ui)" }}>{row.name}</span>
-                  <span style={{ font: "600 26px var(--font-ui)", color: "rgba(233,233,237,.7)" }}>{row.score}</span>
+                  <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "rgba(242,234,217,.4)", width: "calc(var(--u)*1.7)" }}>{row.position}</span>
+                  <span style={{ width: "calc(var(--u)*.65)", height: "calc(var(--u)*.65)", borderRadius: "50%", background: row.colorHex }} />
+                  <span style={{ fontSize: "calc(var(--u)*1.25)", lineHeight: 1 }}>{row.emoji}</span>
+                  <span style={{ flex: 1, fontSize: "calc(var(--u)*1.4)", fontWeight: 500 }}>{row.name}</span>
+                  <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "rgba(242,234,217,.7)" }}>{row.score}</span>
                 </div>
               ))}
             </div>

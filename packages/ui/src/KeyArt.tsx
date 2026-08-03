@@ -33,8 +33,9 @@ export function KeyArt({ pairHexes, title, style }: KeyArtProps) {
     >
       <span
         style={{
-          font: "700 96px var(--font-display)",
-          color: "rgba(233,233,237,.14)",
+          fontFamily: "var(--font-display)",
+          fontSize: "calc(var(--u)*9)",
+          color: "rgba(242,234,217,.14)",
           lineHeight: 1,
         }}
       >

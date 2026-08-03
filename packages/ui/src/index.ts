@@ -16,7 +16,7 @@ export { GlowButton, NeutralButton } from "./GlowButton";
 export type { GlowButtonProps, NeutralButtonProps } from "./GlowButton";
 
 export { GameTopBar } from "./GameTopBar";
-export type { GameTopBarProps } from "./GameTopBar";
+export type { GameTopBarProps, GameTopBarPlayer } from "./GameTopBar";
 
 export { EndOfRoundScreen } from "./EndOfRoundScreen";
 export type {

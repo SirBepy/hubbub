@@ -14,8 +14,8 @@ export function SuggestionBadge({ emoji, label, count }: SuggestionBadgeProps) {
         gap: 6,
         padding: "4px 12px",
         borderRadius: "var(--radius-pill)",
-        background: "rgba(22,24,38,.85)",
-        border: "1px solid rgba(255,176,32,.7)",
+        background: "rgba(10,13,9,.85)",
+        border: "1px solid rgba(228,179,60,.7)",
         font: "600 18px var(--font-ui)",
         color: "var(--player-amber)",
       }}

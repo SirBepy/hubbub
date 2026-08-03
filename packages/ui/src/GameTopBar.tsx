@@ -1,68 +1,169 @@
 import type { ReactNode } from "react";
+import { Avatar } from "./Avatar";
 
-export type GameTopBarProps = {
-  /** Game wordmark, e.g. "NAME THAT TUNE". */
-  title: string;
-  /** The game's claimed pair — drives the hairline gradient under the wordmark. */
-  pairHexes: [string, string];
-  roomCode: string;
-  /** Player pills (or other center content) for the round in progress. */
-  children?: ReactNode;
+export type GameTopBarPlayer = {
+  name: string;
+  colorHex: string;
+  emoji: string;
+  host?: boolean;
+  connected?: boolean;
 };
 
-/** Platform chrome for in-game TV screens (README screen 4 top bar, 112px). */
-export function GameTopBar({ title, pairHexes, roomCode, children }: GameTopBarProps) {
-  const [a, b] = pairHexes;
+export type GameTopBarProps = {
+  /** Game wordmark, e.g. "Music Guesser". */
+  title: string;
+  /** Kept for API compat — a6 mockup limits game chrome to the name, no per-game theming. */
+  pairHexes: [string, string];
+  roomCode: string;
+  /** Fallback center content when `players` isn't supplied. */
+  children?: ReactNode;
+  /** Renders the avatar-with-name-under fixed-width columns from a6-game-tv.html. */
+  players?: GameTopBarPlayer[];
+};
+
+/** Platform chrome for in-game TV screens (a6-game-tv.html). Fluid, sized off --u. */
+export function GameTopBar({ title, roomCode, children, players }: GameTopBarProps) {
   return (
     <div
       style={{
-        height: 112,
         flex: "none",
-        background: "rgba(15,16,26,.72)",
-        borderBottom: "1px solid rgba(233,233,237,.12)",
-        padding: "0 48px",
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "auto minmax(0,1fr) auto",
         alignItems: "center",
-        gap: 40,
+        gap: "calc(var(--u)*1.2)",
+        padding: "calc(var(--u)*.38) calc(var(--u)*1.4)",
+        background: "linear-gradient(180deg,#241d15,#161109)",
+        borderBottom: "calc(var(--u)*.12) solid var(--accent)",
+        minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: "none" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "calc(var(--u)*.8)", minWidth: 0 }}>
         <div
           style={{
-            font: "700 48px var(--font-display)",
-            letterSpacing: "0.06em",
-            color: "var(--text-primary)",
+            fontFamily: "var(--font-display)",
+            fontSize: "calc(var(--u)*1.3)",
+            lineHeight: 0.9,
+            letterSpacing: "-0.02em",
+            color: "#f7f1e2",
+            flex: "none",
+          }}
+        >
+          HUB<span style={{ color: "var(--accent)" }}>BUB</span>
+        </div>
+        <div style={{ width: 1, height: "calc(var(--u)*1.5)", background: "var(--divider-heavy)", flex: "none" }} />
+        <div
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "calc(var(--u)*1.05)",
+            lineHeight: 1,
+            color: "rgba(242,234,217,.78)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {title}
         </div>
-        <div
-          style={{
-            height: 3,
-            width: "100%",
-            background: `linear-gradient(to right, ${a}, ${b})`,
-          }}
-        />
       </div>
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-        {children}
-      </div>
+
       <div
         style={{
-          flex: "none",
-          borderLeft: "1px solid rgba(233,233,237,.12)",
-          padding: "0 0 0 32px",
           display: "flex",
-          alignItems: "center",
-          gap: 16,
+          alignItems: "flex-start",
+          justifyContent: "flex-end",
+          gap: "calc(var(--u)*.6)",
+          minWidth: 0,
+          overflow: "hidden",
         }}
       >
-        <span style={{ font: "500 20px var(--font-ui)", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
-          HUBBUB.TV
-        </span>
-        <span style={{ font: "700 40px var(--font-display)", letterSpacing: "0.08em", color: "var(--text-primary)" }}>
-          {roomCode}
-        </span>
+        {players
+          ? players.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: "none",
+                  width: "calc(var(--u)*3.5)",
+                  textAlign: "center",
+                  opacity: p.connected === false ? 0.3 : 1,
+                }}
+              >
+                {/* Avatar's numeric size can't consume --u; a static px is the seam. */}
+                <div style={{ width: "calc(var(--u)*1.5)", margin: "0 auto" }}>
+                  <Avatar size={28} colorHex={p.colorHex} emoji={p.emoji} surface={2} />
+                </div>
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: "calc(var(--u)*.12)",
+                    fontSize: "calc(var(--u)*.72)",
+                    fontWeight: 600,
+                    color: "rgba(242,234,217,.78)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {p.name}
+                </span>
+                {p.host ? (
+                  <b
+                    style={{
+                      display: "block",
+                      fontSize: "calc(var(--u)*.54)",
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      color: "var(--accent)",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    HOST
+                  </b>
+                ) : null}
+              </div>
+            ))
+          : children}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          flex: "none",
+          paddingLeft: "calc(var(--u)*1)",
+          borderLeft: "1px solid var(--divider-heavy)",
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+            padding: "calc(var(--u)*.2) calc(var(--u)*.7) calc(var(--u)*.32)",
+            borderRadius: "calc(var(--u)*.28)",
+            background: "linear-gradient(180deg,var(--kraft-light),var(--kraft-dark))",
+            boxShadow: "0 2px 0 #7d6242, inset 0 1px 0 rgba(255,255,255,.4)",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "calc(var(--u)*1.3)",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              color: "var(--kraft-ink)",
+            }}
+          >
+            {roomCode}
+          </div>
+          <div
+            style={{
+              fontSize: "calc(var(--u)*.56)",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              color: "var(--kraft-ink-mid)",
+            }}
+          >
+            HUBBUB.TV
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -10,8 +10,8 @@
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": {
-    "@fontsource/inter": "^5.1.0",
-    "@fontsource/big-shoulders-display": "^5.1.0",
+    "@fontsource/archivo": "^5.1.0",
+    "@fontsource/archivo-black": "^5.1.0",
     "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": { "react": "^18.3.0" },

@@ -47,7 +47,7 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
             right: 2,
             font: "600 8px var(--font-ui)",
             letterSpacing: "0.06em",
-            color: "#161826",
+            color: "#2A1A08",
             background: "var(--accent)",
             borderRadius: 3,
             padding: "1px 3px",
