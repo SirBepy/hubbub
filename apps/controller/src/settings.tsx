@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from "react";
-import { CaretLeft } from "@phosphor-icons/react";
-import { PLAYER_COLORS, colorHex, colorName, Avatar, NeutralButton } from "@hubbub/ui";
+import { GlowButton, NeutralButton, Avatar } from "@hubbub/ui";
 import type { Player } from "@hubbub/protocol";
+import { NEUTRAL_RING, BackHeader } from "./header";
 import { EMOJIS, type Identity } from "./identity";
 
 export function Settings({
@@ -14,85 +14,35 @@ export function Settings({
   initial?: Identity;
   onSave: (id: Identity) => void;
   onCancel?: () => void;
-  /** Connected players in the current room, for taken-color/emoji checks. Empty pre-join. */
+  /** Connected players in the current room, for the taken-emoji check. Empty pre-join. */
   roomPlayers?: Player[];
   ownPlayerId?: string;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
-  const [colorId, setColorId] = useState(initial?.colorId ?? 0);
   const [emoji, setEmoji] = useState(initial?.emoji ?? EMOJIS[0]);
+  // Colour is no longer player-facing; a fresh identity still needs one on the wire
+  // for games that draw pieces by colorId, so it's picked once here and never shown.
+  const [colorId] = useState(initial?.colorId ?? Math.floor(Math.random() * 6));
 
   const others = (roomPlayers ?? []).filter((p) => p.connected && p.id !== ownPlayerId);
-  const colorTaken = (id: number) => others.some((p) => p.colorId === id);
   const emojiTaken = (e: string) => others.some((p) => p.emoji === e);
-  const hex = colorHex(colorId);
 
   return (
     <main style={page}>
-      <div style={header}>
-        {onCancel ? (
-          <button type="button" onClick={onCancel} aria-label="Back" style={backButton}>
-            <CaretLeft size={20} weight="bold" />
-          </button>
-        ) : (
-          <span style={{ width: 20 }} />
-        )}
-        <span style={headerTitle}>Your identity</span>
-        <span style={{ width: 20 }} />
-      </div>
+      {onCancel ? <BackHeader title="Change my avatar" onBack={onCancel} /> : <div style={{ height: 44 }} />}
 
-      <div style={previewOuter}>
-        <div style={previewCard}>
-          <div style={{ width: 104, height: 104, borderRadius: "50%", boxShadow: `0 0 28px ${hex}47` }}>
-            <Avatar size={104} colorHex={hex} emoji={emoji} surface={1} />
-          </div>
-          <div style={previewName}>{name.trim() || "Your name"}</div>
-          <div style={previewSub}>
-            <span style={{ ...dot, background: hex }} />
-            {colorName(colorId)} · how you appear on the TV
+      <div style={{ padding: "10px 14px 0" }}>
+        <div style={preview}>
+          <Avatar size={64} colorHex={NEUTRAL_RING} emoji={emoji} surface={1} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={fieldLabel}>Your name</div>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={24} style={nameInput} />
           </div>
         </div>
       </div>
 
-      <div style={{ padding: "0 16px" }}>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          maxLength={24}
-          style={nameInput}
-        />
-      </div>
-
-      <div style={{ padding: "16px 16px 0" }}>
-        <div style={sectionLabel}>COLOR</div>
-        <div style={colorGrid}>
-          {PLAYER_COLORS.map((c) => {
-            const taken = colorTaken(c.id);
-            return (
-              <button
-                key={c.id}
-                type="button"
-                disabled={taken}
-                onClick={() => setColorId(c.id)}
-                style={{ ...colorCell, opacity: taken ? 0.25 : 1, cursor: taken ? "default" : "pointer" }}
-              >
-                <span
-                  style={{
-                    ...colorSwatch,
-                    background: c.hex,
-                    border: colorId === c.id ? "2px solid var(--text-primary)" : "2px solid transparent",
-                  }}
-                />
-                <span style={colorLabel}>{c.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ padding: "16px 16px 8px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-        <div style={sectionLabel}>EMOJI</div>
+      <div style={{ padding: "16px 14px 0", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div style={sectionLabel}>Pick a piece</div>
         <div style={emojiGrid}>
           {EMOJIS.map((e) => {
             const taken = emojiTaken(e) && e !== emoji;
@@ -102,12 +52,7 @@ export function Settings({
                 type="button"
                 disabled={taken}
                 onClick={() => setEmoji(e)}
-                style={{
-                  ...emojiCell,
-                  opacity: taken ? 0.25 : 1,
-                  cursor: taken ? "default" : "pointer",
-                  border: emoji === e ? "2px solid var(--text-primary)" : "1px solid var(--divider)",
-                }}
+                style={{ ...emojiCell, opacity: taken ? 0.26 : 1, cursor: taken ? "default" : "pointer", borderColor: emoji === e ? "var(--ink-amber-highlight)" : "transparent" }}
               >
                 {e}
               </button>
@@ -117,138 +62,50 @@ export function Settings({
       </div>
 
       <div style={footer}>
-        {onCancel ? <NeutralButton height={56} label="Cancel" onClick={onCancel} fullWidth={false} /> : null}
-        <div style={{ flex: 1 }}>
-          <button
-            type="button"
-            disabled={name.trim() === ""}
-            onClick={() => onSave({ name: name.trim(), colorId, emoji })}
-            style={{
-              ...saveButton,
-              borderColor: hex,
-              background: `${hex}1a`,
-              color: hex,
-              opacity: name.trim() === "" ? 0.45 : 1,
-            }}
-          >
-            Save identity
-          </button>
+        <div style={hint}>Faded pieces are already taken by someone in the room.</div>
+        <div style={footerRow}>
+          {onCancel ? <NeutralButton height={48} label="Cancel" onClick={onCancel} fullWidth={false} /> : null}
+          <div style={{ flex: 1 }}>
+            <GlowButton label="Save" disabled={name.trim() === ""} onClick={() => onSave({ name: name.trim(), colorId, emoji })} />
+          </div>
         </div>
       </div>
     </main>
   );
 }
 
-const page: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  height: "100dvh",
-  background: "var(--surface-0)",
-  color: "var(--text-primary)",
-};
-const header: CSSProperties = {
-  flex: "none",
-  height: 44,
-  padding: "0 16px",
+const page: CSSProperties = { display: "flex", flexDirection: "column", height: "100dvh", background: "var(--surface-0)", color: "var(--text-primary)" };
+const preview: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-};
-const backButton: CSSProperties = {
-  width: 32,
-  height: 32,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "transparent",
-  border: "none",
-  color: "var(--text-primary)",
-  cursor: "pointer",
-};
-const headerTitle: CSSProperties = { font: "600 16px var(--font-ui)" };
-const previewOuter: CSSProperties = { padding: "8px 16px" };
-const previewCard: CSSProperties = {
-  background: "var(--surface-2)",
-  border: "1px solid var(--divider-heavy)",
+  gap: 14,
+  padding: 14,
   borderRadius: "var(--radius-lg)",
-  padding: 16,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: 8,
+  background: "rgba(242,234,217,.05)",
+  border: "1px solid var(--divider-heavy)",
 };
-const previewName: CSSProperties = { font: "600 22px var(--font-ui)" };
-const previewSub: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  font: "500 12px var(--font-ui)",
-  color: "var(--text-muted)",
-};
-const dot: CSSProperties = { width: 8, height: 8, borderRadius: "50%" };
+const fieldLabel: CSSProperties = { font: "700 10.5px var(--font-ui)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 5 };
 const nameInput: CSSProperties = {
   width: "100%",
-  height: 44,
-  padding: "0 12px",
-  background: "var(--surface-1)",
-  border: "1px solid var(--divider)",
+  padding: "10px 12px",
   borderRadius: "var(--radius-md)",
+  background: "rgba(242,234,217,.07)",
+  border: "1px solid var(--divider-heavy)",
   color: "var(--text-primary)",
-  font: "500 16px var(--font-ui)",
+  font: "600 16px var(--font-ui)",
 };
-const sectionLabel: CSSProperties = {
-  font: "600 11px var(--font-ui)",
-  letterSpacing: "0.14em",
-  color: "var(--text-muted)",
-  marginBottom: 8,
-};
-const colorGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 };
-const colorCell: CSSProperties = {
-  height: 64,
-  background: "var(--surface-1)",
-  border: "1px solid var(--divider)",
-  borderRadius: "var(--radius-md)",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 4,
-};
-const colorSwatch: CSSProperties = { width: 28, height: 28, borderRadius: "50%" };
-const colorLabel: CSSProperties = { font: "500 11px var(--font-ui)", color: "var(--text-secondary)" };
-const emojiGrid: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(6, 1fr)",
-  gridAutoRows: 48,
-  alignContent: "start",
-  gap: 8,
-  flex: 1,
-  minHeight: 0,
-  overflowY: "auto",
-};
+const sectionLabel: CSSProperties = { font: "700 11px var(--font-ui)", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 };
+const emojiGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 9, flex: 1, minHeight: 0, overflowY: "auto", alignContent: "start" };
 const emojiCell: CSSProperties = {
-  width: 48,
-  height: 48,
-  background: "var(--surface-1)",
-  borderRadius: "var(--radius-md)",
-  fontSize: 22,
+  aspectRatio: "1",
+  borderRadius: "var(--radius-lg)",
+  background: "rgba(242,234,217,.05)",
+  border: "2px solid transparent",
+  fontSize: 26,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
 };
-const footer: CSSProperties = {
-  flex: "none",
-  padding: 16,
-  borderTop: "1px solid var(--divider)",
-  display: "flex",
-  gap: 8,
-};
-const saveButton: CSSProperties = {
-  width: "100%",
-  height: 56,
-  border: "2px solid",
-  borderRadius: "var(--radius-md)",
-  font: "600 17px var(--font-ui)",
-  cursor: "pointer",
-  transition: "opacity 150ms ease-out",
-};
+const footer: CSSProperties = { flex: "none", padding: 14, borderTop: "1px solid var(--divider)", display: "flex", flexDirection: "column", gap: 10 };
+const footerRow: CSSProperties = { display: "flex", gap: 8 };
+const hint: CSSProperties = { textAlign: "center", font: "500 11.5px var(--font-ui)", lineHeight: 1.45, color: "var(--text-muted)" };

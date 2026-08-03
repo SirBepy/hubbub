@@ -2,11 +2,18 @@ import { useRef, useState, type CSSProperties } from "react";
 import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import { Avatar, GlowButton, NeutralButton, colorHex, colorName } from "@hubbub/ui";
+import { Avatar, GlowButton, NeutralButton } from "@hubbub/ui";
 import { getController, getLogic, getSettingsSchema } from "./game";
-import { ControllerLobby } from "./lobby";
+import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
+import { MenuScreen } from "./menu";
+import { SearchScreen } from "./search";
+import { ShareScreen } from "./share";
+import { AboutScreen } from "./about";
+import { HowToPlayScreen } from "./how-to-play";
+import { PassRemoteScreen } from "./pass-remote";
+import { IdentityHeader, NEUTRAL_RING } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { SERVER_URL } from "./config";
 
@@ -23,6 +30,9 @@ type RoomState = {
   config: RoomConfig | null;
 };
 type GameSlot = { gameId: string; state: any };
+// Sub-screens reached from the lobby footer or the fullscreen menu. Share/PassRemote/
+// HowToPlay/About all drill down from the menu, so their back caret returns to it.
+type PhoneView = "search" | "menu" | "share" | "howToPlay" | "about" | "passRemote" | null;
 
 export function App() {
   const [identity, setIdentityState] = useState<Identity | null>(() => loadIdentity());
@@ -34,6 +44,7 @@ export function App() {
   const [game, setGame] = useState<GameSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [configError, setConfigError] = useState("");
+  const [phoneView, setPhoneView] = useState<PhoneView>(null);
   const transportRef = useRef<WebSocketClientTransport>();
 
   const isHost = room?.hostId === playerId;
@@ -68,6 +79,18 @@ export function App() {
     t.send({ t: "joinRoom", code, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, token });
   }
 
+  // Leaving is a deliberate exit, unlike a WiFi-blip reconnect - drop the token so
+  // a future join doesn't try to reclaim this slot.
+  function leaveRoom() {
+    transportRef.current?.close();
+    localStorage.removeItem(`hubbub:token:${code}`);
+    setStatus("idle");
+    setRoom(null);
+    setGame(null);
+    setPlayerId("");
+    setPhoneView(null);
+  }
+
   // Identity-first: no saved identity means show Settings before anything else.
   if (!identity) {
     return (
@@ -81,6 +104,8 @@ export function App() {
   }
 
   if (status === "in" && room) {
+    const me = room.players.find((p) => p.id === playerId);
+
     const applyIdentity = (id: Identity) => {
       saveIdentity(id);
       setIdentityState(id);
@@ -96,6 +121,56 @@ export function App() {
           onCancel={() => setSettingsOpen(false)}
           roomPlayers={room.players}
           ownPlayerId={playerId}
+        />
+      );
+    }
+
+    if (!me) {
+      return <main style={loadingPage}>Joining…</main>;
+    }
+
+    if (phoneView === "menu") {
+      return (
+        <MenuScreen
+          me={me}
+          isHost={isHost}
+          onClose={() => setPhoneView(null)}
+          onShare={() => setPhoneView("share")}
+          onPassRemote={() => setPhoneView("passRemote")}
+          onChangeAvatar={() => setSettingsOpen(true)}
+          onHowToPlay={() => setPhoneView("howToPlay")}
+          onAbout={() => setPhoneView("about")}
+          onLeave={leaveRoom}
+        />
+      );
+    }
+    if (phoneView === "share") {
+      return <ShareScreen code={code} onBack={() => setPhoneView("menu")} />;
+    }
+    if (phoneView === "howToPlay") {
+      return <HowToPlayScreen onBack={() => setPhoneView("menu")} />;
+    }
+    if (phoneView === "about") {
+      return <AboutScreen onBack={() => setPhoneView("menu")} />;
+    }
+    if (phoneView === "passRemote") {
+      return (
+        <PassRemoteScreen
+          players={room.players}
+          playerId={playerId}
+          onTransfer={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
+          onBack={() => setPhoneView("menu")}
+        />
+      );
+    }
+    if (phoneView === "search") {
+      return (
+        <SearchScreen
+          games={room.games}
+          suggestions={room.suggestions}
+          playerId={playerId}
+          onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
+          onBack={() => setPhoneView(null)}
         />
       );
     }
@@ -123,16 +198,11 @@ export function App() {
     if (room.mode === "in-game") {
       const Controller = getController(game?.gameId ?? null);
       const logic = getLogic(game?.gameId ?? null);
-      const gameSummary = room.games.find((g) => g.id === game?.gameId);
-      const [c1, c2] = gameSummary?.identityColors ?? [1, 0];
       const result = game && logic?.result ? logic.result(game.state) : null;
 
       return (
         <main style={gamePage}>
-          <div style={gameHeader}>
-            <div style={gameWordmark}>{(gameSummary?.name ?? "").toUpperCase()}</div>
-            <div style={{ ...gameHairline, background: `linear-gradient(to right, ${colorHex(c1)}, ${colorHex(c2)})` }} />
-          </div>
+          <IdentityHeader name={me.name} emoji={me.emoji} isHost={isHost} onOpenMenu={() => setPhoneView("menu")} />
           <div style={gameBody}>
             {Controller && game && transportRef.current ? (
               <Controller
@@ -180,20 +250,29 @@ export function App() {
       );
     }
 
-    return (
-      <ControllerLobby
+    return isHost ? (
+      <HostLobby
+        me={me}
         players={room.players}
-        hostId={room.hostId}
         games={room.games}
         cursorIndex={room.cursorIndex}
         suggestions={room.suggestions}
-        playerId={playerId}
-        isHost={isHost}
         onFocus={(index) => transportRef.current?.send({ t: "lobbyFocus", index })}
-        onConfirm={() => transportRef.current?.send({ t: "configStart" })}
-        onTransferHost={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
+        onStart={() => transportRef.current?.send({ t: "configStart" })}
+        onOpenMenu={() => setPhoneView("menu")}
+        onOpenSearch={() => setPhoneView("search")}
+      />
+    ) : (
+      <PlayerLobby
+        me={me}
+        playerId={playerId}
+        players={room.players}
+        hostId={room.hostId}
+        games={room.games}
+        suggestions={room.suggestions}
         onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenMenu={() => setPhoneView("menu")}
+        onOpenSearch={() => setPhoneView("search")}
       />
     );
   }
@@ -202,13 +281,9 @@ export function App() {
     <main style={joinPage}>
       <div style={wordmark}>HUBBUB</div>
       <div style={joinIdentityRow}>
-        <Avatar size={52} colorHex={colorHex(identity.colorId)} emoji={identity.emoji} surface={1} />
+        <Avatar size={52} colorHex={NEUTRAL_RING} emoji={identity.emoji} surface={1} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={joinIdentityName}>{identity.name}</div>
-          <div style={joinIdentitySub}>
-            <span style={{ ...dot, background: colorHex(identity.colorId) }} />
-            {colorName(identity.colorId)} · you
-          </div>
         </div>
         <button type="button" onClick={() => setSettingsOpen(true)} style={editButton}>
           Edit
@@ -266,8 +341,6 @@ const joinIdentityRow: CSSProperties = {
   borderRadius: "var(--radius-md)",
 };
 const joinIdentityName: CSSProperties = { font: "600 18px var(--font-ui)" };
-const joinIdentitySub: CSSProperties = { display: "flex", alignItems: "center", gap: 6, font: "500 12px var(--font-ui)", color: "var(--text-muted)" };
-const dot: CSSProperties = { width: 8, height: 8, borderRadius: "50%", flex: "none" };
 const editButton: CSSProperties = {
   flex: "none",
   font: "600 13px var(--font-ui)",
@@ -290,6 +363,15 @@ const codeInput: CSSProperties = {
   letterSpacing: "0.12em",
 };
 
+const loadingPage: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "100dvh",
+  background: "var(--surface-0)",
+  color: "var(--text-muted)",
+  font: "500 14px var(--font-ui)",
+};
 const gamePage: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -297,9 +379,6 @@ const gamePage: CSSProperties = {
   background: "var(--surface-0)",
   color: "var(--text-primary)",
 };
-const gameHeader: CSSProperties = { flex: "none", padding: "8px 16px 12px" };
-const gameWordmark: CSSProperties = { font: "700 22px var(--font-display)", letterSpacing: "0.06em", marginBottom: 6 };
-const gameHairline: CSSProperties = { width: 88, height: 2 };
 const gameBody: CSSProperties = { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px" };
 const gameFooter: CSSProperties = { flex: "none", padding: "12px 16px 16px", display: "flex", justifyContent: "center" };
 const waitingCaption: CSSProperties = { font: "500 13px var(--font-ui)", color: "var(--text-faint)" };
