@@ -1,8 +1,13 @@
+import { resolveAvatarCharacter, type ResolvedAvatarCharacter } from "./avatars/resolve";
+
 export type AvatarProps = {
   /** Diameter in px — 56/44/52/104 are the sizes used across the design. */
   size: number;
-  /** Player identity color (hex) — the ring. Get this from palette.ts. */
+  /** Ring color (hex). Players carry no identity color; callers should pass a
+   * fixed neutral, never a per-player hue - identity lives in the character. */
   colorHex: string;
+  /** A bundled character id ("gi:wolf-head", "fe:zombie", "tw:octopus") or a
+   * plain emoji string. Unrecognized strings render as text, same as before. */
   emoji: string;
   /** Fill surface. Screen rail uses --surface-2, phone chrome uses --surface-1. */
   surface?: 1 | 2;
@@ -13,6 +18,7 @@ export type AvatarProps = {
 };
 
 export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host }: AvatarProps) {
+  const character = resolveAvatarCharacter(emoji);
   return (
     <div
       style={{
@@ -35,9 +41,10 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
           justifyContent: "center",
           fontSize: size / 2,
           lineHeight: 1,
+          overflow: "hidden",
         }}
       >
-        {emoji}
+        {character ? <AvatarGlyph character={character} size={size} /> : emoji}
       </div>
       {host ? (
         <span
@@ -57,5 +64,29 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
         </span>
       ) : null}
     </div>
+  );
+}
+
+/** game-icons render single-tone at 60% of the frame in ink, never colorHex - color
+ * must never carry identity. Fluent/Twemoji are already multi-tone circular art, so
+ * they sit at 80% to nearly fill the ring the way native emoji glyphs already did. */
+function AvatarGlyph({ character, size }: { character: ResolvedAvatarCharacter; size: number }) {
+  if (character.kind === "gi") {
+    const glyphSize = size * 0.6;
+    return (
+      <svg viewBox="0 0 512 512" width={glyphSize} height={glyphSize} style={{ color: "var(--text-primary)" }}>
+        <path fill="currentColor" d={character.d} />
+      </svg>
+    );
+  }
+  const glyphSize = size * 0.8;
+  // Bundled build-time markup, never user input - dangerouslySetInnerHTML is safe here.
+  return (
+    <svg
+      viewBox={character.viewBox}
+      width={glyphSize}
+      height={glyphSize}
+      dangerouslySetInnerHTML={{ __html: character.markup }}
+    />
   );
 }

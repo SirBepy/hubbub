@@ -6,6 +6,9 @@ export { TVStage } from "./TVStage";
 export { Avatar } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
 
+export { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./avatars/catalog";
+export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./avatars/catalog";
+
 export { PlayerPill } from "./PlayerPill";
 export type { PlayerPillProps } from "./PlayerPill";
 
