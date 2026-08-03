@@ -1,4 +1,4 @@
-export { PLAYER_COLORS, colorHex, colorName } from "./palette";
+export { PLAYER_COLORS, colorHex, colorName, shadePair } from "./palette";
 export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";

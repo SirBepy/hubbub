@@ -1,5 +1,5 @@
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
-import { Avatar, KeyArt, colorHex } from "@hubbub/ui";
+import { Avatar, KeyArt, colorHex, shadePair } from "@hubbub/ui";
 import { User } from "@phosphor-icons/react";
 
 function playerCountLabel(g: GameSummary): string {
@@ -13,8 +13,10 @@ function tileMeta(g: GameSummary): string {
   return g.category ? `${g.category} · ${range}` : range;
 }
 
+/** Box-lid art: one identity hue, light/dark shades - never the raw two-hue identity pair,
+ * which blends into a rainbow (that pair exists for X-vs-O contrast, not for art). */
 function gamePairHexes(g: GameSummary): [string, string] {
-  return g.identityColors ? [colorHex(g.identityColors[0]), colorHex(g.identityColors[1])] : [colorHex(1), colorHex(0)];
+  return shadePair(colorHex(g.identityColors ? g.identityColors[0] : 1));
 }
 
 export function Lobby({
@@ -132,7 +134,18 @@ export function Lobby({
 
       {/* Vote rack: color swatch, name, voter names, tally - no "votes" label */}
       <div style={{ gridArea: "votes", display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0, minHeight: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "calc(var(--u)*.55)", overflow: "hidden", minHeight: 0 }}>
+        <div style={{ marginTop: "calc(var(--u)*.7)", display: "flex", flexDirection: "column", gap: "calc(var(--u)*.55)", overflow: "hidden", minHeight: 0 }}>
+          {votedGames.length === 0 ? (
+            <div
+              style={{
+                flex: "none", padding: "calc(var(--u)*.5) calc(var(--u)*.7)", borderRadius: "calc(var(--u)*.35)",
+                border: "1px dashed rgba(242,234,217,.18)", color: "var(--text-muted)",
+                fontSize: "calc(var(--u)*.82)", fontWeight: 600, lineHeight: 1.3,
+              }}
+            >
+              No suggestions yet. Players vote from their phones.
+            </div>
+          ) : null}
           {votedGames.map(({ game, voters }) => {
             const [hexA, hexB] = gamePairHexes(game);
             return (
@@ -141,7 +154,7 @@ export function Lobby({
                 style={{
                   display: "flex", alignItems: "center", gap: "calc(var(--u)*.65)", flex: "none",
                   padding: "calc(var(--u)*.5) calc(var(--u)*.7)", borderRadius: "calc(var(--u)*.35)",
-                  background: "linear-gradient(180deg,var(--kraft-light),var(--kraft-dark))", color: "var(--kraft-ink)",
+                  background: "linear-gradient(180deg,var(--kraft-light),var(--kraft-vote-dark))", color: "var(--kraft-ink)",
                   boxShadow: "0 calc(var(--u)*.35) calc(var(--u)*.8) rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.4)",
                 }}
               >
@@ -230,7 +243,7 @@ export function Lobby({
       <div
         style={{
           gridArea: "rail", display: "flex", alignItems: "center", gap: "calc(var(--u)*1.4)", overflow: "hidden",
-          padding: "calc(var(--u)*.7) 0 calc(var(--u)*.9)", borderTop: "1px solid var(--divider)", minWidth: 0, minHeight: 0,
+          padding: "calc(var(--u)*.7) 0 calc(var(--u)*.9)", borderTop: "1px solid rgba(242,234,217,.1)", minWidth: 0, minHeight: 0,
         }}
       >
         <div style={{ flex: "none" }}>
@@ -239,6 +252,11 @@ export function Lobby({
             at the table
           </span>
         </div>
+        {players.length === 0 ? (
+          <span style={{ flex: 1, minWidth: 0, fontSize: "calc(var(--u)*.82)", fontWeight: 600, color: "var(--text-muted)" }}>
+            Scan the QR to join. Seats fill in as players connect.
+          </span>
+        ) : (
         <div style={{ display: "flex", gap: "calc(var(--u)*.85)", overflow: "hidden", flex: 1, minWidth: 0 }}>
           {players.map((p) => (
             <div key={p.id} style={{ flex: "none", width: "calc(var(--u)*3)", textAlign: "center", opacity: p.connected ? 1 : 0.32 }}>
@@ -261,6 +279,7 @@ export function Lobby({
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

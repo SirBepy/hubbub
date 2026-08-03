@@ -20,6 +20,9 @@
   --kraft-light: #d9ba88;
   --kraft-mid: #c8a87c;
   --kraft-dark: #b08f63;
+  /* Lighter than --kraft-dark on purpose: the vote-rack card needs more contrast
+     against its own swatch/tally than the join chit does. */
+  --kraft-vote-dark: #bc9a6e;
   --kraft-ink: #3b2a14;
   --kraft-ink-mid: #6b4f2c;
 
