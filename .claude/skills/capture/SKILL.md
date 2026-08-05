@@ -44,14 +44,16 @@ its own browser context, so there is no two-tab localStorage collision (see
   "controllerUrl": "http://localhost:5174",
   "steps": [
     { "type": "waitRoomCode" },
-    { "type": "identity", "page": "host", "name": "Bepy", "color": "cyan", "emoji": "<pick emoji from picker>" },
+    { "type": "identity", "page": "host", "name": "Bepy", "emoji": "<pick character label from picker>" },
     { "type": "join", "page": "host" },
-    { "type": "identity", "page": "guest", "name": "Mira", "color": "magenta", "emoji": "<pick emoji from picker>", "shot": ".for_bepy/screenshots/x/identity-picker.png" },
+    { "type": "identity", "page": "guest", "name": "Mira", "emoji": "<pick character label from picker>", "shot": ".for_bepy/screenshots/x/identity-picker.png" },
     { "type": "join", "page": "guest" },
-    { "type": "waitText", "page": "tv", "text": "2 connected" },
+    { "type": "waitText", "page": "tv", "text": "Mira" },
     { "type": "screenshot", "page": "tv", "out": ".for_bepy/screenshots/x/tv-lobby.png" },
-    { "type": "clickRole", "page": "host", "role": "button", "name": "^Tic-Tac-Toe ", "exact": false },
-    { "type": "clickRole", "page": "host", "role": "button", "name": "^Start ", "exact": false },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Search games", "exact": true },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Tic-Tac-Toe", "exact": false },
+    { "type": "waitRole", "page": "host", "role": "button", "name": "Tic-Tac-Toe", "exact": false },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Tic-Tac-Toe", "exact": false },
     { "type": "waitRole", "page": "host", "role": "button", "name": "Rematch" },
     { "type": "screenshot", "page": "tv", "out": ".for_bepy/screenshots/x/tv-endofround.png" }
   ]
@@ -59,17 +61,24 @@ its own browser context, so there is no two-tab localStorage collision (see
 ```
 
 `screenUrl`/`controllerUrl` default to the ports above if omitted. `viewport` may override the
-`{ tv, controller }` defaults (1920x1080 / 390x844, matching a real TV and phone). `emoji` must be
-the literal glyph shown on the picker button (it is the button's accessible name); copy it from
-the running UI or from `capture-v3.cjs`'s prior art, don't guess a codepoint.
+`{ tv, controller }` defaults (1920x1080 / 390x844, matching a real TV and phone). Player colour is
+no longer user-facing anywhere in the product, so the identity plan carries no `color` field -
+avatars alone carry identity now. `emoji` must be the character's exact `label` (e.g. "bear head"),
+which is that picker button's accessible name (its `title` attribute, since the button's own
+content is an SVG/emoji glyph with no text); copy it from the running UI or from
+`packages/ui/src/avatars/{game-icons,fluent-emoji,twemoji}.ts`.
+
+There is no dedicated "Start" button anymore: the host taps a game once from Search to vote for
+it, then taps that same game's row again once it reappears in the lobby's voted list - that second
+tap is what actually starts it (`configStart`), so a `waitRole` between the two taps is required.
 
 ### Step types
 
 | Type | Fields | Notes |
 |---|---|---|
 | `waitRoomCode` | `page` (default `tv`) | Scrapes the 6-char code off the TV DOM; run before any `join` |
-| `identity` | `page`, `name`, `color`, `emoji`, `shot` (optional) | Fills the identity form; `shot` screenshots before Save (matches the color/emoji picker UI) |
-| `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for PICK A GAME |
+| `identity` | `page`, `name`, `emoji`, `shot` (optional) | Fills the identity form; `shot` screenshots before Save (matches the character picker UI) |
+| `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for the lobby ("Search games") |
 | `screenshot` | `page`, `out` | Settles (`fonts.ready` + 400ms) then screenshots |
 | `click` | `page`, `selector` | Raw CSS click |
 | `clickRole` | `page`, `role`, `name`, `exact` | `getByRole(...).click()`; `name` is a substring/regex source when `exact:false` |
@@ -94,5 +103,5 @@ truncated DOM + console logs for every open page into `--out-dir` before exiting
 
 ## Step 5 - Verify and report
 
-Read each screenshot back: not blank, not mid-transition, room code actually 4 chars. Console
+Read each screenshot back: not blank, not mid-transition, room code actually 6 chars. Console
 logs print per page id at the end on success too - scan for errors even when shots look fine.

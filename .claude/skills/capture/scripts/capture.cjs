@@ -95,24 +95,32 @@ async function getRoomCode(page) {
   throw new Error('Room code never appeared on TV screen');
 }
 
-async function doIdentity(page, name, colorName, emoji, shotOut) {
+// Player colour is no longer user-facing (settings.tsx picks colorId randomly, hidden);
+// only name + character selection remain in the identity form.
+async function doIdentity(page, name, emoji, shotOut) {
   await page.getByPlaceholder('Your name').waitFor({ timeout: 15000 });
   await page.getByPlaceholder('Your name').fill(name);
-  await page.getByRole('button', { name: colorName, exact: true }).click();
   await page.getByRole('button', { name: emoji, exact: true }).click();
   if (shotOut) await shot(page, shotOut);
-  await page.getByRole('button', { name: 'Save identity', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
 }
 
 async function joinRoom(page, code) {
   await page.getByPlaceholder('CODE').waitFor({ timeout: 15000 });
   await page.getByPlaceholder('CODE').fill(code);
   await page.getByRole('button', { name: 'Join room', exact: true }).click();
-  await page.getByText(/PICK A GAME/i).waitFor({ timeout: 15000 });
+  await page.getByText(/Search games/i).waitFor({ timeout: 15000 });
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  // Playwright's downloaded chromium has vanished from ms-playwright mid-session before;
+  // the installed Chrome via channel needs no download. Fall back if that channel is absent.
+  let browser;
+  try {
+    browser = await chromium.launch({ channel: 'chrome' });
+  } catch {
+    browser = await chromium.launch();
+  }
   const pages = new Map(); // id -> { page, log }
   let roomCode = null;
 
@@ -140,7 +148,7 @@ async function joinRoom(page, code) {
         }
         case 'identity': {
           const page = await getPage(step.page);
-          await doIdentity(page, step.name, step.color, step.emoji, step.shot);
+          await doIdentity(page, step.name, step.emoji, step.shot);
           break;
         }
         case 'join': {
