@@ -12,8 +12,31 @@ function defaultConfigValues(schema: SettingsField[]): Record<string, string> {
 
 interface ConnState { roomCode?: string; playerId?: string; role?: "screen" | "controller"; }
 
-export function createServer(port: number, games: GameRegistry) {
+interface RateLimitConfig { max: number; windowMs: number; }
+export interface JoinRateLimitOptions { perIp?: RateLimitConfig; perCode?: RateLimitConfig; }
+
+// Real thresholds (design spec "Room codes and abuse"). Injectable so tests can throttle
+// without firing 20+ real messages from the loopback address they all share.
+const DEFAULT_PER_IP: RateLimitConfig = { max: 20, windowMs: 60_000 };
+const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
+const RATE_LIMIT_MESSAGE = "Too many join attempts. Try again shortly.";
+
+// Sliding window via a per-key timestamp list, pruned on each hit. In-memory and reset on
+// restart is fine: rooms are already ephemeral with no persistence layer to match.
+function createLimiter({ max, windowMs }: RateLimitConfig) {
+  const hits = new Map<string, number[]>();
+  return (key: string, now: number): boolean => {
+    const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+    recent.push(now);
+    hits.set(key, recent);
+    return recent.length > max;
+  };
+}
+
+export function createServer(port: number, games: GameRegistry, rateLimit: JoinRateLimitOptions = {}) {
   const wss = new WebSocketServer({ port });
+  const ipLimited = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
+  const codeLimited = createLimiter(rateLimit.perCode ?? DEFAULT_PER_CODE);
   const rooms = new RoomManager();
   const sockets = new Map<string, Set<WebSocket>>();
   const screens = new Map<string, WebSocket>();
@@ -84,7 +107,10 @@ export function createServer(port: number, games: GameRegistry) {
     if (summary) void launchGame(code, summary, options, notifyWs);
   }
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, req) => {
+    // Behind a future Cloudflare deployment every connection shares the proxy's own address;
+    // read the `CF-Connecting-IP` header there instead of remoteAddress.
+    const ip = req.socket.remoteAddress ?? "unknown";
     state.set(ws, {});
     ws.on("message", (raw) => {
       let msg;
@@ -103,8 +129,16 @@ export function createServer(port: number, games: GameRegistry) {
       }
 
       if (msg.t === "joinRoom") {
+        const now = Date.now();
+        // Per-code counts only failures, so guessing at one room throttles harder than joining.
+        if (ipLimited(ip, now)) { send(ws, { t: "error", code: "rate_limited", message: RATE_LIMIT_MESSAGE }); return; }
         const result = rooms.join(msg.code, { name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
-        if (!result.ok) { send(ws, { t: "error", code: result.code, message: result.message }); return; }
+        if (!result.ok) {
+          // Same shape either way, so a rate-limited guess is indistinguishable from a
+          // plain wrong-code reply - neither confirms nor denies the room's existence.
+          if (codeLimited(msg.code, now)) { send(ws, { t: "error", code: "rate_limited", message: RATE_LIMIT_MESSAGE }); return; }
+          send(ws, { t: "error", code: result.code, message: result.message }); return;
+        }
         cs.role = "controller"; cs.roomCode = msg.code; cs.playerId = result.playerId;
         sockets.get(msg.code)?.add(ws);
         send(ws, { t: "joined", playerId: result.playerId, token: result.token });
