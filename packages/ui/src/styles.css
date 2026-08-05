@@ -45,7 +45,7 @@
   --divider: rgba(242, 234, 217, 0.12);
   --divider-heavy: rgba(242, 234, 217, 0.18);
 
-  /* Player identity palette (fixed six, join order) — same ids/names, retuned to
+  /* Player identity palette (fixed six, join order) - same ids/names, retuned to
      Table Night inks. Consumed by sibling game repos: never rename or reorder. */
   --player-magenta: #d97ba8;
   --player-cyan: #3e8f86;
@@ -54,7 +54,7 @@
   --player-violet: #8e6bc0;
   --player-blue: #4c7fc0;
 
-  /* Product accent — chrome only, never player/game identity */
+  /* Product accent - chrome only, never player/game identity */
   --accent: #e4b33c;
 
   /* Radii */

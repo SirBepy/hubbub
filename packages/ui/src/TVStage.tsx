@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 /**
  * Fluid full-viewport TV container: felt ground gradient + dot texture, sets
- * up the flex column every TV screen renders into. No fixed canvas/scale —
+ * up the flex column every TV screen renders into. No fixed canvas/scale -
  * screens size off the --u custom property (see styles.css) instead.
  */
 export function TVStage({ children }: { children: ReactNode }) {

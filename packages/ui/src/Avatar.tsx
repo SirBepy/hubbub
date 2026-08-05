@@ -1,7 +1,7 @@
 import { resolveAvatarCharacter, type ResolvedAvatarCharacter } from "./avatars/resolve";
 
 export type AvatarProps = {
-  /** Diameter in px — 56/44/52/104 are the sizes used across the design. */
+  /** Diameter in px - 56/44/52/104 are the sizes used across the design. */
   size: number;
   /** Ring color (hex). Players carry no identity color; callers should pass a
    * fixed neutral, never a per-player hue - identity lives in the character. */
