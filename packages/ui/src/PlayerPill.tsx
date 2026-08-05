@@ -1,3 +1,5 @@
+import { Avatar } from "./Avatar";
+
 export type PlayerPillProps = {
   colorHex: string;
   emoji: string;
@@ -17,22 +19,8 @@ export function PlayerPill({ colorHex, emoji }: PlayerPillProps) {
         border: `1px solid ${colorHex}`,
       }}
     >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          flex: "none",
-          borderRadius: "50%",
-          background: "rgba(10,13,9,.6)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 22,
-          lineHeight: 1,
-        }}
-      >
-        {emoji}
-      </div>
+      {/* size 40 matches the pill's prior fixed inner-circle diameter */}
+      <Avatar size={40} colorHex={colorHex} emoji={emoji} surface={2} />
       <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%", background: colorHex }} />
     </div>
   );
