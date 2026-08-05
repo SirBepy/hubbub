@@ -170,8 +170,9 @@ export function EndOfRoundScreen({
             ))}
             {showActions ? (
               <div style={{ display: "flex", gap: "calc(var(--u)*.85)", marginTop: "calc(var(--u)*.85)", height: 64 }}>
-                <GlowButton colorHex={colorHex(1)} height={64} label="Rematch" onClick={onRematch} fullWidth={false} />
-                <NeutralButton height={64} label="Back to lobby" onClick={onBack} fullWidth={false} />
+                {/* No onRematch/onBack from the TV: disabled visually signals "phones drive this", not a dead click. */}
+                <GlowButton colorHex={colorHex(1)} height={64} label="Rematch" onClick={onRematch} fullWidth={false} disabled={!onRematch} />
+                <NeutralButton height={64} label="Back to lobby" onClick={onBack} fullWidth={false} disabled={!onBack} />
               </div>
             ) : null}
           </div>
