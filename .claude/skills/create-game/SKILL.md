@@ -1,6 +1,6 @@
 ---
 name: create-game
-description: "Triggers on /create-game <idea> only. Scaffolds a new Hubbub game as its own sibling repo from the GitHub template, registers it in the platform, and writes a kickoff prompt for implementation."
+description: "Triggers on /create-game <idea> only. Scaffolds a new Hubbub game repo from the template and registers it in the platform."
 argument-hint: "<game idea>"
 ---
 
@@ -207,6 +207,18 @@ Two modes:
 - **(b) Next-session:** tell the user the repo is ready and that a fresh session
   started in `..\hubbub-game-<gameId>` should begin with "read KICKOFF.md and
   build".
+
+After the builder reports back (mode a), before running `/commit` in EITHER repo:
+the main agent runs an em-dash scrub on both staged diffs - a dispatch-prompt ban
+alone is not enough (Music Guesser build, 2026-08-01: both builder dispatches
+produced em dashes despite an explicit ban, caught only by a manual grep).
+```
+git -C ..\hubbub-game-<gameId> diff --cached | Select-String -Pattern '^\+.*(—|â€)'
+git diff --cached | Select-String -Pattern '^\+.*(—|â€)'
+```
+The mojibake variant (`â€"`) shows up when a UTF-8 em dash is read with the wrong
+encoding - treat it the same as a literal hit. Any hit = fix (hyphen/comma/colon),
+re-run typecheck, re-verify before committing.
 
 ## Notes
 
