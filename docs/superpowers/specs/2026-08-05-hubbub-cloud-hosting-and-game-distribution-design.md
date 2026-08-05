@@ -214,13 +214,19 @@ on the host's LAN, some remote - is first-class:
 
 ### Room codes and abuse
 
-- Codes go from **4 to 6 characters** on the existing 32-char ambiguity-free alphabet
-  (`packages/protocol/src/tokens.ts:4`: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), giving
-  32^6 ~= 1.07 billion combinations (vs 32^4 ~= 1.05 million today). Touches
-  `tokens.ts:10-16` (`newRoomCode`'s loop bound) and the two `z.string().length(4)`
-  validators (`packages/protocol/src/messages.ts:52`, `:77`).
-- Server-side join rate-limiting (per-IP and per-code attempt caps) replaces brute-forcing
-  a 6-char code as the realistic attack surface once codes are large.
+- Codes stay at **4 characters** on the 32-char ambiguity-free alphabet
+  (`packages/protocol/src/tokens.ts:5`: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), 32^4 ~= 1.05
+  million combinations, matching Jackbox. Owner call, 2026-08-05: this was briefly widened
+  to 6 and reverted, because guessing a live code only gets a stranger into a party game
+  with no account, no data, and nothing to steal. Readability off a TV wins.
+- The length is a single exported constant, `ROOM_CODE_LENGTH`
+  (`packages/protocol/src/constants.ts`), consumed by `newRoomCode`, both wire validators,
+  and the controller's code input. Widening later is a one-line change, so this is not a
+  decision that needs to be right now.
+- **Rate limiting is what actually defends the join path**, not code length: per-IP and
+  per-code attempt caps (`apps/server/src/server.ts`). The variable that would justify
+  longer codes is CONCURRENT LIVE ROOMS, not total users, since a guess only matters if it
+  lands on a room that exists at that moment.
 - No login, no passphrase stays the product decision: a player enters a code and is in.
 - Reconnect tokens today are **unsigned random hex in plaintext `localStorage`, no
   expiry** (`newToken()`, `packages/protocol/src/tokens.ts:6-8`, stored client-side as
@@ -297,9 +303,10 @@ and hardening on top of a working cloud room.
   for the LAN players and Relay for the remote one.* Needs the Cloudflare deployment from
   Phase C for signaling to test against remote players; the WebRTC code itself is
   autonomous.
-- **Phase F - Room codes to 6 chars + rate limiting.** Bump `tokens.ts`, both
-  `z.string().length(4)` validators, add join rate-limiting. *Done = a 6-char code round
-  trips through create/join; a join-flood from one IP gets throttled.* Autonomous.
+- **Phase F - Room code constant + join rate limiting.** DONE (2026-08-05). Hoisted the
+  length into `ROOM_CODE_LENGTH` and added per-IP and per-code join throttling. Codes
+  remain 4 chars; see "Room codes and abuse". *Done = a code round trips through
+  create/join; a join-flood from one IP gets throttled.* Autonomous.
 - **Phase G - Game distribution + sandbox.** Split one game (Music Guesser, since it
   already needs the Deezer proxy) out of the workspace-bundled path into a hash-pinned,
   self-hosted bundle loaded into a cross-origin sandboxed iframe with the postMessage

@@ -24,7 +24,7 @@ const { chromium } = resolvePlaywright();
 
 // Mirrored from packages/protocol/src/tokens.ts / constants.ts (raw TS, not requirable from plain CJS); keep both in sync.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const ROOM_CODE_LENGTH = 6;
+const ROOM_CODE_LENGTH = 4;
 
 const args = process.argv.slice(2);
 const get = (flag, def = null) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : def; };

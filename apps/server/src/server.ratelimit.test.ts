@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
+import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { createServer } from "./server.js";
+
+// Valid shape, so it reaches the room lookup, but never generated in practice.
+const MISSING_CODE = "Z".repeat(ROOM_CODE_LENGTH);
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
@@ -52,7 +56,7 @@ describe("join rate limiting", () => {
     const port = (handle.wss.address() as { port: number }).port;
 
     const fails = [];
-    for (let i = 0; i < 3; i++) fails.push(await join(port, "ZZZZZZ", `p${i}`));
+    for (let i = 0; i < 3; i++) fails.push(await join(port, MISSING_CODE, `p${i}`));
     expect(fails[0].code).toBe("no_room");
     expect(fails[1].code).toBe("no_room");
     expect(fails[2].code).toBe("rate_limited");

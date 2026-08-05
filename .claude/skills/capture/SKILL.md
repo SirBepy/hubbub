@@ -76,7 +76,7 @@ tap is what actually starts it (`configStart`), so a `waitRole` between the two 
 
 | Type | Fields | Notes |
 |---|---|---|
-| `waitRoomCode` | `page` (default `tv`) | Scrapes the 6-char code off the TV DOM; run before any `join` |
+| `waitRoomCode` | `page` (default `tv`) | Scrapes the 4-char code off the TV DOM; run before any `join` |
 | `identity` | `page`, `name`, `emoji`, `shot` (optional) | Fills the identity form; `shot` screenshots before Save (matches the character picker UI) |
 | `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for the lobby ("Search games") |
 | `screenshot` | `page`, `out` | Settles (`fonts.ready` + 400ms) then screenshots |
@@ -103,5 +103,5 @@ truncated DOM + console logs for every open page into `--out-dir` before exiting
 
 ## Step 5 - Verify and report
 
-Read each screenshot back: not blank, not mid-transition, room code actually 6 chars. Console
+Read each screenshot back: not blank, not mid-transition, room code actually 4 chars. Console
 logs print per page id at the end on success too - scan for errors even when shots look fine.
