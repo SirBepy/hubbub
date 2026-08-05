@@ -21,8 +21,8 @@ export const GameSummarySchema = z.object({
   name: z.string(),
   minPlayers: z.number().int(),
   maxPlayers: z.number().int().optional(),
-  featured: z.boolean(),
   category: z.string().optional(),
+  description: z.string().optional(),
   identityColors: z.tuple([z.number().int(), z.number().int()]).optional(),
   // width/height. Bounded to reject garbage (0, negative, NaN, Infinity) at the boundary;
   // 0.2-5 comfortably spans portrait phone-ish to ultra-wide.

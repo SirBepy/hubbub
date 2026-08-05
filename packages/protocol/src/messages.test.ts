@@ -54,7 +54,7 @@ describe("protocol messages", () => {
       mode: "lobby",
       currentGameId: null,
       cursorIndex: 0,
-      games: [{ id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, featured: true }],
+      games: [{ id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2 }],
       suggestions: [{ gameId: "ttt", playerId: "p1" }],
     };
     expect(parseServerMessage(JSON.stringify(raw))).toEqual(raw);
@@ -70,17 +70,17 @@ describe("protocol messages", () => {
   });
 
   it("accepts a GameSummary with a valid aspectRatio", () => {
-    const raw = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4, featured: true, aspectRatio: 16 / 9 };
+    const raw = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4, aspectRatio: 16 / 9 };
     expect(GameSummarySchema.parse(raw)).toEqual(raw);
   });
 
   it("accepts a GameSummary omitting aspectRatio", () => {
-    const raw = { id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2, featured: true };
+    const raw = { id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2 };
     expect(GameSummarySchema.parse(raw).aspectRatio).toBeUndefined();
   });
 
   it("rejects a GameSummary with a malformed aspectRatio", () => {
-    const base = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4, featured: true };
+    const base = { id: "racer", name: "Racer", minPlayers: 1, maxPlayers: 4 };
     expect(() => GameSummarySchema.parse({ ...base, aspectRatio: 0 })).toThrow();
     expect(() => GameSummarySchema.parse({ ...base, aspectRatio: -1.5 })).toThrow();
     expect(() => GameSummarySchema.parse({ ...base, aspectRatio: "16:9" })).toThrow();

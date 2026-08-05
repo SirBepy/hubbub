@@ -19,6 +19,8 @@ export interface GameMeta {
   minPlayers: number;
   maxPlayers?: number;
   category?: string;
+  /** One-line pitch shown as hero body copy on the lobby. */
+  description?: string;
   /** Indexes into protocol's PLAYER_COLOR_NAMES for the game's two roles, e.g. [X, O]. */
   identityColors?: [number, number];
   /** width/height. Omit for fluid layout (default); set only when the game needs a fixed
