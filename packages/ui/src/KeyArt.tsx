@@ -1,4 +1,11 @@
 import type { CSSProperties } from "react";
+import { colorHex, shadePair } from "./palette";
+
+/** Box-lid art: one identity hue in light/dark shades, never the raw two-hue identity pair,
+ * which blends into a rainbow (that pair exists for X-vs-O contrast, not for art). */
+export function gameKeyArtHexes(identityColors?: number[]): [string, string] {
+  return shadePair(colorHex(identityColors && identityColors.length ? identityColors[0] : 1));
+}
 
 export type KeyArtProps = {
   /** Same-hue light/dark shade pair (see shadePair) - a flat box-lid gradient, never two hues blended. */

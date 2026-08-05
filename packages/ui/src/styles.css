@@ -126,6 +126,35 @@ body {
   }
 }
 
+/* Loading-screen spinner. */
+@keyframes hb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The plain fade shared by the configuring panel and the fast (no-loader) game entrance. */
+@keyframes hb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Game entrance: a short rise under the fade, so a loaded game lands rather than pops. */
+@keyframes hb-game-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 0.6));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Countdown arc progress sweep (per-game countdown forms drive stroke-dashoffset themselves). */
 @keyframes hb-arc-tick {
   0%,

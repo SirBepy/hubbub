@@ -1,6 +1,6 @@
-// Register a game here = 3 lines total (this file + screens.ts + controllers.ts)
-// plus one dependency in package.json. Keep the three keys in sync;
-// manifest.test.ts enforces it.
+// Eager registry, for the SERVER and host-desktop only. Node has no bundle budget, so importing
+// every game's logic up front is free there. Browsers must use ./lazy.ts instead.
+// Register a game = one entry here, one in lazy.ts, one dependency in package.json.
 import type { GameRegistry } from "@hubbub/sdk";
 import { tttLogic } from "@hubbub/game-tictactoe";
 import { utttLogic } from "@hubbub/game-ultimate-tictactoe";

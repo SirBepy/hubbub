@@ -1,0 +1,64 @@
+// Browser-side game registry. Every entry is a dynamic import() so a game's views and logic
+// leave the initial chunk: at 40 games a TV would otherwise download all of them to show one.
+// The server imports GAME_LOGICS from ./logics.ts eagerly instead - it is Node, no bundle budget.
+// Registering a game = one entry here plus one line in logics.ts; manifest.test.ts enforces it.
+import type { ComponentType } from "react";
+import type { Player } from "@hubbub/protocol";
+import type { GameRegistry } from "@hubbub/sdk";
+
+export type ScreenComponent = ComponentType<{ state: any; players: Player[] }>;
+export type ControllerComponent = ComponentType<{
+  state: any;
+  playerId: string;
+  players: Player[];
+  send: (a: any) => void;
+}>;
+
+type GameLogic = GameRegistry[string];
+
+type GameChunk = {
+  screen: () => Promise<ScreenComponent>;
+  controller: () => Promise<ControllerComponent>;
+  logic: () => Promise<GameLogic>;
+};
+
+export const GAME_CHUNKS: Record<string, GameChunk> = {
+  ttt: {
+    screen: () => import("@hubbub/game-tictactoe/screen").then((m) => m.TTTScreen as ScreenComponent),
+    controller: () => import("@hubbub/game-tictactoe/controller").then((m) => m.TTTController as ControllerComponent),
+    logic: () => import("@hubbub/game-tictactoe").then((m) => m.tttLogic),
+  },
+  uttt: {
+    screen: () => import("@hubbub/game-ultimate-tictactoe/screen").then((m) => m.UTTTScreen as ScreenComponent),
+    controller: () =>
+      import("@hubbub/game-ultimate-tictactoe/controller").then((m) => m.UTTTController as ControllerComponent),
+    logic: () => import("@hubbub/game-ultimate-tictactoe").then((m) => m.utttLogic),
+  },
+  "tap-race": {
+    screen: () => import("@hubbub/game-tap-race/screen").then((m) => m.TapRaceScreen as ScreenComponent),
+    controller: () => import("@hubbub/game-tap-race/controller").then((m) => m.TapRaceController as ControllerComponent),
+    logic: () => import("@hubbub/game-tap-race").then((m) => m.tapRaceLogic),
+  },
+  "music-guesser": {
+    screen: () => import("@hubbub/game-music-guesser/screen").then((m) => m.MusicGuesserScreen as ScreenComponent),
+    controller: () =>
+      import("@hubbub/game-music-guesser/controller").then((m) => m.MusicGuesserController as ControllerComponent),
+    logic: () => import("@hubbub/game-music-guesser").then((m) => m.musicGuesserLogic),
+  },
+};
+
+export type LoadedGameScreen = { Screen: ScreenComponent; logic: GameLogic };
+export type LoadedGameController = { Controller: ControllerComponent; logic: GameLogic };
+
+/** null for an unknown id, so a caller can tell "no such game" from "still loading". */
+export function loadGameScreen(gameId: string | null): Promise<LoadedGameScreen> | null {
+  const chunk = gameId ? GAME_CHUNKS[gameId] : undefined;
+  if (!chunk) return null;
+  return Promise.all([chunk.screen(), chunk.logic()]).then(([Screen, logic]) => ({ Screen, logic }));
+}
+
+export function loadGameController(gameId: string | null): Promise<LoadedGameController> | null {
+  const chunk = gameId ? GAME_CHUNKS[gameId] : undefined;
+  if (!chunk) return null;
+  return Promise.all([chunk.controller(), chunk.logic()]).then(([Controller, logic]) => ({ Controller, logic }));
+}

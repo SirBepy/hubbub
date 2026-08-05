@@ -6,8 +6,7 @@
   "types": "./src/logics.ts",
   "exports": {
     ".": "./src/logics.ts",
-    "./screens": "./src/screens.ts",
-    "./controllers": "./src/controllers.ts",
+    "./lazy": "./src/lazy.ts",
     "./settings": "./src/settings.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },

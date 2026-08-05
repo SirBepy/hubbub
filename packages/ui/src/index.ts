@@ -32,5 +32,11 @@ export type {
   EndOfRoundStandingRow,
 } from "./EndOfRoundScreen";
 
-export { KeyArt } from "./KeyArt";
+export { KeyArt, gameKeyArtHexes } from "./KeyArt";
 export type { KeyArtProps } from "./KeyArt";
+
+export { GameLoadingScreen } from "./GameLoadingScreen";
+export type { GameLoadingScreenProps } from "./GameLoadingScreen";
+
+export { useLoadingGate, LOADER_SHOW_AFTER_MS, LOADER_MIN_VISIBLE_MS } from "./useLoadingGate";
+export type { LoadingGate } from "./useLoadingGate";

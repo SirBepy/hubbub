@@ -1,5 +1,5 @@
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
-import { Avatar, KeyArt, colorHex, shadePair } from "@hubbub/ui";
+import { Avatar, KeyArt, colorHex, gameKeyArtHexes } from "@hubbub/ui";
 import { User } from "@phosphor-icons/react";
 
 function playerCountLabel(g: GameSummary): string {
@@ -13,10 +13,8 @@ function tileMeta(g: GameSummary): string {
   return g.category ? `${g.category} · ${range}` : range;
 }
 
-/** Box-lid art: one identity hue, light/dark shades - never the raw two-hue identity pair,
- * which blends into a rainbow (that pair exists for X-vs-O contrast, not for art). */
 function gamePairHexes(g: GameSummary): [string, string] {
-  return shadePair(colorHex(g.identityColors ? g.identityColors[0] : 1));
+  return gameKeyArtHexes(g.identityColors);
 }
 
 export function Lobby({

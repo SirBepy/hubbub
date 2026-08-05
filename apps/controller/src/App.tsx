@@ -2,8 +2,8 @@ import { useRef, useState, type CSSProperties } from "react";
 import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import { Avatar, GlowButton, NeutralButton } from "@hubbub/ui";
-import { getController, getLogic, getSettingsSchema } from "./game";
+import { Avatar, GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
+import { loadGameController, getSettingsSchema } from "./game";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
@@ -48,6 +48,10 @@ export function App() {
   const transportRef = useRef<WebSocketClientTransport>();
 
   const isHost = room?.hostId === playerId;
+
+  // Keyed on currentGameId so the chunk downloads while the host is still configuring.
+  const pendingGameId = room?.currentGameId ?? null;
+  const { value: loadedGame, showLoader } = useLoadingGate(pendingGameId, loadGameController);
 
   async function join() {
     if (!identity) return;
@@ -196,9 +200,11 @@ export function App() {
     }
 
     if (room.mode === "in-game") {
-      const Controller = getController(game?.gameId ?? null);
-      const logic = getLogic(game?.gameId ?? null);
+      const ready = loadedGame && game && pendingGameId === game.gameId ? loadedGame : null;
+      const Controller = ready?.Controller ?? null;
+      const logic = ready?.logic ?? null;
       const result = game && logic?.result ? logic.result(game.state) : null;
+      const pendingSummary = room.games.find((g) => g.id === pendingGameId) ?? null;
 
       return (
         <main style={gamePage}>
@@ -211,9 +217,13 @@ export function App() {
                 players={room.players}
                 send={createActionSender<any>(transportRef.current)}
               />
-            ) : (
-              <p style={{ color: "var(--text-muted)" }}>Loading game…</p>
-            )}
+            ) : showLoader ? (
+              <GameLoadingScreen
+                gameName={pendingSummary?.name ?? "Game"}
+                identityColors={pendingSummary?.identityColors}
+                category={pendingSummary?.category}
+              />
+            ) : null}
           </div>
           <div style={gameFooter}>
             {result ? (

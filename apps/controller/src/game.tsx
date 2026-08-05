@@ -1,3 +1,2 @@
-export { getController } from "@hubbub/games/controllers";
-export { getLogic } from "@hubbub/games";
+export { loadGameController, type LoadedGameController } from "@hubbub/games/lazy";
 export { getSettingsSchema } from "@hubbub/games/settings";

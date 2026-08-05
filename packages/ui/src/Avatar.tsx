@@ -5,8 +5,9 @@ import { resolveAvatarCharacter, type ResolvedAvatarCharacter } from "./avatars/
 export const NEUTRAL_RING = "rgba(242,234,217,.35)";
 
 export type AvatarProps = {
-  /** Diameter in px - 56/44/52/104 are the sizes used across the design. */
-  size: number;
+  /** Diameter. A number is px (56/44/52/104 are the sizes used across the design); a string is
+   * any CSS length, so a TV surface can size one off --u instead of a fixed pixel count. */
+  size: number | string;
   /** Ring color (hex). Players carry no identity color; callers should pass a
    * fixed neutral, never a per-player hue - identity lives in the character. */
   colorHex: string;
@@ -43,12 +44,12 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: size / 2,
+          fontSize: typeof size === "number" ? size / 2 : `calc(${size} / 2)`,
           lineHeight: 1,
           overflow: "hidden",
         }}
       >
-        {character ? <AvatarGlyph character={character} size={size} /> : emoji}
+        {character ? <AvatarGlyph character={character} /> : emoji}
       </div>
       {host ? (
         <span
@@ -74,22 +75,19 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
 /** game-icons render single-tone at 60% of the frame in ink, never colorHex - color
  * must never carry identity. Fluent/Twemoji are already multi-tone circular art, so
  * they sit at 80% to nearly fill the ring the way native emoji glyphs already did. */
-function AvatarGlyph({ character, size }: { character: ResolvedAvatarCharacter; size: number }) {
+function AvatarGlyph({ character }: { character: ResolvedAvatarCharacter }) {
   if (character.kind === "gi") {
-    const glyphSize = size * 0.6;
     return (
-      <svg viewBox="0 0 512 512" width={glyphSize} height={glyphSize} style={{ color: "var(--text-primary)" }}>
+      <svg viewBox="0 0 512 512" style={{ width: "60%", height: "60%", color: "var(--text-primary)" }}>
         <path fill="currentColor" d={character.d} />
       </svg>
     );
   }
-  const glyphSize = size * 0.8;
   // Bundled build-time markup, never user input - dangerouslySetInnerHTML is safe here.
   return (
     <svg
       viewBox={character.viewBox}
-      width={glyphSize}
-      height={glyphSize}
+      style={{ width: "80%", height: "80%" }}
       dangerouslySetInnerHTML={{ __html: character.markup }}
     />
   );

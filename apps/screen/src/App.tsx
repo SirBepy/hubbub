@@ -2,8 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { WebSocketClientTransport, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import { TVStage, GameTopBar, EndOfRoundScreen, colorHex, type GameTopBarPlayer } from "@hubbub/ui";
-import { getScreen, getLogic, getSettingsSchema } from "./game";
+import {
+  TVStage,
+  GameTopBar,
+  EndOfRoundScreen,
+  GameLoadingScreen,
+  useLoadingGate,
+  colorHex,
+  type GameTopBarPlayer,
+} from "@hubbub/ui";
+import { loadGameScreen, getSettingsSchema } from "./game";
 import { Lobby } from "./lobby";
 import { ConfigPanel } from "./config-panel";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
@@ -89,8 +97,26 @@ export function App() {
     };
   }, []);
 
-  const Screen = getScreen(game?.gameId ?? null);
-  const logic = getLogic(game?.gameId ?? null);
+  // Keyed on currentGameId, not the in-game state, so the chunk downloads during the config
+  // phase and is usually warm by the time the room actually flips to in-game.
+  const pendingGameId = room?.currentGameId ?? null;
+  const { value: loaded, showLoader } = useLoadingGate(pendingGameId, loadGameScreen);
+  const ready = loaded && game && pendingGameId === game.gameId ? loaded : null;
+  const Screen = ready?.Screen ?? null;
+  const logic = ready?.logic ?? null;
+
+  if (room?.mode === "in-game" && showLoader) {
+    const summary = room.games.find((g) => g.id === pendingGameId) ?? null;
+    return (
+      <TVStage>
+        <GameLoadingScreen
+          gameName={summary?.name ?? "Game"}
+          identityColors={summary?.identityColors}
+          category={summary?.category}
+        />
+      </TVStage>
+    );
+  }
 
   if (room?.mode === "in-game" && Screen && game) {
     const players = room.players;
@@ -104,7 +130,6 @@ export function App() {
           ? {
               name: winnerPlayer.name,
               emoji: winnerPlayer.emoji,
-              colorHex: colorHex(winnerPlayer.colorId),
               rankLabel: "1",
               rankSuffix: "ST",
             }
@@ -133,7 +158,15 @@ export function App() {
 
     return (
       <TVStage>
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            animation: "hb-game-in 260ms cubic-bezier(.2,.8,.2,1) 1 both",
+          }}
+        >
           <GameTopBar title={summary?.name ?? ""} roomCode={code} players={topBarPlayers} />
           <GameSlot aspectRatio={summary?.aspectRatio}>
             <Screen state={game.state} players={players} />
@@ -148,6 +181,8 @@ export function App() {
     const gameName = room.games.find((g) => g.id === room.config!.gameId)?.name ?? "";
     return (
       <TVStage>
+        {/* Plain fade, not a second choreography: the lobby-to-game beat already opened the box. */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", animation: "hb-fade-in 200ms ease-out 1 both" }}>
         <ConfigPanel
           code={code}
           gameName={gameName}
@@ -155,6 +190,7 @@ export function App() {
           values={room.config.values}
           cursorIndex={room.config.cursorIndex}
         />
+        </div>
       </TVStage>
     );
   }
