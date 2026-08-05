@@ -135,7 +135,7 @@ input) are built in early so neither needs a rewrite.
 - **Phase 2 - First game (Ultimate Tic-Tac-Toe):** validates join, turns, validation, sync, reconnect. *Done = two phones play a full game and survive a WiFi blip.*
 - **Phase 3 - Local product (Electron host):** embed server, LAN-IP QR, installers. *Done = send a friend the app, play TTT on real WiFi.* First sendable product.
 - **Phase 4 - Real-time path:** `tickRateHz` + screen-authoritative loop; `TiltPad`/motion + LAN secure-context; WebRTC DataChannel transport behind the interface. *Done = a Flappy / jump-on-heads prototype feels responsive.*
-- **Phase 5 - Cloud mode:** deploy server + screen (wss); public room URLs. Same games run unchanged. *Done = remote play works.*
+- **Phase 5 - Cloud mode:** deploy server + screen (wss); public room URLs. Same games run unchanged. *Done = remote play works.* **Superseded:** the cloud plan is now `2026-08-05-hubbub-cloud-hosting-and-game-distribution-design.md` (Cloudflare Workers + Durable Objects, one origin, sandboxed game distribution) - see that spec's Migration path instead of this line.
 - **Phase 6+ - Content & opening up:** Music Guesser (Deezer) -> verify-then-build Spotify Stats -> port Split Opinions -> keyboard/gamepad input + tests -> public SDK + sandboxing.
 
 ## 7. Planned games (roadmap context)
@@ -149,7 +149,7 @@ input) are built in early so neither needs a rewrite.
 
 - **Build from scratch** (no maintained/forkable base).
 - **WebSocket default**, WebRTC behind a swappable transport interface.
-- **Screen-authoritative** for real-time, **server-authoritative** for turn-based, switched by `tickRateHz`.
+- **Screen-authoritative** for real-time, **server-authoritative** for turn-based, switched by `tickRateHz`. **Superseded:** `2026-08-05-hubbub-cloud-hosting-and-game-distribution-design.md` moves ALL games to screen authority; the server becomes relay + membership + reconnect + signaling only.
 - **Electron** host app for local mode; CLI run is the dev/testing path.
 - **Web/PWA** mobile controllers only; native deferred (Capacitor, no rewrite).
 - **Action-based input** abstraction from Phase 1.
