@@ -3,6 +3,7 @@ import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
 import { createServer } from "./server.js";
+import { attachScreenAuthority } from "./test-screen.js";
 
 // "music-guesser" is the only id with a real schema in @hubbub/games/settings today - reuse that
 // id with a lightweight fake logic (no real Deezer fetch) to exercise the config phase generically
@@ -53,6 +54,7 @@ async function setup() {
   const screen = await open(port);
   screen.send(JSON.stringify({ t: "createRoom" }));
   const created = await nextOf(screen, "roomCreated");
+  attachScreenAuthority(screen, registry);
   const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
   return { port, screen, host, code: created.code as string };
 }

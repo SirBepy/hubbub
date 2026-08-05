@@ -3,6 +3,7 @@ import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
 import { createServer } from "./server.js";
+import { attachScreenAuthority } from "./test-screen.js";
 
 interface S { count: number; owner: string | null }
 const counter: GameLogic<S, { by: number }> = {
@@ -41,6 +42,7 @@ async function setup() {
   const screen = await open(port);
   screen.send(JSON.stringify({ t: "createRoom" }));
   const created = await nextOf(screen, "roomCreated");
+  attachScreenAuthority(screen, registry);
   return { port, screen, code: created.code };
 }
 const join = (ws: WebSocket, code: string, name: string) =>

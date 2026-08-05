@@ -3,6 +3,7 @@ import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
 import { createServer } from "./server.js";
+import { attachScreenAuthority } from "./test-screen.js";
 
 // A game exercising the three new platform hooks: async setup (server-side fetch stand-in),
 // ctx.now on init/onAction, and nextDeadline/onTimeout (server-forced advance on timeout).
@@ -46,6 +47,7 @@ async function setup() {
   const screen = await open(port);
   screen.send(JSON.stringify({ t: "createRoom" }));
   const created = await nextOf(screen, "roomCreated");
+  attachScreenAuthority(screen, registry);
   const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
   return { port, screen, host, code: created.code as string };
 }

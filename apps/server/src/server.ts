@@ -1,6 +1,6 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import { parseClientMessage, type GameSummary, type ServerMessage } from "@hubbub/protocol";
-import { GameInstance, gameSummaries, visibleSettingsFields, type GameRegistry, type PlayerInfo, type SettingsField } from "@hubbub/sdk";
+import { gameSummaries, visibleSettingsFields, type GameRegistry, type PlayerInfo, type SettingsField } from "@hubbub/sdk";
 import { getSettingsSchema } from "@hubbub/games/settings";
 import { RoomManager } from "./rooms.js";
 
@@ -16,9 +16,11 @@ export function createServer(port: number, games: GameRegistry) {
   const wss = new WebSocketServer({ port });
   const rooms = new RoomManager();
   const sockets = new Map<string, Set<WebSocket>>();
-  const instances = new Map<string, GameInstance<any, any>>();
+  const screens = new Map<string, WebSocket>();
   const lastOptions = new Map<string, unknown>();
-  const timers = new Map<string, NodeJS.Timeout>();
+  // Last state a screen pushed, per room - pure passthrough cache (never fed into a reducer)
+  // so a mid-game joiner/reconnect gets the current state without waiting for the next action.
+  const lastGameState = new Map<string, { gameId: string; state: unknown }>();
   const state = new WeakMap<WebSocket, ConnState>();
   const summaries = gameSummaries(games);
   const count = summaries.length;
@@ -39,34 +41,16 @@ export function createServer(port: number, games: GameRegistry) {
       config: rooms.config(code),
     });
   }
-  function broadcastGameState(code: string) {
-    const inst = instances.get(code);
-    const gameId = rooms.currentGameId(code);
-    if (!inst || !gameId) return;
-    broadcast(code, { t: "gameState", gameId, state: inst.get() });
+  // Relays the screen-authoritative state exactly as the server-computed broadcast used to
+  // (see rooms/server.ts history) - the server never runs the reducer itself now.
+  function broadcastGameState(code: string, gameId: string, gameState: unknown) {
+    broadcast(code, { t: "gameState", gameId, state: gameState });
   }
   const connectedInfo = (code: string): PlayerInfo[] =>
     rooms.connectedPlayers(code).map((p) => ({ id: p.id, name: p.name }));
 
-  function clearTimer(code: string) {
-    const t = timers.get(code);
-    if (t) { clearTimeout(t); timers.delete(code); }
-  }
-  // Reschedules the room's single pending timeout to the game's own next deadline (if any). Games
-  // without nextDeadline/onTimeout never get a timer - this is a no-op for ttt/uttt/tap-race.
-  function scheduleTimer(code: string) {
-    clearTimer(code);
-    const inst = instances.get(code);
-    const deadline = inst?.nextDeadline();
-    if (deadline === null || deadline === undefined) return;
-    const delay = Math.max(0, deadline - Date.now());
-    timers.set(code, setTimeout(() => {
-      const cur = instances.get(code);
-      if (cur?.checkTimeout(Date.now())) broadcastGameState(code);
-      scheduleTimer(code);
-    }, delay));
-  }
-
+  // setup() stays server-side (may do network I/O); the screen calls init() itself with the
+  // resulting setupData (design spec Phase B, "Authority" / out-of-scope note on setup()).
   async function launchGame(code: string, summary: GameSummary, options: unknown, notifyWs?: WebSocket) {
     const players = connectedInfo(code);
     if (players.length < summary.minPlayers) return;
@@ -87,13 +71,13 @@ export function createServer(port: number, games: GameRegistry) {
       }
     }
     lastOptions.set(code, options);
-    instances.set(code, new GameInstance(logic, players, setupData, Date.now()));
+    lastGameState.delete(code);
     rooms.setMode(code, "in-game", summary.id);
     rooms.clearConfig(code);
     rooms.clearSuggestions(code);
     broadcastRoomState(code);
-    broadcastGameState(code);
-    scheduleTimer(code);
+    const screenWs = screens.get(code);
+    if (screenWs) send(screenWs, { t: "gameLaunch", gameId: summary.id, players, setupData, now: Date.now() });
   }
   function launchAtCursor(code: string, options: unknown, notifyWs?: WebSocket) {
     const summary = summaries[rooms.cursorIndex(code)];
@@ -112,6 +96,7 @@ export function createServer(port: number, games: GameRegistry) {
         const code = rooms.createRoom();
         cs.role = "screen"; cs.roomCode = code;
         sockets.set(code, new Set([ws]));
+        screens.set(code, ws);
         send(ws, { t: "roomCreated", code });
         broadcastRoomState(code);
         return;
@@ -124,7 +109,8 @@ export function createServer(port: number, games: GameRegistry) {
         sockets.get(msg.code)?.add(ws);
         send(ws, { t: "joined", playerId: result.playerId, token: result.token });
         broadcastRoomState(msg.code);
-        if (rooms.mode(msg.code) === "in-game") broadcastGameState(msg.code);
+        const cached = lastGameState.get(msg.code);
+        if (rooms.mode(msg.code) === "in-game" && cached) send(ws, { t: "gameState", gameId: cached.gameId, state: cached.state });
         return;
       }
 
@@ -152,8 +138,7 @@ export function createServer(port: number, games: GameRegistry) {
           if (rooms.mode(code) !== "lobby") return;
           launchAtCursor(code, msg.options, ws);
         } else if (msg.t === "returnToLobby") {
-          clearTimer(code);
-          instances.delete(code);
+          lastGameState.delete(code);
           rooms.setMode(code, "lobby", null);
           rooms.clearSuggestions(code);
           broadcastRoomState(code);
@@ -227,11 +212,19 @@ export function createServer(port: number, games: GameRegistry) {
 
       if (msg.t === "action") {
         if (!cs.playerId || rooms.mode(code) !== "in-game") return;
-        const inst = instances.get(code);
-        if (!inst) return;
-        inst.applyAction(cs.playerId, msg.payload, Date.now());
-        broadcastGameState(code);
-        scheduleTimer(code);
+        const screenWs = screens.get(code);
+        if (!screenWs) return;
+        send(screenWs, { t: "gameAction", playerId: cs.playerId, payload: msg.payload, now: Date.now() });
+        return;
+      }
+
+      if (msg.t === "gameStatePush") {
+        // The obvious forgery hole: only the room's own screen socket may push state, and only
+        // for the game currently in play - not a controller, and not a stale/superseded launch.
+        if (cs.role !== "screen" || screens.get(code) !== ws) return;
+        if (rooms.mode(code) !== "in-game" || rooms.currentGameId(code) !== msg.gameId) return;
+        lastGameState.set(code, { gameId: msg.gameId, state: msg.state });
+        broadcastGameState(code, msg.gameId, msg.state);
         return;
       }
     });
@@ -240,7 +233,9 @@ export function createServer(port: number, games: GameRegistry) {
       const cs = state.get(ws);
       if (!cs?.roomCode) return;
       sockets.get(cs.roomCode)?.delete(ws);
-      if (cs.role === "controller" && cs.playerId) {
+      if (cs.role === "screen" && screens.get(cs.roomCode) === ws) {
+        screens.delete(cs.roomCode);
+      } else if (cs.role === "controller" && cs.playerId) {
         rooms.setConnected(cs.roomCode, cs.playerId, false);
         rooms.dropSuggestion(cs.roomCode, cs.playerId);
         broadcastRoomState(cs.roomCode);
@@ -251,8 +246,6 @@ export function createServer(port: number, games: GameRegistry) {
   return {
     wss,
     close: () => new Promise<void>((resolve) => {
-      timers.forEach((t) => clearTimeout(t));
-      timers.clear();
       wss.clients.forEach((c) => c.terminate());
       wss.close(() => resolve());
     }),

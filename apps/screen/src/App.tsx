@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { WebSocketClientTransport, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
-import { visibleSettingsFields } from "@hubbub/sdk";
+import { createGameAuthority, visibleSettingsFields } from "@hubbub/sdk";
 import {
   TVStage,
   GameTopBar,
@@ -64,10 +64,18 @@ export function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebSocketClientTransport>();
+  const authorityRef = useRef<ReturnType<typeof createGameAuthority>>();
+  // Set by gameLaunch so the authority's onState callback (gameId-less) knows what to push.
+  const launchedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const t = new WebSocketClientTransport(SERVER_URL);
     transportRef.current = t;
+    const authority = createGameAuthority((gameState) => {
+      const gameId = launchedGameIdRef.current;
+      if (gameId) t.send({ t: "gameStatePush", gameId, state: gameState });
+    });
+    authorityRef.current = authority;
     let off = () => {};
     t.connect().then(() => {
       off = t.onMessage((msg) => {
@@ -87,15 +95,30 @@ export function App() {
           });
         } else if (msg.t === "gameState") {
           setGame({ gameId: msg.gameId, state: msg.state });
+        } else if (msg.t === "gameLaunch") {
+          // setup() already ran server-side; construct the GameInstance here (screen authority).
+          launchedGameIdRef.current = msg.gameId;
+          loadGameScreen(msg.gameId)?.then(({ logic }) => {
+            authority.launch(logic, msg.players, msg.setupData, msg.now);
+          });
+        } else if (msg.t === "gameAction") {
+          authority.action(msg.playerId, msg.payload, msg.now);
         }
       });
       t.send({ t: "createRoom" });
     });
     return () => {
       off();
+      authority.reset();
       t.close();
     };
   }, []);
+
+  // A returnToLobby (no follow-up gameLaunch) leaves the old instance/timer running otherwise -
+  // a rematch's fresh gameLaunch already clears it via authority.launch, so only handle this exit.
+  useEffect(() => {
+    if (room?.mode !== "in-game") authorityRef.current?.reset();
+  }, [room?.mode]);
 
   // Keyed on currentGameId, not the in-game state, so the chunk downloads during the config
   // phase and is usually warm by the time the room actually flips to in-game.

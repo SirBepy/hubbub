@@ -46,6 +46,21 @@ describe("protocol messages", () => {
     expect(parseServerMessage(JSON.stringify(raw))).toEqual(raw);
   });
 
+  it("parses a gameLaunch server message (screen authority hand-off)", () => {
+    const raw = { t: "gameLaunch", gameId: "ttt", players: [{ id: "p1", name: "Joe" }], setupData: { a: 1 }, now: 1000 };
+    expect(parseServerMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
+  it("parses a gameAction server message relaying a controller's action to the screen", () => {
+    const raw = { t: "gameAction", playerId: "p1", payload: { cell: 0 }, now: 1000 };
+    expect(parseServerMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
+  it("parses a gameStatePush client message from the screen", () => {
+    const raw = { t: "gameStatePush", gameId: "ttt", state: { board: [] } };
+    expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
   it("parses a roomState server message with lobby context", () => {
     const raw = {
       t: "roomState",

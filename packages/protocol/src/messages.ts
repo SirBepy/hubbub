@@ -61,6 +61,9 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
   z.object({ t: z.literal("rematch") }),
   z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
+  // Screen -> Server: the screen-authoritative reducer's resulting state, after gameLaunch or
+  // gameAction. Server checks the sender is that room's screen socket before rebroadcasting.
+  z.object({ t: z.literal("gameStatePush"), gameId: z.string(), state: z.unknown() }),
   // Pre-game config phase (host-only, server-enforced) - the TV renders the panel, the phone is
   // the remote. Schema-less games never see these; their lobbyConfirm path is untouched above.
   z.object({ t: z.literal("configStart") }),
@@ -88,6 +91,17 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
     config: RoomConfigSchema.nullable().optional(),
   }),
   z.object({ t: z.literal("gameState"), gameId: z.string(), state: z.unknown() }),
+  // Server -> screen only: setup() already ran server-side; the screen calls init() itself
+  // with this setupData (screen-authority, Phase B - see the design spec's "Authority" section).
+  z.object({
+    t: z.literal("gameLaunch"),
+    gameId: z.string(),
+    players: z.array(z.object({ id: z.string(), name: z.string() })),
+    setupData: z.unknown(),
+    now: z.number(),
+  }),
+  // Server -> screen only: relays a controller's action for the screen's local reducer.
+  z.object({ t: z.literal("gameAction"), playerId: z.string(), payload: z.unknown().optional(), now: z.number() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),
 ]);
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
