@@ -115,12 +115,23 @@ export function Lobby({
               <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*3.5)", lineHeight: 0.92, letterSpacing: "-0.025em", color: "#f7f1e2" }}>
                 {focused.name}
               </h1>
+              {focused.description ? (
+                <p
+                  style={{
+                    margin: 0, fontFamily: "var(--font-ui)", fontSize: "calc(var(--u)*1)", fontWeight: 500,
+                    lineHeight: 1.35, color: "var(--text-secondary)",
+                    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                  }}
+                >
+                  {focused.description}
+                </p>
+              ) : null}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "calc(var(--u)*.45)" }}>
                 <span
                   style={{
                     padding: "calc(var(--u)*.3) calc(var(--u)*.8)", borderRadius: "999px",
-                    border: "2px solid rgba(242,234,217,.22)", fontSize: "calc(var(--u)*.86)", fontWeight: 600,
-                    color: "rgba(242,234,217,.72)",
+                    border: "2px solid var(--text-faint)", fontSize: "calc(var(--u)*.86)", fontWeight: 600,
+                    color: "var(--text-secondary)",
                   }}
                 >
                   {playerCountLabel(focused)}
@@ -139,7 +150,7 @@ export function Lobby({
             <div
               style={{
                 flex: "none", padding: "calc(var(--u)*.5) calc(var(--u)*.7)", borderRadius: "calc(var(--u)*.35)",
-                border: "1px dashed rgba(242,234,217,.18)", color: "var(--text-muted)",
+                border: "1px dashed var(--divider-heavy)", color: "var(--text-muted)",
                 fontSize: "calc(var(--u)*.82)", fontWeight: 600, lineHeight: 1.3,
               }}
             >
@@ -206,9 +217,10 @@ export function Lobby({
                 key={g.id}
                 style={{
                   position: "relative", flex: "none", width: "calc(var(--u)*10.5)", borderRadius: "calc(var(--u)*.4)",
-                  overflow: "hidden", background: isFocused ? "rgba(247,207,99,.1)" : "rgba(242,234,217,.05)",
-                  border: isFocused ? "1px solid var(--ink-amber-highlight)" : "1px solid rgba(242,234,217,.12)",
-                  boxShadow: isFocused ? "0 0 calc(var(--u)*1.6) rgba(247,207,99,.25)" : "none",
+                  overflow: "hidden",
+                  background: isFocused ? "color-mix(in srgb, var(--ink-amber-highlight) 10%, transparent)" : "rgba(242,234,217,.05)",
+                  border: isFocused ? "1px solid var(--ink-amber-highlight)" : "1px solid var(--divider)",
+                  boxShadow: isFocused ? "0 0 calc(var(--u)*1.6) color-mix(in srgb, var(--ink-amber-highlight) 25%, transparent)" : "none",
                 }}
               >
                 <div style={{ height: "calc(var(--u)*3.2)", background: `linear-gradient(160deg,${hexA},${hexB})` }} />
