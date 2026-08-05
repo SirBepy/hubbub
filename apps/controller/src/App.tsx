@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from "react";
-import { WebSocketClientTransport, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
+import { WebSocketClientTransport, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import { Avatar, GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
@@ -315,13 +315,13 @@ export function App() {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="CODE"
-            maxLength={4}
+            maxLength={ROOM_CODE_LENGTH}
             style={codeInput}
           />
           <GlowButton
             height={56}
             label={status === "joining" ? "Joining…" : "Join room"}
-            disabled={code.length !== 4 || status === "joining"}
+            disabled={code.length !== ROOM_CODE_LENGTH || status === "joining"}
             onClick={join}
           />
           {status === "error" && <p style={{ color: "var(--player-magenta)", font: "500 13px var(--font-ui)" }}>{error}</p>}

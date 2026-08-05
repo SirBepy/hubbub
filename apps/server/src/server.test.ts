@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
+import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { createServer } from "./server.js";
 
 let handle: ReturnType<typeof createServer> | undefined;
@@ -27,7 +28,7 @@ describe("createServer", () => {
     const screen = await open(port);
     screen.send(JSON.stringify({ t: "createRoom" }));
     const created = await nextOf(screen, "roomCreated");
-    expect(created.code).toHaveLength(4);
+    expect(created.code).toHaveLength(ROOM_CODE_LENGTH);
 
     const controller = await open(port);
     controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe", colorId: 3, emoji: "🦊" }));

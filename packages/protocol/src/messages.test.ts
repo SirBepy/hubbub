@@ -3,7 +3,7 @@ import { parseClientMessage, parseServerMessage, GameSummarySchema } from "./mes
 
 describe("protocol messages", () => {
   it("parses a valid joinRoom with identity", () => {
-    const raw = { t: "joinRoom", code: "ABCD", name: "Joe", colorId: 3, emoji: "🦊" };
+    const raw = { t: "joinRoom", code: "ABCDEF", name: "Joe", colorId: 3, emoji: "🦊" };
     expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
   });
 
@@ -13,7 +13,7 @@ describe("protocol messages", () => {
 
   it("rejects joinRoom missing identity fields", () => {
     expect(() =>
-      parseClientMessage(JSON.stringify({ t: "joinRoom", code: "ABCD", name: "Joe" }))
+      parseClientMessage(JSON.stringify({ t: "joinRoom", code: "ABCDEF", name: "Joe" }))
     ).toThrow();
   });
 

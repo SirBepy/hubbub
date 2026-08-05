@@ -3,6 +3,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
+import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { startHost, type RunningHost } from "./host.js";
 
 let screenDir: string;
@@ -71,7 +72,7 @@ describe("startHost", () => {
     const screen = await open(host.serverUrl);
     screen.send(JSON.stringify({ t: "createRoom" }));
     const created = await nextOf(screen, "roomCreated");
-    expect(created.code).toHaveLength(4);
+    expect(created.code).toHaveLength(ROOM_CODE_LENGTH);
 
     const phone = await open(host.serverUrl);
     phone.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Ada", colorId: 3, emoji: "🦊" }));

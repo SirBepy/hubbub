@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { RoomManager, type Identity } from "./rooms.js";
 
 let rm: RoomManager;
@@ -10,7 +11,7 @@ const bo: Identity = { name: "Bo", colorId: 1, emoji: "🐼" };
 describe("RoomManager", () => {
   it("creates a retrievable room in lobby mode", () => {
     const code = rm.createRoom();
-    expect(code).toHaveLength(4);
+    expect(code).toHaveLength(ROOM_CODE_LENGTH);
     expect(rm.mode(code)).toBe("lobby");
     expect(rm.hostId(code)).toBeNull();
   });

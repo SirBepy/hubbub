@@ -15,7 +15,7 @@ describe("WebSocketClientTransport", () => {
       ws.on("message", (raw) => {
         const msg = JSON.parse(raw.toString());
         if (msg.t === "createRoom") {
-          ws.send(JSON.stringify({ t: "roomCreated", code: "ABCD" }));
+          ws.send(JSON.stringify({ t: "roomCreated", code: "ABCDEF" }));
         }
       });
     });
@@ -26,7 +26,7 @@ describe("WebSocketClientTransport", () => {
       t.onMessage(resolve);
       t.send({ t: "createRoom" });
     });
-    expect(got).toEqual({ t: "roomCreated", code: "ABCD" });
+    expect(got).toEqual({ t: "roomCreated", code: "ABCDEF" });
     t.close();
   });
 });

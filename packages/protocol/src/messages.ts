@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ROOM_CODE_LENGTH } from "./constants.js";
 
 /** Canonical order of the fixed six player colors; protocol stores only the index. */
 export const PLAYER_COLOR_NAMES = ["magenta", "cyan", "lime", "amber", "violet", "blue"] as const;
@@ -49,7 +50,7 @@ export type RoomConfig = z.infer<typeof RoomConfigSchema>;
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("createRoom") }),
-  z.object({ t: z.literal("joinRoom"), code: z.string().length(4), ...IdentitySchema.shape, token: z.string().optional() }),
+  z.object({ t: z.literal("joinRoom"), code: z.string().length(ROOM_CODE_LENGTH), ...IdentitySchema.shape, token: z.string().optional() }),
   z.object({ t: z.literal("setIdentity"), ...IdentitySchema.shape }),
   z.object({ t: z.literal("lobbyNav"), dir: z.enum(["up", "down", "left", "right"]) }),
   z.object({ t: z.literal("lobbyFocus"), index: z.number().int().min(0) }),
@@ -77,7 +78,7 @@ export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 // Server -> Client
 export const ServerMessageSchema = z.discriminatedUnion("t", [
-  z.object({ t: z.literal("roomCreated"), code: z.string().length(4) }),
+  z.object({ t: z.literal("roomCreated"), code: z.string().length(ROOM_CODE_LENGTH) }),
   z.object({ t: z.literal("joined"), playerId: z.string(), token: z.string() }),
   z.object({
     t: z.literal("roomState"),

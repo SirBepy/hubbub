@@ -22,8 +22,9 @@ function resolvePlaywright() {
 }
 const { chromium } = resolvePlaywright();
 
-// Mirrored from packages/protocol/src/tokens.ts (raw TS, not requirable from plain CJS); keep both in sync.
+// Mirrored from packages/protocol/src/tokens.ts / constants.ts (raw TS, not requirable from plain CJS); keep both in sync.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 6;
 
 const args = process.argv.slice(2);
 const get = (flag, def = null) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : def; };
@@ -77,7 +78,7 @@ async function shot(page, outPath) {
 }
 
 async function getRoomCode(page) {
-  const re = new RegExp(`^[${CODE_ALPHABET}]{4}$`);
+  const re = new RegExp(`^[${CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
   for (let i = 0; i < 60; i++) {
     const code = await page.evaluate((pattern) => {
       const rx = new RegExp(pattern);

@@ -67,7 +67,7 @@ the running UI or from `capture-v3.cjs`'s prior art, don't guess a codepoint.
 
 | Type | Fields | Notes |
 |---|---|---|
-| `waitRoomCode` | `page` (default `tv`) | Scrapes the 4-char code off the TV DOM; run before any `join` |
+| `waitRoomCode` | `page` (default `tv`) | Scrapes the 6-char code off the TV DOM; run before any `join` |
 | `identity` | `page`, `name`, `color`, `emoji`, `shot` (optional) | Fills the identity form; `shot` screenshots before Save (matches the color/emoji picker UI) |
 | `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for PICK A GAME |
 | `screenshot` | `page`, `out` | Settles (`fonts.ready` + 400ms) then screenshots |
