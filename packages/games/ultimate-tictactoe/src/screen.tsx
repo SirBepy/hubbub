@@ -85,7 +85,7 @@ export function UTTTScreen({ state, players }: UTTTScreenProps) {
   const xPlayer = players.find((p) => state.assignments[p.id] === "X") ?? null;
   const oPlayer = players.find((p) => state.assignments[p.id] === "O") ?? null;
   const turnColor = state.turn === "X" ? xColor : oColor;
-  // Any-board-allowed play would light every open sub-board at once — over budget — so the
+  // Any-board-allowed play would light every open sub-board at once, over budget, so the
   // glow moves to the turn-holder's bookend card instead; a forced sub-board keeps it locally.
   const anyBoardTurnGlow = !state.winner && state.activeBoard === null;
 

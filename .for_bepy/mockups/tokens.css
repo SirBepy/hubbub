@@ -1,4 +1,4 @@
-/* Hubbub design system v2 — "Neon, but disciplined". Spacing: 4/8px scale. Type: 12/14/16/20/28/44 (+ one display-only exception for wordmark/room code).
+/* Hubbub design system v2 - "Neon, but disciplined". Spacing: 4/8px scale. Type: 12/14/16/20/28/44 (+ one display-only exception for wordmark/room code).
    NOTE: real apps must bundle Inter + a display face + Phosphor icons locally (offline LAN rule, no CDNs in production). */
 
 :root {

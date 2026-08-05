@@ -810,7 +810,7 @@ export function TTTController({
   return (
     <div style={{ textAlign: "center", fontFamily: "system-ui" }}>
       <p>
-        You are <strong>{mark ?? "—"}</strong> · {status}
+        You are <strong>{mark ?? "-"}</strong> · {status}
       </p>
       <div
         style={{

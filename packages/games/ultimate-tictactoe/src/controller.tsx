@@ -108,7 +108,7 @@ export function UTTTController({ state, playerId, players, send }: UTTTControlle
   const opponentColor = colorHex(opponentMark === "O" ? O_COLOR_ID : X_COLOR_ID);
   const yourTurn = !state.winner && !!mark && mark === state.turn;
   const forcedBoard = yourTurn ? state.activeBoard : null;
-  // Any-board-allowed would light every open sub-board at once — over budget — so the glow
+  // Any-board-allowed would light every open sub-board at once, over budget, so the glow
   // moves to the status chip instead; a specific forced board keeps it locally.
   const chipGlow = yourTurn && state.activeBoard === null;
 

@@ -1,4 +1,4 @@
-# Split Opinions — Complete Port Inventory
+# Split Opinions - Complete Port Inventory
 
 (Scratch file for the overnight autopilot run. Produced by a read-only scout that read
 C:\Users\tecno\Desktop\Projects\split_opinions in full. The port agent should treat this as
@@ -6,7 +6,7 @@ the spec, and read the original CSVs at assets/data/ for verbatim question data.
 
 Standalone vanilla JS/HTML AirConsole party game. Big screen (`screen.html`) is the authoritative host holding ALL game logic; phones (`controller.html`) are thin clients. No build step, no npm, no modules.
 
-Origin: https://github.com/SirBepy/split_opinions — live at https://sirbepy.github.io/split_opinions/.
+Origin: https://github.com/SirBepy/split_opinions - live at https://sirbepy.github.io/split_opinions/.
 
 ## 0. File map
 
@@ -15,7 +15,7 @@ Origin: https://github.com/SirBepy/split_opinions — live at https://sirbepy.gi
 | `screen.html` | TV host entry. Loads: constants, transport, common, cache, data, screen, screen-teams, screen-ui. |
 | `controller.html` | Phone entry. Loads: constants, transport, common, controller-settings, controller-ui, controller. |
 | `scripts/shared/constants.js` | `PAGES`, `GAMEMODES`, `POSITION_POINTS`, `NUM_OF_CHOICES_PER_QUESTION`, `SETTINGS`, `DEFAULT_SETTINGS`, `FILES_TO_LOOK_FOR` |
-| `scripts/shared/transport.js` | `AirConsoleTransport` — only file touching the AirConsole global. |
+| `scripts/shared/transport.js` | `AirConsoleTransport` - only file touching the AirConsole global. |
 | `scripts/shared/common.js` | DOM helpers + shared state `currentScreen`, `gamemode`, `currentQuestion`. |
 | `scripts/cache.js` | localStorage: saved settings + previously-shown question ids (screen only) |
 | `scripts/data.js` | Loads the 6 CSVs into `ALL_QUESTIONS_BY_CATEGORY` (screen only) |
@@ -26,7 +26,7 @@ Origin: https://github.com/SirBepy/split_opinions — live at https://sirbepy.gi
 | `scripts/ui/controller-ui.js` | Phone DOM rendering |
 | `scripts/controller.js` | Thin client |
 | `assets/data/*.csv` | 6 question-bank CSVs |
-| `assets/sounds/*.wav` | 32 sound files — completely unreferenced / dead |
+| `assets/sounds/*.wav` | 32 sound files - completely unreferenced / dead |
 | `styles/{global,screen,controller}.css` | styling |
 
 ## 1. Game rules / flow
@@ -35,22 +35,22 @@ Origin: https://github.com/SirBepy/split_opinions — live at https://sirbepy.gi
 `lobby`, `questions`, `pairing`, `waitForPlayers`, `waitForNextRound`, `allSettings`, `settingsDetail`, `endOfGame`. Screen uses `lobby / questions / pairing / endOfGame`; controllers additionally use the rest.
 
 ### Flow
-1. **Lobby** — Players connect (auto-assigned to smallest team on connect). Master sees Play + Settings + team toggler; non-masters see "Waiting for leader" and can still switch their own team. Start disabled with "All teams need atleast 1 player" if any active team is empty.
+1. **Lobby** - Players connect (auto-assigned to smallest team on connect). Master sees Play + Settings + team toggler; non-masters see "Waiting for leader" and can still switch their own team. Start disabled with "All teams need atleast 1 player" if any active team is empty.
 2. **Start** → master phone sends `{newRound:true}` → host `onNewRound()`.
 3. **onNewRound**: resets round state; if NOT a reroll, `currentRound++`, updates round UI, checks `endGame()`. Picks a random gamemode from enabled ones, picks a random question, broadcasts full state, shows `questions`.
-4. **Questions phase** — each phone privately picks answers (per gamemode's `allowedChoices`) and submits. Host tracks `allPlayersAnswers[device_id]`. Screen shows "Players ready: X / total". When ready == total, `onQuestionsFinished()` fires automatically.
+4. **Questions phase** - each phone privately picks answers (per gamemode's `allowedChoices`) and submits. Host tracks `allPlayersAnswers[device_id]`. Screen shows "Players ready: X / total". When ready == total, `onQuestionsFinished()` fires automatically.
 5. **onQuestionsFinished** → `pairing`. Two branches:
    - **Aggregate gamemodes** (top_3, second_top_3, ordered): `getCalculatedAnswers()` computes the group's ranked list; screen shows a hidden table; the active player must guess which answers occupy the target rank positions.
    - **match_to_player**: broadcasts `playersToPick`; the active player must match a shown pick-list back to the player who submitted it.
-6. **Pairing / guessing loop** — Active player (one per turn, rotating across teams) taps a guess → `{pair: buttonId}` → `onPairReceive()`. Host shows a 5s "Correct!/Wrong!" reveal modal, awards points on correct, then rotates the active player. Loop ends when the round is "done".
+6. **Pairing / guessing loop** - Active player (one per turn, rotating across teams) taps a guess → `{pair: buttonId}` → `onPairReceive()`. Host shows a 5s "Correct!/Wrong!" reveal modal, awards points on correct, then rotates the active player. Loop ends when the round is "done".
 7. **Round done** → `waitForNextRound`. Master taps "Next round" → next round.
-8. **Game end** — When `currentRound > numOfRounds`, `endGame()` shows the podium (`endOfGame`), broadcasts `teamPointsSorted`, resets `points={}` and `currentRound=0`. Each phone shows "You win!/lose!/played well!". Master taps "Back to Lobby".
+8. **Game end** - When `currentRound > numOfRounds`, `endGame()` shows the podium (`endOfGame`), broadcasts `teamPointsSorted`, resets `points={}` and `currentRound=0`. Each phone shows "You win!/lose!/played well!". Master taps "Back to Lobby".
 
 ### Round-done conditions (`isRoundDone`, aggregate modes)
 Round ends if ANY:
-- `pickedAllRightChoices` — all target positions guessed (`choicesToPickById.length == 0`)
-- `pickedAllButRightChoices` — remaining answers == remaining targets
-- `onlyOneChoiceRemains` — <=1 answer left unrevealed
+- `pickedAllRightChoices` - all target positions guessed (`choicesToPickById.length == 0`)
+- `pickedAllButRightChoices` - remaining answers == remaining targets
+- `onlyOneChoiceRemains` - <=1 answer left unrevealed
 
 For **match_to_player**, round ends when `numOfTeamsDidMatchToPlayer >= number of teams` (each team gets one guess).
 
@@ -60,7 +60,7 @@ For **match_to_player**, round ends when `numOfTeamsDidMatchToPlayer >= number o
 - Controller "You're next!" cover animation: 7000 ms. Vibration: 100 ms pulses spaced 500 ms.
 
 ### Reroll
-Any player toggles reroll → `{toggleReroll:true, isRerolling}`. When `count > numPlayers * 0.6` (strictly greater), host calls `onNewRound(true)` — reroll does NOT advance round counter, does NOT re-check endGame.
+Any player toggles reroll → `{toggleReroll:true, isRerolling}`. When `count > numPlayers * 0.6` (strictly greater), host calls `onNewRound(true)` - reroll does NOT advance round counter, does NOT re-check endGame.
 
 ### Edge cases / topology
 - **Connect**: update counter, re-broadcast screen, add player to smallest team, broadcast teams.
@@ -112,7 +112,7 @@ Any player toggles reroll → `{toggleReroll:true, isRerolling}`. When `count > 
 - **Music (6, all "Rank these..."):** 2000s pop (33→8); late '90s (32→8); 80's songs (31→8); 80's artists (14→8); 70's artists (8); 60's artists (8).
 - **Powers and Magic (3):** supernatural ability; enchanted object; fantasy landscape.
 
-Copy verbatim from the CSVs (they are the source of truth). Typos exist in source ("mutiple", "thse", "Snooby Snacks", "Steven Irwin") — fine to fix spelling in port. Song titles are text-only; the game plays NO audio.
+Copy verbatim from the CSVs (they are the source of truth). Typos exist in source ("mutiple", "thse", "Snooby Snacks", "Steven Irwin") - fine to fix spelling in port. Song titles are text-only; the game plays NO audio.
 
 ## 4. Scoring rules (exact)
 
@@ -166,23 +166,23 @@ Host broadcast keys: screen, currentQuestion, gameSettings, gamemodeKey, teams, 
 - 32 .wav in assets/sounds/ are DEAD (never referenced). Names: pop1-6, Some nice click, settings(x2), newquestion1-9, lastquestion1-2, correct1-12, whoosh. Optional port opportunity; any *music* must be Deezer, never Spotify (game currently plays no audio at all).
 - Avatars came from AirConsole CDN → hubbub equivalent is player emoji/color identity.
 - Fonts: Google Fonts CDN Ubuntu → hubbub is offline-LAN, use system-ui (no CDNs).
-- Colors: bg `#3d0084`, primary `#e249aa`, secondary `#6e27c0`; teams red `#c23232`, blue `#384baa`, green `#1ea054`, "cyan" `#48bcc4` (value string "yellow" — label/value mismatch bug); success `#23df71`, fail `#e43838`.
+- Colors: bg `#3d0084`, primary `#e249aa`, secondary `#6e27c0`; teams red `#c23232`, blue `#384baa`, green `#1ea054`, "cyan" `#48bcc4` (value string "yellow" - label/value mismatch bug); success `#23df71`, fail `#e43838`.
 
 ## 9. Rough edges to fix in port
 
 1. `toggleQuestionAnswer` deselect bug (controller.js:170): badge renumbering desync/null deref. Reimplement cleanly.
-2. "Cyan" team `value:"yellow"` mismatch — name teams consistently.
+2. "Cyan" team `value:"yellow"` mismatch - name teams consistently.
 3. No guard when enabled categories yield 0 loadable questions → undefined question. Guard + fallback.
-4. Questions phase hard-blocks on an AFK player — no timer/skip. Add one (or host force-advance).
+4. Questions phase hard-blocks on an AFK player - no timer/skip. Add one (or host force-advance).
 5. `assignTeams` fractional slicing → uneven splits. Use round-robin.
-6. Mid-game full reshuffle when a team empties — replace with minimal rebalance or leave team empty till round end.
+6. Mid-game full reshuffle when a team empties - replace with minimal rebalance or leave team empty till round end.
 7. Reroll threshold strict `> 60%` of all controllers incl. AFK.
 8. `onPairReceive` throws on non-active/teamless pair (race on disconnect could crash host). Ignore gracefully.
 9. Dead commented gamemode `guess_enemy_list`.
 10. Timing coupling: 5000ms modal + 250ms rotation + 7000ms controller cover hardcoded.
 11. Ordered modes subtlety: `choicesToPick` up to length 7 but `allowedChoices:5`; `getFirstOrderedFreePosition` correctness check = must pick the first still-free target position. Port carefully.
 12. Load-time shuffle-and-slice of >8-answer questions: decide policy (suggest: shuffle-and-slice per ROUND, not per load, so variety improves).
-13. Dead CSS + dead sounds — don't port.
+13. Dead CSS + dead sounds - don't port.
 14. Settings master-gating vs local UI divergence.
 
 ### Gamemodes reference

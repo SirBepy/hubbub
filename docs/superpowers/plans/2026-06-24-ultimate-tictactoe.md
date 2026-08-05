@@ -72,7 +72,7 @@
 }
 ```
 
-- [ ] **Step 2: Create the tsconfig** — copy `packages/games/tictactoe/tsconfig.json` verbatim (it already has the correct relative `extends` path for this directory depth).
+- [ ] **Step 2: Create the tsconfig**: copy `packages/games/tictactoe/tsconfig.json` verbatim (it already has the correct relative `extends` path for this directory depth).
 
 - [ ] **Step 3: Create the barrel** `packages/games/ultimate-tictactoe/src/index.ts`:
 ```ts
@@ -353,7 +353,7 @@ export const utttLogic: GameLogic<UTTTState, UTTTAction> = {
 Run: `pnpm install` (registers the new workspace package), then `pnpm vitest run packages/games/ultimate-tictactoe/src/logic.test.ts`
 Expected: PASS (all tests, with the two illustrative tests replaced by real verified sequences). Then `pnpm --filter @hubbub/game-ultimate-tictactoe typecheck` - no errors.
 
-- [ ] **Step 8: Stage changes** — stage the five new files + updated `pnpm-lock.yaml`. Do NOT commit.
+- [ ] **Step 8: Stage changes**: stage the five new files + updated `pnpm-lock.yaml`. Do NOT commit.
 
 ---
 
@@ -475,7 +475,7 @@ export function UTTTController({
   return (
     <div style={{ textAlign: "center", fontFamily: "system-ui" }}>
       <p>
-        You are <strong>{mark ?? "—"}</strong> · {status}
+        You are <strong>{mark ?? "-"}</strong> · {status}
       </p>
       <div
         style={{
@@ -525,7 +525,7 @@ export function UTTTController({
 Run: `pnpm --filter @hubbub/game-ultimate-tictactoe typecheck`
 Expected: no errors. (Views are presentational; no unit test, consistent with the tictactoe package which does not test its views.)
 
-- [ ] **Step 4: Stage changes** — stage the two view files. Do NOT commit.
+- [ ] **Step 4: Stage changes**: stage the two view files. Do NOT commit.
 
 ---
 
@@ -540,7 +540,7 @@ Expected: no errors. (Views are presentational; no unit test, consistent with th
 - Consumes: `utttLogic` from `@hubbub/game-ultimate-tictactoe`, `tttLogic` from `@hubbub/game-tictactoe`, existing `createServer`.
 - Produces: the standalone server now selects its game from `process.env.HUBBUB_GAME` (`ttt` | `uttt`), defaulting to `ttt`.
 
-- [ ] **Step 1: Add the dependency** — in `apps/server/package.json`, add to `dependencies`:
+- [ ] **Step 1: Add the dependency**: in `apps/server/package.json`, add to `dependencies`:
 ```json
     "@hubbub/game-ultimate-tictactoe": "workspace:*",
 ```
@@ -639,7 +639,7 @@ console.log(`Hubbub server listening on ws://0.0.0.0:${port} (game: ${gameId in 
 
 Run: `pnpm install`, then `pnpm vitest run apps/server/src/server.uttt.test.ts` (expect PASS) and `pnpm --filter @hubbub/server typecheck` (no errors).
 
-- [ ] **Step 6: Stage changes** — stage `apps/server/src/index.ts`, `apps/server/package.json`, `apps/server/src/server.uttt.test.ts`, and `pnpm-lock.yaml`. Do NOT commit.
+- [ ] **Step 6: Stage changes**: stage `apps/server/src/index.ts`, `apps/server/package.json`, `apps/server/src/server.uttt.test.ts`, and `pnpm-lock.yaml`. Do NOT commit.
 
 ---
 
@@ -655,7 +655,7 @@ Run: `pnpm install`, then `pnpm vitest run apps/server/src/server.uttt.test.ts` 
 **Interfaces:**
 - Produces: `GameScreen` (screen app) and `GameController` (controller app) - the view components for the game selected by `import.meta.env.VITE_GAME` (`ttt` | `uttt`), defaulting to `ttt`. The apps become game-agnostic at the view boundary (state typed `any`).
 
-- [ ] **Step 1: Add deps** — add to BOTH `apps/screen/package.json` and `apps/controller/package.json` `dependencies`:
+- [ ] **Step 1: Add deps**: add to BOTH `apps/screen/package.json` and `apps/controller/package.json` `dependencies`:
 ```json
     "@hubbub/game-ultimate-tictactoe": "workspace:*",
 ```
@@ -677,7 +677,7 @@ const id = (import.meta.env.VITE_GAME as string) || "ttt";
 export const GameScreen: ScreenComponent = SCREENS[id] ?? SCREENS.ttt;
 ```
 
-- [ ] **Step 3: Rewire screen App.tsx** — in `apps/screen/src/App.tsx`:
+- [ ] **Step 3: Rewire screen App.tsx**: in `apps/screen/src/App.tsx`:
   - Replace the import `import { TTTScreen } from "@hubbub/game-tictactoe/screen";` and `import type { TTTState } from "@hubbub/game-tictactoe";` with `import { GameScreen } from "./game";`.
   - Change `const game = useGameState<TTTState>(transport);` to `const game = useGameState<any>(transport);`.
   - Change `<TTTScreen state={game} />` to `<GameScreen state={game} />`.
@@ -704,7 +704,7 @@ const id = (import.meta.env.VITE_GAME as string) || "ttt";
 export const GameController: ControllerComponent = CONTROLLERS[id] ?? CONTROLLERS.ttt;
 ```
 
-- [ ] **Step 5: Rewire controller App.tsx** — in `apps/controller/src/App.tsx`:
+- [ ] **Step 5: Rewire controller App.tsx**: in `apps/controller/src/App.tsx`:
   - Replace `import { TTTController } from "@hubbub/game-tictactoe/controller";` and `import type { TTTState, TTTAction } from "@hubbub/game-tictactoe";` with `import { GameController } from "./game";`.
   - Change `const game = useGameState<TTTState>(transport);` to `const game = useGameState<any>(transport);`.
   - Change `createActionSender<TTTAction>(transportRef.current!)` to `createActionSender<any>(transportRef.current!)`.
@@ -717,7 +717,7 @@ Run: `pnpm install`, then:
 - `pnpm --filter @hubbub/screen typecheck` and `pnpm --filter @hubbub/controller typecheck` - no errors.
 - `pnpm --filter @hubbub/screen build` and `pnpm --filter @hubbub/controller build` - both succeed (default game = ttt, proving no regression to Phase 3).
 
-- [ ] **Step 7: Stage changes** — stage the two new `game.tsx` files, the two modified `App.tsx` files, both modified `package.json` files, and `pnpm-lock.yaml`. Do NOT commit.
+- [ ] **Step 7: Stage changes**: stage the two new `game.tsx` files, the two modified `App.tsx` files, both modified `package.json` files, and `pnpm-lock.yaml`. Do NOT commit.
 
 ---
 
