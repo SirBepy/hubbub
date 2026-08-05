@@ -6,7 +6,7 @@ export type AvatarProps = {
   /** Ring color (hex). Players carry no identity color; callers should pass a
    * fixed neutral, never a per-player hue - identity lives in the character. */
   colorHex: string;
-  /** A bundled character id ("gi:wolf-head", "fe:zombie", "tw:octopus") or a
+  /** A bundled character id ("gi:fox-head", "fe:zombie", "tw:octopus") or a
    * plain emoji string. Unrecognized strings render as text, same as before. */
   emoji: string;
   /** Fill surface. Screen rail uses --surface-2, phone chrome uses --surface-1. */
