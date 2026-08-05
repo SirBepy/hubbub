@@ -1,21 +1,11 @@
-import { Avatar, colorHex, colorName } from "@hubbub/ui";
+import { Avatar, colorHex, colorName, hexToRgba } from "@hubbub/ui";
+import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { BoardResult, Cell, Mark, UTTTState } from "./logic.js";
 import { utttLogic } from "./logic.js";
-
-/** Player shape from @hubbub/protocol; kept local — protocol isn't a direct dep of this package. */
-type Player = { id: string; name: string; colorId: number; emoji: string; connected: boolean };
 
 export type UTTTScreenProps = { state: UTTTState; players: Player[] };
 
 const [X_COLOR_ID, O_COLOR_ID] = utttLogic.meta.identityColors ?? [3, 5];
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 function IdentityCard({
   mark,

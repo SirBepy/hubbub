@@ -5,6 +5,15 @@ export interface PlayerInfo {
   name: string;
 }
 
+/** Protocol's wire Player carries the same shape; kept independent to avoid a protocol->sdk dep. */
+export interface DisplayPlayer {
+  id: string;
+  name: string;
+  colorId: number;
+  emoji: string;
+  connected: boolean;
+}
+
 export interface GameMeta {
   name: string;
   minPlayers: number;

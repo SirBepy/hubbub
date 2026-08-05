@@ -1,17 +1,9 @@
-import { colorHex } from "./palette";
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+import { colorHex, hexToRgba } from "./palette";
 
 export type GlowButtonProps = {
   /** The one glow this screen is allowed to spend. Defaults to cyan. */
   colorHex?: string;
-  /** 80px on the TV hero, 60px on phone footers — drives label size and glow blur. */
+  /** 80px on the TV hero, 60px on phone footers - drives label size and glow blur. */
   height?: number;
   label: string;
   onClick?: () => void;
@@ -20,7 +12,7 @@ export type GlowButtonProps = {
   fullWidth?: boolean;
 };
 
-/** The single primary-action glow: 2px border, 12% fill, 30% blur — per screen, at most once. */
+/** The single primary-action glow: 2px border, 12% fill, 30% blur - per screen, at most once. */
 export function GlowButton({
   colorHex: hex = colorHex(1),
   height = 60,
@@ -66,7 +58,7 @@ export type NeutralButtonProps = {
   fullWidth?: boolean;
 };
 
-/** Secondary action — 1px neutral border, no glow, no fill. */
+/** Secondary action - 1px neutral border, no glow, no fill. */
 export function NeutralButton({ height = 60, label, onClick, disabled, fullWidth = true }: NeutralButtonProps) {
   const large = height >= 70;
   return (

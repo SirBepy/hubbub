@@ -1,9 +1,7 @@
-import { Avatar, colorHex, colorName } from "@hubbub/ui";
+import { Avatar, colorHex, colorName, hexToRgba } from "@hubbub/ui";
+import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Cell, Mark, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
-
-/** Player shape from @hubbub/protocol; kept local — protocol isn't a direct dep of this package. */
-type Player = { id: string; name: string; colorId: number; emoji: string; connected: boolean };
 
 export type TTTScreenProps = { state: TTTState; players: Player[] };
 
@@ -22,14 +20,6 @@ function winningCells(board: Cell[]): number[] {
     if (board[a] && board[a] === board[b] && board[a] === board[c]) return line;
   }
   return [];
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function IdentityCard({

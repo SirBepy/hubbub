@@ -1,13 +1,5 @@
-import { PLAYER_COLORS, colorHex } from "./palette";
+import { PLAYER_COLORS, colorHex, hexToRgba } from "./palette";
 import { GlowButton, NeutralButton } from "./GlowButton";
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 /** One-shot confetti: 44 pieces cycling the six palette colors, staggered, never loops. */
 function Confetti() {
@@ -69,7 +61,7 @@ export type EndOfRoundScreenProps = {
   playerCount: number;
   /** null renders the neutral draw treatment (no confetti, no rank glow). */
   winner: EndOfRoundWinner | null;
-  /** Optional — some games (Tic-Tac-Toe) have no scores. */
+  /** Optional - some games (Tic-Tac-Toe) have no scores. */
   breakdown?: EndOfRoundBreakdownRow[];
   standings?: EndOfRoundStandingRow[];
   showActions: boolean;
@@ -78,7 +70,7 @@ export type EndOfRoundScreenProps = {
   onBack?: () => void;
 };
 
-/** The reusable end-of-round template — platform-level, game-agnostic. Fluid, sized off --u. */
+/** The reusable end-of-round template - platform-level, game-agnostic. Fluid, sized off --u. */
 export function EndOfRoundScreen({
   gameName,
   roundLabel,
@@ -140,7 +132,7 @@ export function EndOfRoundScreen({
                 animation: "hb-rank-in 400ms cubic-bezier(.2,.8,.2,1) 1 both",
               }}
             >
-              {winner ? winner.rankLabel : "—"}
+              {winner ? winner.rankLabel : "–"}
             </div>
             {winner ? (
               <div style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*3.4)", color: "rgba(242,234,217,.5)", letterSpacing: "0.08em" }}>

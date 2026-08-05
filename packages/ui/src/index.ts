@@ -1,4 +1,4 @@
-export { PLAYER_COLORS, colorHex, colorName, shadePair } from "./palette";
+export { PLAYER_COLORS, colorHex, colorName, shadePair, hexToRgba } from "./palette";
 export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";
@@ -11,9 +11,6 @@ export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./avatars/catalog"
 
 export { PlayerPill } from "./PlayerPill";
 export type { PlayerPillProps } from "./PlayerPill";
-
-export { SuggestionBadge } from "./SuggestionBadge";
-export type { SuggestionBadgeProps } from "./SuggestionBadge";
 
 export { GlowButton, NeutralButton } from "./GlowButton";
 export type { GlowButtonProps, NeutralButtonProps } from "./GlowButton";

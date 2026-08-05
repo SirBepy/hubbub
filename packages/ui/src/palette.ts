@@ -59,3 +59,11 @@ export function shadePair(hex: string): [string, string] {
   const [h, s, l] = hexToHsl(hex);
   return [hex, hslToHex(h, Math.min(1, s * 1.05), l * 0.62)];
 }
+
+export function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

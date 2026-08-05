@@ -1,9 +1,7 @@
-import { Avatar, colorHex } from "@hubbub/ui";
+import { Avatar, colorHex, hexToRgba } from "@hubbub/ui";
+import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Mark, TTTAction, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
-
-/** Player shape from @hubbub/protocol; kept local — protocol isn't a direct dep of this package. */
-type Player = { id: string; name: string; colorId: number; emoji: string; connected: boolean };
 
 export type TTTControllerProps = {
   state: TTTState;
@@ -13,14 +11,6 @@ export type TTTControllerProps = {
 };
 
 const [X_COLOR_ID, O_COLOR_ID] = tttLogic.meta.identityColors ?? [1, 0];
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 function MiniIdentity({
   player,
