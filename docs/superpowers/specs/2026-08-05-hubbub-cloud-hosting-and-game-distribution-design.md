@@ -19,12 +19,19 @@ that distribution requires. Read the original spec first; this document assumes 
 - **Phase 5 (Cloud mode).** The original Phase 5 ("deploy server + screen (wss)") is
   replaced wholesale by the Migration path in this document: Cloudflare Workers + Durable
   Objects, one origin, sandboxed game distribution.
+- **Electron/offline local mode priority (2026-08-05 clarification).** This document
+  originally treated the Electron desktop host as first-class and required it stay fully
+  offline; the owner clarified that was a misread. `apps/host-desktop` is now **parked**:
+  it stays in the repo, unmaintained, and is not a gate on any phase here. The local
+  workflow that matters is the terminal dev loop a game author uses to build and test their
+  own game (`pnpm dev:all`) - see "Local dev loop" below.
 
 ## Goals
 
 - Remote play (screen and controllers on different networks) works reliably, at zero
   idle cost, on Cloudflare's free tier.
-- Local LAN mode keeps working exactly as today, fully offline, no CDNs.
+- The local dev loop (`pnpm dev:all`) keeps working exactly as today. The Electron
+  desktop host is parked, not a goal of this design (see Superseded decisions).
 - Games become independently deployable artifacts, not platform-build dependencies.
 - Third-party game code cannot compromise a player's session, token, or the platform DOM.
 
@@ -111,8 +118,9 @@ that distribution requires. Read the original spec first; this document assumes 
 - The server-side eager registry (`packages/games-manifest/src/logics.ts:1-21`, used by
   `apps/server` and `apps/host-desktop` for `GAME_LOGICS`) goes away for cloud mode: with
   screen authority, the server no longer runs `logic.onAction`/`init` at all, so it has no
-  need to import game logic eagerly. Local mode (see Parity below) still needs an eager,
-  offline registry, so `logics.ts`'s role narrows to "local/Electron build only."
+  need to import game logic eagerly. The local dev loop (see "Local dev loop" below) still
+  needs an eager, offline registry, so `logics.ts`'s role narrows to "local dev-loop /
+  Electron build only."
 - Games are versioned and deployed independently of platform releases. A manifest entry
   carries `{ id, version, contentHash, entryUrl }`; the platform's approved catalogue is the
   list of manifest entries a human has signed off (see Security).
@@ -152,13 +160,11 @@ distribution is decoupled from platform review at play time.
 
 **Approval gate.**
 - A human approves a game before it enters the **public catalogue**.
-- **Open question:** self-hosted and local-dev instances need to run unapproved/in-progress
-  games (that's the entire game-dev loop today - see `hubbub-game-music-guesser`'s
-  `CLAUDE.md` dev-loop section). How does a self-hosted operator or a local dev bypass the
-  public approval gate without also bypassing it for a public cloud instance pointed at the
-  same manifest format? Candidate answers (unresolved, not decided here): a signed
-  "dev mode" flag baked into the self-hosted build, or a separate manifest source (local
-  filesystem / workspace packages) that only compiles in when `NODE_ENV !== "production"`.
+- **Requirement: running an unapproved, in-progress game locally must work with no
+  approval step.** This is the primary game-author workflow, not an edge case - see
+  "Local dev loop" below and `hubbub-game-music-guesser`'s `CLAUDE.md` dev-loop section.
+  The bypass mechanism for self-hosted operators running the full manifest-based stack on
+  their own infra is still undecided - see Open questions.
 
 **postMessage bridge contract.**
 - Shell -> sandbox (host to game): initial `{ players: PlayerInfo[] }`, then per-tick/event
@@ -235,26 +241,29 @@ on the host's LAN, some remote - is first-class:
 | 3 | `state: z.unknown()` on the wire (`packages/protocol/src/messages.ts:90`) gives no serializability guarantee. Crossing a postMessage boundary (structured-clone, not JSON) makes a game that stashes a function, a `Map`, or a DOM node in state a live bug, not a latent one. | Require games to declare a **state schema** (`stateSchema: ZodType<State>` alongside today's `actionSchema`, `packages/sdk/src/types.ts:64`). The shell validates every sandbox->shell `state` message against it before broadcasting or backing it up; a game whose state fails its own schema is a caught authoring bug, not a wire failure discovered by a random player's client. |
 | 4 | Action ordering: LAN input over WebRTC and remote input over the relay have different jitter, so arrival order at the screen is less deterministic than today's single WS pipe into one server process. | The screen **sequences actions by server-stamped arrival, not client-sent time**: each transport tags an inbound action with the receiving side's `now` at the moment it reaches the screen's message queue (mirrors today's `Date.now()` stamp at `apps/server/src/server.ts:232`, just moved to the screen). The reducer only ever sees `ctx.now` in that arrival order; no lookahead, no reordering buffer. Games that need last-writer-wins semantics (most turn-based games) are unaffected; a game sensitive to sub-tick ordering must debounce in its own reducer. |
 
-### Local and Electron mode parity
+### Local dev loop
 
-Must keep working fully offline: no CDNs, no internet required.
+The terminal dev loop - a game author running `pnpm dev:all` (`apps/server` on 7787,
+`apps/screen` on 5173, `apps/controller` on 5174) to build and test their own game against
+a local server - is the local workflow this design must keep working, not an offline
+end-user product. `apps/host-desktop` (Electron) is parked (see Superseded decisions): it
+is not a gate on this loop or on any phase below.
 
-- **Sandbox iframe:** the cross-origin sandbox still applies locally. `apps/host-desktop`'s
-  static server (`apps/host-desktop/src/static-server.ts`) serves the sandbox bundle from a
-  second local port/origin (mirroring today's split screen:5173/controller:5174 pattern,
-  just repurposed) so the isolation property holds even with no internet.
-- **Game bundle hosting:** local mode cannot fetch from a cloud-hosted games CDN. The
-  eager, offline registry (`packages/games-manifest/src/logics.ts`) and the browser lazy
-  registry (`lazy.ts`) both keep resolving to **workspace-local** game packages for local
-  builds; only the cloud deployment's manifest resolves `entryUrl` to a remote host. Same
-  manifest shape, different `entryUrl` resolution per build target.
-- **Proxy route:** the Deezer proxy (Blocker #1) is a Worker route with no local
-  equivalent. Locally, `apps/host-desktop`'s own Node server plays the same role
-  (Node's `fetch` already has no CORS restriction - see `hubbub-game-music-guesser`'s
-  CLAUDE.md "Deezer integration facts"), so local mode needs no proxy at all, just the
-  existing direct Node fetch. Games requiring internet (Music Guesser) still fail
-  gracefully offline exactly as documented today ("This game needs internet even in local
-  LAN mode - surface a clear error state").
+- **Game resolution stays workspace-local.** The eager registry
+  (`packages/games-manifest/src/logics.ts`) and the browser lazy registry (`lazy.ts`) keep
+  resolving a game under active development to its workspace package, never a manifest
+  `entryUrl`. This is how an author runs a game with no `contentHash`, no `entryUrl`, and
+  no catalogue entry at all - see the Security section's dev-loop requirement.
+- **No proxy needed for `setup()`.** `setup()` already runs server-side
+  (`apps/server/src/server.ts:84`) using Node's `fetch`, which has no CORS restriction (see
+  `hubbub-game-music-guesser`'s CLAUDE.md "Deezer integration facts"). The dev loop needs
+  no local equivalent of the Deezer Worker proxy (Blocker #1); that proxy exists for the
+  browser-only cloud deployment.
+- **No sandbox dependency.** The dev loop runs a developer's own trusted code directly,
+  outside the distribution/approval pipeline entirely, so the cross-origin sandbox and
+  content-hash pinning (Security above) don't apply to it, and it has no dependency on the
+  Cloudflare deployment (Phase C onward) - it works before, during, and after those phases
+  land.
 
 ## Migration path
 
@@ -263,9 +272,9 @@ and hardening on top of a working cloud room.
 
 - **Phase A - Merge to one app.** Fold `apps/screen` + `apps/controller` into one app with
   role routing (bare URL = choice, `?room=` = controller, device heuristic preselects).
-  Update `apps/host-desktop/src/static-server.ts` to serve one directory. *Done = local LAN
-  mode works identically through the merged app; both roles reachable from one origin.*
-  Autonomous.
+  `apps/host-desktop` is parked and not a gate here; its static server can be updated to
+  serve the merged app later, or left as-is. *Done = the dev loop (`pnpm dev:all`) serves
+  the merged app on one origin, both roles reachable.* Autonomous.
 - **Phase B - Screen authority.** Move `onAction`/`onTimeout`/`nextDeadline` execution from
   `apps/server` into the screen; server becomes relay-only for `action` messages; fix
   Blocker #2 (timer moves to the screen). *Done = a turn-based game (Ultimate
@@ -305,7 +314,8 @@ and hardening on top of a working cloud room.
   server-side workaround.*
 - **Phase I - Approval catalogue.** Manifest gains `{ version, contentHash }`; a minimal
   human-approval step (even a hand-edited allowlist file) gates which hashes the public
-  catalogue serves. Leave the local/self-hosted bypass as the open question above.
+  catalogue serves. Leave the self-hosted-operator bypass mechanism as the open question
+  above (the dev loop already bypasses the catalogue entirely - see "Local dev loop").
   *Done = swapping a game's bundle at its existing URL without a new approved hash is
   rejected by the platform.* Autonomous.
 - **Phase J - Reconnect token hardening.** Expire tokens on room close; confirm rejection
@@ -325,17 +335,20 @@ and hardening on top of a working cloud room.
   intended behaviour but should be tested against a real symmetric-NAT network before
   launch.
 - **Sandbox origin adds an extra DNS/TLS surface** (`games.hubbub.app` alongside
-  `app.hubbub.app`) that self-hosted operators must also provision; raises the bar for a
-  from-scratch self-host compared to the original spec's single-origin local mode.
+  `app.hubbub.app`) that self-hosted operators must also provision; a from-scratch
+  self-host needs two origins/certs where the terminal dev loop needs none.
 - **Best-effort backup could still surprise a player** who expects "nice to have" resilience
   to mean "always recovers" - worth a small UI affordance (e.g. "reconnecting..." vs a
   silent restart to lobby) even though full crash resilience is explicitly out of scope.
 
 ## Open questions
 
-- **Approval bypass for self-hosted/local-dev** (flagged in Security above): what
+- **Approval-bypass mechanism** (required per Security above, not optional): what
   mechanism lets a self-hosted operator or local game developer run an unapproved game
   without also opening that door on a public cloud instance running the same code.
+  Candidate answers (unresolved, not decided here): a signed "dev mode" flag baked into
+  the self-hosted build, or a separate manifest source (local filesystem / workspace
+  packages) that only compiles in when `NODE_ENV !== "production"`.
 - **Sandbox origin ownership for self-hosters:** does a self-hosted operator need their own
   second domain/subdomain for the sandbox origin, or can the platform ship a scheme that
   works on a single self-hosted domain (e.g. a path-based pseudo-origin trick) without
