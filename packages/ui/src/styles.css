@@ -155,6 +155,32 @@ body {
   }
 }
 
+/* Reduced-motion fallback for the spinner: still reads as "working", without rotation. */
+@keyframes hb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Animations are applied inline, so these need !important to win. Entrances and the rank
+   pop drop to instant, falling confetti goes entirely, the spinner pulses instead. */
+@media (prefers-reduced-motion: reduce) {
+  .hb-anim-enter,
+  .hb-anim-rank {
+    animation: none !important;
+  }
+  .hb-anim-confetti {
+    display: none !important;
+  }
+  .hb-anim-spin {
+    animation: hb-pulse 1.4s ease-in-out infinite !important;
+  }
+}
+
 /* Countdown arc progress sweep (per-game countdown forms drive stroke-dashoffset themselves). */
 @keyframes hb-arc-tick {
   0%,

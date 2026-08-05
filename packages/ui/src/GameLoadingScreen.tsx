@@ -12,6 +12,7 @@ export type GameLoadingScreenProps = {
 export function GameLoadingScreen({ gameName, identityColors, category }: GameLoadingScreenProps) {
   return (
     <div
+      className="hb-anim-enter"
       style={{
         flex: 1,
         minHeight: 0,
@@ -56,6 +57,7 @@ export function GameLoadingScreen({ gameName, identityColors, category }: GameLo
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "calc(var(--u)*.8)" }}>
         <span
+          className="hb-anim-spin"
           style={{
             width: "calc(var(--u)*1.5)",
             height: "calc(var(--u)*1.5)",

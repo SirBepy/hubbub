@@ -159,6 +159,7 @@ export function App() {
     return (
       <TVStage>
         <div
+          className="hb-anim-enter"
           style={{
             flex: 1,
             minHeight: 0,
@@ -182,7 +183,7 @@ export function App() {
     return (
       <TVStage>
         {/* Plain fade, not a second choreography: the lobby-to-game beat already opened the box. */}
-        <div style={{ flex: 1, minHeight: 0, display: "flex", animation: "hb-fade-in 200ms ease-out 1 both" }}>
+        <div className="hb-anim-enter" style={{ flex: 1, minHeight: 0, display: "flex", animation: "hb-fade-in 200ms ease-out 1 both" }}>
         <ConfigPanel
           code={code}
           gameName={gameName}

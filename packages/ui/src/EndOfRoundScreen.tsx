@@ -27,7 +27,11 @@ function Confetti() {
       />
     );
   });
-  return <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>{pieces}</div>;
+  return (
+    <div className="hb-anim-confetti" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+      {pieces}
+    </div>
+  );
 }
 
 export type EndOfRoundWinner = {
@@ -72,6 +76,7 @@ export type EndOfRoundScreenProps = {
 function Medallion({ emoji }: { emoji: string }) {
   return (
     <div
+      className="hb-anim-rank"
       style={{
         position: "relative",
         width: "calc(var(--u)*26)",
