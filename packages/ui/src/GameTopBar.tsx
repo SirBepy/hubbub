@@ -85,7 +85,6 @@ export function GameTopBar({ title, roomCode, children, players }: GameTopBarPro
                   opacity: p.connected === false ? 0.3 : 1,
                 }}
               >
-                {/* Avatar's numeric size can't consume --u; a static px is the seam. */}
                 <div style={{ width: "calc(var(--u)*1.5)", margin: "0 auto" }}>
                   <Avatar size={28} colorHex={NEUTRAL_RING} emoji={p.emoji} surface={2} />
                 </div>

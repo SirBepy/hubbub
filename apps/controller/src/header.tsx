@@ -1,10 +1,9 @@
 import type { CSSProperties } from "react";
 import { CaretLeft } from "@phosphor-icons/react";
-import { Avatar } from "@hubbub/ui";
+import { Avatar, NEUTRAL_RING } from "@hubbub/ui";
 
-// Players carry no colour in this app; identity is the character alone. The Avatar
-// component still takes a ring colour, so every avatar gets the same neutral one.
-export const NEUTRAL_RING = "rgba(242,234,217,.35)";
+// Re-exported so this app's existing `./header` importers keep resolving it from one place.
+export { NEUTRAL_RING };
 
 /** Pinned identity bar. Tapping the avatar/name opens the menu - deliberately
  * undressed (no pill, border or caret) so it doesn't read as a control. */

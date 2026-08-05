@@ -34,37 +34,41 @@ export function useLoadingGate<T>(key: string | null, load: (key: string) => Pro
 
     let cancelled = false;
     let shownAt = 0;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    let commitTimer: ReturnType<typeof setTimeout> | undefined;
 
-    timers.push(
-      setTimeout(() => {
+    const showTimer = setTimeout(() => {
+      if (cancelled) return;
+      shownAt = Date.now();
+      setShowLoader(true);
+    }, LOADER_SHOW_AFTER_MS);
+
+    // Clearing showTimer here is load-bearing, not tidy-up: a fast load commits its value long
+    // before LOADER_SHOW_AFTER_MS, and an uncleared timer would then raise the loader back over
+    // an already-running game with nothing left to lower it.
+    const settle = (commit: () => void) => {
+      clearTimeout(showTimer);
+      if (cancelled) return;
+      const wait = shownAt ? Math.max(0, LOADER_MIN_VISIBLE_MS - (Date.now() - shownAt)) : 0;
+      commitTimer = setTimeout(() => {
         if (cancelled) return;
-        shownAt = Date.now();
-        setShowLoader(true);
-      }, LOADER_SHOW_AFTER_MS),
-    );
+        commit();
+        setShowLoader(false);
+      }, wait);
+    };
 
     pending.then(
-      (resolved) => {
-        if (cancelled) return;
-        const heldFor = shownAt ? Date.now() - shownAt : 0;
-        const wait = shownAt ? Math.max(0, LOADER_MIN_VISIBLE_MS - heldFor) : 0;
-        timers.push(
-          setTimeout(() => {
-            if (cancelled) return;
-            setValue(resolved);
-            setShowLoader(false);
-          }, wait),
-        );
-      },
+      (resolved) => settle(() => setValue(resolved)),
       (err) => {
-        if (!cancelled) console.error(`[hubbub] failed to load game "${key}"`, err);
+        console.error(`[hubbub] failed to load game "${key}"`, err);
+        // Drop the loader rather than spinning forever; the caller falls back to its own view.
+        settle(() => {});
       },
     );
 
     return () => {
       cancelled = true;
-      timers.forEach(clearTimeout);
+      clearTimeout(showTimer);
+      clearTimeout(commitTimer);
     };
   }, [key]);
 
