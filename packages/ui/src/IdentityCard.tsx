@@ -1,6 +1,6 @@
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
-import { Avatar } from "./Avatar";
-import { colorHex, hexToRgba } from "./palette";
+import { Avatar, NEUTRAL_RING } from "./Avatar";
+import { hexToRgba } from "./palette";
 
 export type IdentityCardProps = {
   mark: string;
@@ -30,7 +30,7 @@ export function IdentityCard({ mark, roleColor, player, glowing }: IdentityCardP
       }}
     >
       {player ? (
-        <Avatar size={56} colorHex={colorHex(player.colorId)} emoji={player.emoji} surface={2} />
+        <Avatar size={56} colorHex={NEUTRAL_RING} emoji={player.emoji} surface={2} />
       ) : (
         <div style={{ width: 56, height: 56 }} />
       )}

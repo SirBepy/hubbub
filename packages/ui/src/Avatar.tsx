@@ -1,5 +1,9 @@
 import { resolveAvatarCharacter, type ResolvedAvatarCharacter } from "./avatars/resolve";
 
+// Players carry no colour; identity is the character alone. Matches apps/controller's
+// header.tsx NEUTRAL_RING so every Avatar ring in the product is the same fixed tone.
+export const NEUTRAL_RING = "rgba(242,234,217,.35)";
+
 export type AvatarProps = {
   /** Diameter in px - 56/44/52/104 are the sizes used across the design. */
   size: number;

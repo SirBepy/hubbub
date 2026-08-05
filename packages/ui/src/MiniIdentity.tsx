@@ -1,6 +1,5 @@
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
-import { Avatar } from "./Avatar";
-import { colorHex } from "./palette";
+import { Avatar, NEUTRAL_RING } from "./Avatar";
 
 export type MiniIdentityProps = {
   player: Player | null;
@@ -25,7 +24,7 @@ export function MiniIdentity({ player, mark, roleColor, emphasized }: MiniIdenti
       }}
     >
       {player ? (
-        <Avatar size={32} colorHex={colorHex(player.colorId)} emoji={player.emoji} />
+        <Avatar size={32} colorHex={NEUTRAL_RING} emoji={player.emoji} />
       ) : (
         <div style={{ width: 32, height: 32 }} />
       )}

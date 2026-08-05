@@ -3,7 +3,7 @@ export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";
 
-export { Avatar } from "./Avatar";
+export { Avatar, NEUTRAL_RING } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
 
 export { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./avatars/catalog";

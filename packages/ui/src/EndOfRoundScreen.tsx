@@ -1,6 +1,6 @@
 import { PLAYER_COLORS, colorHex, hexToRgba } from "./palette";
 import { GlowButton, NeutralButton } from "./GlowButton";
-import { Avatar } from "./Avatar";
+import { Avatar, NEUTRAL_RING } from "./Avatar";
 
 /** One-shot confetti: 44 pieces cycling the six palette colors, staggered, never loops. */
 function Confetti() {
@@ -148,7 +148,7 @@ export function EndOfRoundScreen({
                 <>
                   <span style={{ width: "calc(var(--u)*1.05)", height: "calc(var(--u)*1.05)", borderRadius: "50%", background: winner.colorHex }} />
                   {/* size 56 matches IdentityCard's prominent-identity avatar */}
-                  <Avatar size={56} colorHex={winner.colorHex} emoji={winner.emoji} surface={2} />
+                  <Avatar size={56} colorHex={NEUTRAL_RING} emoji={winner.emoji} surface={2} />
                   <span style={{ fontSize: "calc(var(--u)*2.9)", fontWeight: 600 }}>{winner.name}</span>
                 </>
               ) : (
@@ -200,7 +200,7 @@ export function EndOfRoundScreen({
                   <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "rgba(242,234,217,.4)", width: "calc(var(--u)*1.7)" }}>{row.position}</span>
                   <span style={{ width: "calc(var(--u)*.65)", height: "calc(var(--u)*.65)", borderRadius: "50%", background: row.colorHex }} />
                   {/* size 32 matches lobby/MiniIdentity's compact-row avatar */}
-                  <Avatar size={32} colorHex={row.colorHex} emoji={row.emoji} surface={2} />
+                  <Avatar size={32} colorHex={NEUTRAL_RING} emoji={row.emoji} surface={2} />
                   <span style={{ flex: 1, fontSize: "calc(var(--u)*1.4)", fontWeight: 500 }}>{row.name}</span>
                   <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "rgba(242,234,217,.7)" }}>{row.score}</span>
                 </div>

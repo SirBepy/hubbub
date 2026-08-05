@@ -1,4 +1,4 @@
-import { Avatar } from "./Avatar";
+import { Avatar, NEUTRAL_RING } from "./Avatar";
 
 export type PlayerPillProps = {
   colorHex: string;
@@ -20,7 +20,7 @@ export function PlayerPill({ colorHex, emoji }: PlayerPillProps) {
       }}
     >
       {/* size 40 matches the pill's prior fixed inner-circle diameter */}
-      <Avatar size={40} colorHex={colorHex} emoji={emoji} surface={2} />
+      <Avatar size={40} colorHex={NEUTRAL_RING} emoji={emoji} surface={2} />
       <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%", background: colorHex }} />
     </div>
   );
