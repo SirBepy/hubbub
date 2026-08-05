@@ -1,7 +1,28 @@
-const { chromium } = require('C:/Users/tecno/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules/playwright');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
+// Playwright isn't a repo dependency (this script is dev-only tooling); fall back to an
+// npx-cache copy before giving up, since `npx playwright` leaves one behind per version.
+function resolvePlaywright() {
+  try {
+    return require('playwright');
+  } catch (e) {}
+  const npxRoot = process.platform === 'win32'
+    ? path.join(os.homedir(), 'AppData', 'Local', 'npm-cache', '_npx')
+    : path.join(os.homedir(), '.npm', '_npx');
+  try {
+    for (const hash of fs.readdirSync(npxRoot)) {
+      const candidate = path.join(npxRoot, hash, 'node_modules', 'playwright');
+      if (fs.existsSync(candidate)) return require(candidate);
+    }
+  } catch (e) {}
+  console.error('Playwright not found. Install it with `npm install playwright` (or `npx playwright@latest --version` to seed the npx cache), then retry.');
+  process.exit(1);
+}
+const { chromium } = resolvePlaywright();
+
+// Mirrored from packages/protocol/src/tokens.ts (raw TS, not requirable from plain CJS); keep both in sync.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const args = process.argv.slice(2);

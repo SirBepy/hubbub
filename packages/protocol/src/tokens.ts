@@ -1,5 +1,6 @@
 import { randomUUID, randomInt } from "node:crypto";
 
+// Mirrored in .claude/skills/capture/scripts/capture.cjs (plain CJS, can't import raw TS); keep both in sync.
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function newToken(): string {
