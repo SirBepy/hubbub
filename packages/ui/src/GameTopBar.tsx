@@ -12,8 +12,6 @@ export type GameTopBarPlayer = {
 export type GameTopBarProps = {
   /** Game wordmark, e.g. "Music Guesser". */
   title: string;
-  /** Kept for API compat — a6 mockup limits game chrome to the name, no per-game theming. */
-  pairHexes: [string, string];
   roomCode: string;
   /** Fallback center content when `players` isn't supplied. */
   children?: ReactNode;

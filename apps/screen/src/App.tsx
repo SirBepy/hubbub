@@ -95,9 +95,6 @@ export function App() {
   if (room?.mode === "in-game" && Screen && game) {
     const players = room.players;
     const summary = room.games.find((g) => g.id === game.gameId) ?? null;
-    const pairHexes: [string, string] = summary?.identityColors
-      ? [colorHex(summary.identityColors[0]), colorHex(summary.identityColors[1])]
-      : [colorHex(1), colorHex(0)];
 
     const result = logic?.result?.(game.state) ?? null;
     if (result) {
@@ -137,7 +134,7 @@ export function App() {
     return (
       <TVStage>
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-          <GameTopBar title={summary?.name ?? ""} pairHexes={pairHexes} roomCode={code} players={topBarPlayers} />
+          <GameTopBar title={summary?.name ?? ""} roomCode={code} players={topBarPlayers} />
           <GameSlot aspectRatio={summary?.aspectRatio}>
             <Screen state={game.state} players={players} />
           </GameSlot>
