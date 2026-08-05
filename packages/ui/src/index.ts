@@ -12,6 +12,12 @@ export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./avatars/catalog"
 export { PlayerPill } from "./PlayerPill";
 export type { PlayerPillProps } from "./PlayerPill";
 
+export { IdentityCard } from "./IdentityCard";
+export type { IdentityCardProps } from "./IdentityCard";
+
+export { MiniIdentity } from "./MiniIdentity";
+export type { MiniIdentityProps } from "./MiniIdentity";
+
 export { GlowButton, NeutralButton } from "./GlowButton";
 export type { GlowButtonProps, NeutralButtonProps } from "./GlowButton";
 

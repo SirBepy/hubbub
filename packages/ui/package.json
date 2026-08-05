@@ -12,6 +12,7 @@
   "dependencies": {
     "@fontsource/archivo": "^5.1.0",
     "@fontsource/archivo-black": "^5.1.0",
+    "@hubbub/sdk": "workspace:*",
     "@phosphor-icons/react": "^2.1.7"
   },
   "peerDependencies": { "react": "^18.3.0" },
