@@ -49,9 +49,11 @@ The root `pnpm test` runs this suite too, via the `test:worker` script.
 
 ## Remaining steps to actually deploy (a human, by hand)
 
-1. Create a Cloudflare account, then subscribe to **Workers Paid** (about 5 USD/month). The free
-   tier does NOT include Durable Objects, and the relay is entirely Durable Objects, so a free
-   account cannot run this.
+1. Create a Cloudflare account. **The free plan is enough**, verified against the live Workers
+   plans page on 2026-08-07: it includes SQLite-backed Durable Objects at 100k requests/day,
+   13,000 GB-s duration/day, 100k SQL rows written/day and 5 GB stored. This Worker's DOs are
+   SQLite-backed (see the `new_sqlite_classes` migration), so they qualify. Upgrade to Workers
+   Paid only after actually hitting a limit; the write budget is the one to watch (see below).
 2. Register `hubbub.tv` (chosen 2026-08-07) and add it as a zone on that same account.
    Registering it through Cloudflare Registrar puts it on Cloudflare DNS with no transfer step.
    `wrangler.jsonc`'s `routes` entry already points at it; **deploying before the zone exists

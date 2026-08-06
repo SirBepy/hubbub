@@ -9,6 +9,12 @@ interface RateLimitConfig { max: number; windowMs: number; }
 const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
 const tokens: TokenSource = { next: newToken };
 
+// gameStatePush is a best-effort cache (design spec), so it buffers behind an alarm rather than
+// costing a write per message. Membership, host, mode, config and cursor still flush immediately.
+const GAME_STATE_COALESCE_MS = 1_000;
+// Pure forwards: handleMessage never touches this.data for these.
+const NO_PERSIST_TYPES = new Set(["action", "rtcSignal"]);
+
 interface ConnAttachment { connId: string; }
 
 /** One Durable Object instance IS one room, addressed by env.ROOM.idFromName(code). Room state
@@ -72,7 +78,14 @@ export class RoomDO extends DurableObject<WorkerEnv> {
       return;
     }
     const outbound = await room.handleMessage(connId, msg, Date.now());
-    await this.ctx.storage.put("room", room.snapshot());
+    if (msg.t === "gameStatePush") {
+      // Throttle, not debounce: leaving a pending alarm alone keeps a steady stream flushing.
+      if (!(await this.ctx.storage.getAlarm())) {
+        await this.ctx.storage.setAlarm(Date.now() + GAME_STATE_COALESCE_MS);
+      }
+    } else if (!NO_PERSIST_TYPES.has(msg.t)) {
+      await this.flush(room);
+    }
     this.route(room, outbound);
   }
 
@@ -81,12 +94,24 @@ export class RoomDO extends DurableObject<WorkerEnv> {
     if (!room) return;
     const { connId } = ws.deserializeAttachment() as ConnAttachment;
     const outbound = room.handleDisconnect(connId);
-    await this.ctx.storage.put("room", room.snapshot());
+    await this.flush(room);
     this.route(room, outbound);
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
     await this.webSocketClose(ws);
+  }
+
+  /** Fires when a coalesced gameStatePush write comes due. The alarm survives hibernation, but an
+   * eviction before it runs loses the unflushed push: that blob is best-effort by design. */
+  async alarm(): Promise<void> {
+    const room = await this.getRoom();
+    if (room) await this.flush(room);
+  }
+
+  private async flush(room: Room): Promise<void> {
+    await this.ctx.storage.put("room", room.snapshot());
+    await this.ctx.storage.deleteAlarm();
   }
 
   /** Resolves each Outbound's symbolic destination against the sockets hibernation actually woke
