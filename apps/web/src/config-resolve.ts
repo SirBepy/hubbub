@@ -3,14 +3,16 @@ export interface WebConfig {
   controllerUrl: string;
 }
 
-// Single origin: controllerUrl is just this origin, so QR/join links become
-// <origin>/?room=CODE instead of apps/screen's standalone :5174 default.
+// Prod serves assets and relay from one Worker origin; dev splits them across the
+// Vite server and the Node relay on 7787. `mode.dev` is injected to keep this pure.
 export function resolveWebConfig(
   env: { VITE_SERVER_URL?: string },
-  loc: { hostname: string; origin: string },
+  loc: { hostname: string; origin: string; protocol: string },
+  mode: { dev: boolean },
 ): WebConfig {
+  const sameOriginWs = `${loc.protocol === "https:" ? "wss:" : "ws:"}${loc.origin.replace(/^https?:/, "")}`;
   return {
-    serverUrl: env.VITE_SERVER_URL ?? `ws://${loc.hostname}:7787`,
+    serverUrl: env.VITE_SERVER_URL ?? (mode.dev ? `ws://${loc.hostname}:7787` : sameOriginWs),
     controllerUrl: loc.origin,
   };
 }

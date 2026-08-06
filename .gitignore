@@ -6,4 +6,5 @@ dist/
 # third-party app screenshots (Mobbin refs) - keep out of a future public repo
 .for_bepy/design-refs/
 .turbo/
+.wrangler/
 .playwright-mcp/
