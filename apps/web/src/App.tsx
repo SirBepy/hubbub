@@ -1,6 +1,5 @@
 import { useState, type CSSProperties } from "react";
 import { App as ScreenApp } from "@hubbub/screen";
-import { App as ControllerApp } from "@hubbub/controller";
 import {
   decideInitialRole,
   getRoomCodeFromSearch,
@@ -8,6 +7,7 @@ import {
   setStoredRoleOverride,
   type Role,
 } from "./role";
+import { ControllerEntry } from "./controller-entry";
 
 const roomCode = getRoomCodeFromSearch(location.search);
 
@@ -29,18 +29,21 @@ export function App() {
 
   // key remounts the whole role tree, so the old role's effects (websocket, timers)
   // tear down cleanly instead of leaking into the new role.
-  return (
-    <>
-      {role === "screen" ? <ScreenApp key="screen" /> : <ControllerApp key="controller" />}
-      <button type="button" onClick={switchRole} style={switcherStyle}>
-        {role === "screen" ? "Switch to controller" : "Switch to screen"}
-      </button>
-    </>
-  );
+  if (role === "screen") {
+    return (
+      <>
+        <ScreenApp key="screen" />
+        {/* Low-observability escape hatch until the big-screen host view gets its own pass. */}
+        <button type="button" onClick={switchRole} style={switcherStyle}>
+          Join instead
+        </button>
+      </>
+    );
+  }
+
+  return <ControllerEntry key="controller" onHostInstead={switchRole} />;
 }
 
-// Structural role switcher for this merge step only; the approved welcome/join mockups
-// (a separate, later step) replace this with real UI.
 const switcherStyle: CSSProperties = {
   position: "fixed",
   bottom: 8,

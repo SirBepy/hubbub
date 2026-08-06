@@ -180,6 +180,9 @@ importers:
       '@hubbub/controller':
         specifier: workspace:*
         version: link:../controller
+      '@hubbub/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       '@hubbub/screen':
         specifier: workspace:*
         version: link:../screen

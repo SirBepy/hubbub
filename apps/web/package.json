@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@hubbub/controller": "workspace:*",
+    "@hubbub/protocol": "workspace:*",
     "@hubbub/screen": "workspace:*",
     "@hubbub/ui": "workspace:*",
     "react": "^18.3.0",

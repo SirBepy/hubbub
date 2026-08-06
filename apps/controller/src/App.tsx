@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { WebSocketClientTransport, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
@@ -34,9 +34,9 @@ type GameSlot = { gameId: string; state: any };
 // HowToPlay/About all drill down from the menu, so their back caret returns to it.
 type PhoneView = "search" | "menu" | "share" | "howToPlay" | "about" | "passRemote" | null;
 
-export function App() {
+export function App({ initialCode }: { initialCode?: string } = {}) {
   const [identity, setIdentityState] = useState<Identity | null>(() => loadIdentity());
-  const [code, setCode] = useState(roomFromUrl.toUpperCase());
+  const [code, setCode] = useState((initialCode ?? roomFromUrl).toUpperCase());
   const [status, setStatus] = useState<"idle" | "joining" | "in" | "error">("idle");
   const [error, setError] = useState("");
   const [playerId, setPlayerId] = useState("");
@@ -82,6 +82,15 @@ export function App() {
     const token = localStorage.getItem(`hubbub:token:${code}`) ?? undefined;
     t.send({ t: "joinRoom", code, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, token });
   }
+
+  // apps/web collects the code on its own join screen and hands it over, so joining
+  // again here would make the player type the same code twice.
+  const autoJoined = useRef(false);
+  useEffect(() => {
+    if (!initialCode || autoJoined.current || !identity || status !== "idle") return;
+    autoJoined.current = true;
+    void join();
+  }, [initialCode, identity, status]);
 
   // Leaving is a deliberate exit, unlike a WiFi-blip reconnect - drop the token so
   // a future join doesn't try to reclaim this slot.

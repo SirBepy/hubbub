@@ -6,13 +6,15 @@ export function getRoomCodeFromSearch(search: string): string {
   return new URLSearchParams(search).get("room") ?? "";
 }
 
+// sessionStorage, not localStorage: a device should revert to its natural role
+// heuristic on a later visit rather than being stuck in whatever it was switched to.
 export function getStoredRoleOverride(): Role | null {
-  const v = localStorage.getItem(OVERRIDE_KEY);
+  const v = sessionStorage.getItem(OVERRIDE_KEY);
   return v === "screen" || v === "controller" ? v : null;
 }
 
 export function setStoredRoleOverride(role: Role): void {
-  localStorage.setItem(OVERRIDE_KEY, role);
+  sessionStorage.setItem(OVERRIDE_KEY, role);
 }
 
 // Coarse pointer + narrow viewport preselects controller; a room code or a stored
