@@ -31,7 +31,7 @@ Full design in the spec above. Load-bearing invariants a session must not violat
 
 - **Transport is a swappable interface** (`packages/protocol`). WebSocket (`ws`) is the default impl; WebRTC DataChannel is a future impl behind the SAME interface. Game code and SDK must NEVER import a concrete transport - only the interface.
 - **The phone is a dumb controller; the screen renders everything.** Inputs pay one-way latency (phone -> screen), never a round trip.
-- **Per-game authority:** real-time games declare `tickRateHz` and run a screen-authoritative 60fps loop; turn-based games omit it and are server-authoritative. The `tickRateHz` switch is the only difference between simple and twitchy games.
+- **The screen is authoritative for EVERY game** (changed 2026-08-05, commit `0d04fe6`). The server is relay, membership, reconnect and signaling only; it never runs a reducer. Real-time games still declare `tickRateHz` for their 60fps loop, but that is no longer an authority switch. See `docs/superpowers/specs/2026-08-05-hubbub-cloud-hosting-and-game-distribution-design.md`.
 - **A game implements only three parts** (`GameDefinition` in `packages/sdk`): server logic, screen view, controller view. The framework owns rooms, join/leave, state sync, input routing, reconnection, lobby, QR, and local/cloud transport.
 - **Input = logical actions, never raw keys.** Games bind to actions (`jump`, `select`); the framework maps touch widgets / keyboard / gamepad onto them. This is what makes keyboard+gamepad support and input tests cheap later.
 - **Local vs cloud is one config flag** (server endpoint + QR target). Game code is identical in both modes.
