@@ -9,7 +9,8 @@
     "dev": "turbo run dev --concurrency=5",
     "dev:all": "turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/screen --filter=@hubbub/controller",
     "typecheck": "turbo run typecheck --concurrency=5",
-    "test": "vitest run",
+    "test": "vitest run && pnpm run test:worker",
+    "test:worker": "pnpm --filter @hubbub/worker test",
     "host:build": "turbo run build --concurrency=5 --filter=@hubbub/host-desktop",
     "host:dev": "turbo run build --concurrency=5 --filter=@hubbub/screen --filter=@hubbub/controller && pnpm --filter @hubbub/host-desktop build && pnpm --filter @hubbub/host-desktop dev",
     "host:package": "pnpm host:build && pnpm --filter @hubbub/host-desktop package"
@@ -18,5 +19,11 @@
     "turbo": "^2.1.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici@<7.29.0": ">=7.29.0"
+    },
+    "onlyBuiltDependencies": ["workerd"]
   }
 }

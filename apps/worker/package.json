@@ -1,0 +1,28 @@
+{
+  "name": "@hubbub/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hubbub/games": "workspace:*",
+    "@hubbub/protocol": "workspace:*",
+    "@hubbub/relay": "workspace:*",
+    "@hubbub/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.20.2",
+    "@cloudflare/workers-types": "5.20260804.1",
+    "@hubbub/web": "workspace:*",
+    "typescript": "^5.5.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.1.0",
+    "wrangler": "4.119.0"
+  }
+}
