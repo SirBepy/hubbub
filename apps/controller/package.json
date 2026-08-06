@@ -2,6 +2,11 @@
   "name": "@hubbub/controller",
   "version": "0.0.0",
   "type": "module",
+  "main": "./src/App.tsx",
+  "types": "./src/App.tsx",
+  "exports": {
+    ".": "./src/App.tsx"
+  },
   "scripts": {
     "dev": "vite --port 5174",
     "build": "vite build",
