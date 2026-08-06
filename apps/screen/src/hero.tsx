@@ -3,7 +3,7 @@ import { randomSlogan } from "./slogans";
 
 // Empty-room hero, swapped for Lobby the instant someone joins. Every fluid size is
 // min(Nvh, capPx) with capPx its 1080p value, so nothing grows past 1080p on a bigger screen.
-export function Hero({ code, qr }: { code: string; qr: string }) {
+export function Hero({ code, qr, error }: { code: string; qr: string; error?: string }) {
   const [slogan] = useState(randomSlogan);
 
   return (
@@ -17,9 +17,9 @@ export function Hero({ code, qr }: { code: string; qr: string }) {
         <div style={kraftCard} data-measure="kraft-card">
           <div style={qrBox}>{qr ? <img src={qr} alt="Join QR" style={qrImg} /> : null}</div>
           <div style={kraftText}>
-            <p style={joinLabel}>Join anytime</p>
-            <p style={roomCode} data-measure="room-code">{code || "…"}</p>
-            <p style={joinHint}>Scan or type the code</p>
+            <p style={joinLabel}>{error ? "Can't connect" : "Join anytime"}</p>
+            <p style={roomCode} data-measure="room-code">{error ? "Offline" : code || "…"}</p>
+            <p style={joinHint}>{error ?? "Scan or type the code"}</p>
           </div>
         </div>
       </div>

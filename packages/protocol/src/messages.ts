@@ -49,8 +49,10 @@ export type RoomConfig = z.infer<typeof RoomConfigSchema>;
 
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
-  z.object({ t: z.literal("createRoom") }),
-  z.object({ t: z.literal("joinRoom"), code: z.string().length(ROOM_CODE_LENGTH), ...IdentitySchema.shape, token: z.string().optional() }),
+  // The room code comes from the connection URL (/room/:code), not the message - a Durable
+  // Object is addressed by name at connect time, so the code must be known before any message.
+  z.object({ t: z.literal("attachScreen") }),
+  z.object({ t: z.literal("joinRoom"), ...IdentitySchema.shape, token: z.string().optional() }),
   z.object({ t: z.literal("setIdentity"), ...IdentitySchema.shape }),
   z.object({ t: z.literal("lobbyNav"), dir: z.enum(["up", "down", "left", "right"]) }),
   z.object({ t: z.literal("lobbyFocus"), index: z.number().int().min(0) }),

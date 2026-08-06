@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
+import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
@@ -25,8 +26,8 @@ const registry: GameRegistry = { counter, two }; // index 0 = counter, 1 = two
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
 
-const open = (port: number) =>
-  new Promise<WebSocket>((res) => { const ws = new WebSocket(`ws://localhost:${port}`); ws.on("open", () => res(ws)); });
+const open = (url: string) =>
+  new Promise<WebSocket>((res) => { const ws = new WebSocket(url); ws.on("open", () => res(ws)); });
 const nextOf = (ws: WebSocket, t: string) =>
   new Promise<any>((res, rej) => {
     const timer = setTimeout(() => rej(new Error(`timeout ${t}`)), 4000);
@@ -38,22 +39,24 @@ const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function setup() {
   handle = createServer(0, registry);
-  const port = (handle.wss.address() as { port: number }).port;
-  const screen = await open(port);
-  screen.send(JSON.stringify({ t: "createRoom" }));
-  const created = await nextOf(screen, "roomCreated");
+  const port = (handle.server.address() as { port: number }).port;
+  const base = `ws://localhost:${port}`;
+  const code = await createRoomHttp(base);
+  const screen = await open(roomSocketUrl(base, code));
+  screen.send(JSON.stringify({ t: "attachScreen" }));
+  await nextOf(screen, "roomCreated");
   attachScreenAuthority(screen, registry);
-  return { port, screen, code: created.code };
+  return { port, base, screen, code };
 }
-const join = (ws: WebSocket, code: string, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", code, name, colorId: 0, emoji: "🐱" }));
+const join = (ws: WebSocket, name: string) =>
+  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
 
 describe("lobby mechanics", () => {
   it("first joiner is host, second is not; non-host confirm is ignored", async () => {
-    const { port, screen, code } = await setup();
-    const host = await open(port); join(host, code, "Ann");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann");
     const hj = await nextOf(host, "joined");
-    const guest = await open(port); join(guest, code, "Bo");
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo");
     await nextOf(guest, "joined");
     let room = await nextOf(screen, "roomState");
     expect(room.hostId).toBe(hj.playerId);
@@ -69,9 +72,9 @@ describe("lobby mechanics", () => {
   });
 
   it("lobbyNav moves the cursor and lobbyConfirm launches the highlighted game", async () => {
-    const { port, screen, code } = await setup();
-    const host = await open(port); join(host, code, "Ann"); await nextOf(host, "joined");
-    const guest = await open(port); join(guest, code, "Bo"); await nextOf(guest, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo"); await nextOf(guest, "joined");
     host.send(JSON.stringify({ t: "lobbyNav", dir: "right" })); // -> index 1 (two)
     let moved = await nextOf(screen, "roomState");
     // earlier join broadcasts may still be queued on the screen; read until the cursor moves
@@ -84,8 +87,8 @@ describe("lobby mechanics", () => {
   });
 
   it("cannot launch a game needing more players than are connected", async () => {
-    const { port, screen, code } = await setup();
-    const host = await open(port); join(host, code, "Ann"); await nextOf(host, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
     host.send(JSON.stringify({ t: "lobbyFocus", index: 1 })); // 'two' needs 2 players
     await nextOf(screen, "roomState");
     host.send(JSON.stringify({ t: "lobbyConfirm" }));
@@ -100,8 +103,8 @@ describe("lobby mechanics", () => {
   });
 
   it("routes actions in-game and returns to lobby on host returnToLobby", async () => {
-    const { port, screen, code } = await setup();
-    const host = await open(port); join(host, code, "Ann"); await nextOf(host, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
     host.send(JSON.stringify({ t: "lobbyConfirm" })); // counter (index 0), 1 player ok
     const gs = await nextOf(screen, "gameState");
     expect(gs.state.count).toBe(0);
@@ -115,9 +118,9 @@ describe("lobby mechanics", () => {
   });
 
   it("migrates host when the host disconnects", async () => {
-    const { port, screen, code } = await setup();
-    const host = await open(port); join(host, code, "Ann"); const hj = await nextOf(host, "joined");
-    const guest = await open(port); join(guest, code, "Bo"); const gj = await nextOf(guest, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); const hj = await nextOf(host, "joined");
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo"); const gj = await nextOf(guest, "joined");
     await nextOf(screen, "roomState");
     host.close();
     let room = await nextOf(screen, "roomState");

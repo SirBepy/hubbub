@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
+import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
@@ -29,8 +30,8 @@ const registry: GameRegistry = { "music-guesser": fakeMusicGuesser, schemaless }
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
 
-const open = (port: number) =>
-  new Promise<WebSocket>((res) => { const ws = new WebSocket(`ws://localhost:${port}`); ws.on("open", () => res(ws)); });
+const open = (url: string) =>
+  new Promise<WebSocket>((res) => { const ws = new WebSocket(url); ws.on("open", () => res(ws)); });
 const nextOf = (ws: WebSocket, t: string) =>
   new Promise<any>((res, rej) => {
     const timer = setTimeout(() => rej(new Error(`timeout ${t}`)), 4000);
@@ -45,18 +46,20 @@ const untilRoomState = async (ws: WebSocket, pred: (r: any) => boolean) => {
   return r;
 };
 const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const join = (ws: WebSocket, code: string, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", code, name, colorId: 0, emoji: "🐱" }));
+const join = (ws: WebSocket, name: string) =>
+  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
 
 async function setup() {
   handle = createServer(0, registry);
-  const port = (handle.wss.address() as { port: number }).port;
-  const screen = await open(port);
-  screen.send(JSON.stringify({ t: "createRoom" }));
-  const created = await nextOf(screen, "roomCreated");
+  const port = (handle.server.address() as { port: number }).port;
+  const base = `ws://localhost:${port}`;
+  const code = await createRoomHttp(base);
+  const screen = await open(roomSocketUrl(base, code));
+  screen.send(JSON.stringify({ t: "attachScreen" }));
+  await nextOf(screen, "roomCreated");
   attachScreenAuthority(screen, registry);
-  const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
-  return { port, screen, host, code: created.code as string };
+  const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
+  return { port, base, screen, host, code };
 }
 async function startConfiguring(screen: WebSocket, host: WebSocket) {
   host.send(JSON.stringify({ t: "configStart" }));
@@ -88,8 +91,8 @@ describe("config phase", () => {
   });
 
   it("is host-only: a non-host's config* messages are all ignored", async () => {
-    const { port, screen, host, code } = await setup();
-    const guest = await open(port); join(guest, code, "Bo"); await nextOf(guest, "joined");
+    const { base, screen, host, code } = await setup();
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo"); await nextOf(guest, "joined");
     guest.send(JSON.stringify({ t: "configStart" }));
     await settle(150);
     await startConfiguring(screen, host);

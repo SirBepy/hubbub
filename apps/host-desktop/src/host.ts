@@ -26,7 +26,7 @@ export async function startHost(opts: HostOptions): Promise<RunningHost> {
   const lanIp = getLanIp();
 
   const ws = createWsServer(opts.wsPort ?? 7787, opts.games ?? GAME_LOGICS);
-  const wsPort = (ws.wss.address() as { port: number }).port;
+  const wsPort = (ws.server.address() as { port: number }).port;
 
   let controller: Awaited<ReturnType<typeof startStaticServer>> | undefined;
   let screen: Awaited<ReturnType<typeof startStaticServer>> | undefined;

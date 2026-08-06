@@ -1,14 +1,14 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
-import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
+import { ROOM_CODE_LENGTH, createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { createServer } from "./server.js";
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
 
-const open = (port: number) =>
+const openWs = (url: string) =>
   new Promise<WebSocket>((res) => {
-    const ws = new WebSocket(`ws://localhost:${port}`);
+    const ws = new WebSocket(url);
     ws.on("open", () => res(ws));
   });
 const nextOf = (ws: WebSocket, t: string) =>
@@ -23,15 +23,17 @@ const nextOf = (ws: WebSocket, t: string) =>
 describe("createServer", () => {
   it("creates a room then a controller joins and the screen sees the player + lobby context", async () => {
     handle = createServer(0, {});
-    const port = (handle.wss.address() as { port: number }).port;
+    const port = (handle.server.address() as { port: number }).port;
+    const base = `ws://localhost:${port}`;
 
-    const screen = await open(port);
-    screen.send(JSON.stringify({ t: "createRoom" }));
-    const created = await nextOf(screen, "roomCreated");
-    expect(created.code).toHaveLength(ROOM_CODE_LENGTH);
+    const code = await createRoomHttp(base);
+    expect(code).toHaveLength(ROOM_CODE_LENGTH);
+    const screen = await openWs(roomSocketUrl(base, code));
+    screen.send(JSON.stringify({ t: "attachScreen" }));
+    await nextOf(screen, "roomCreated");
 
-    const controller = await open(port);
-    controller.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Joe", colorId: 3, emoji: "🦊" }));
+    const controller = await openWs(roomSocketUrl(base, code));
+    controller.send(JSON.stringify({ t: "joinRoom", name: "Joe", colorId: 3, emoji: "🦊" }));
     const joined = await nextOf(controller, "joined");
 
     const room = await nextOf(screen, "roomState");
@@ -43,5 +45,20 @@ describe("createServer", () => {
 
     screen.close();
     controller.close();
+  });
+
+  // Node's fetch doesn't enforce CORS, so this can only catch a regression by asserting
+  // the header itself is present, not by reproducing the browser's block.
+  it("sends Access-Control-Allow-Origin on POST /api/rooms and its OPTIONS preflight", async () => {
+    handle = createServer(0, {});
+    const port = (handle.server.address() as { port: number }).port;
+    const base = `http://localhost:${port}`;
+
+    const post = await fetch(`${base}/api/rooms`, { method: "POST" });
+    expect(post.headers.get("access-control-allow-origin")).toBe("*");
+
+    const preflight = await fetch(`${base}/api/rooms`, { method: "OPTIONS" });
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+    expect(preflight.headers.get("access-control-allow-methods")).toContain("POST");
   });
 });

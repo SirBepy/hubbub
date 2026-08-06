@@ -1,34 +1,41 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { GAME_LOGICS as registry } from "@hubbub/games"; // index 0 = ttt, 1 = uttt
+import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
 
-const open = (port: number) =>
-  new Promise<WebSocket>((res) => { const ws = new WebSocket(`ws://localhost:${port}`); ws.on("open", () => res(ws)); });
+const open = (url: string) =>
+  new Promise<WebSocket>((res) => { const ws = new WebSocket(url); ws.on("open", () => res(ws)); });
 const nextOf = (ws: WebSocket, t: string) =>
   new Promise<any>((res, rej) => {
     const timer = setTimeout(() => rej(new Error(`timeout ${t}`)), 4000);
     const h = (m: any) => { const msg = JSON.parse(m.toString()); if (msg.t === t) { clearTimeout(timer); ws.off("message", h); res(msg); } };
     ws.on("message", h);
   });
-const join = (ws: WebSocket, code: string, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", code, name, colorId: 0, emoji: "🐱" }));
+const join = (ws: WebSocket, name: string) =>
+  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
+
+async function setup() {
+  handle = createServer(0, registry);
+  const port = (handle.server.address() as { port: number }).port;
+  const base = `ws://localhost:${port}`;
+  const code = await createRoomHttp(base);
+  const screen = await open(roomSocketUrl(base, code));
+  screen.send(JSON.stringify({ t: "attachScreen" }));
+  await nextOf(screen, "roomCreated");
+  attachScreenAuthority(screen, registry);
+  return { base, screen, code };
+}
 
 describe("lobby session with real games", () => {
   it("launches ttt, returns to lobby, then launches uttt with the same players", async () => {
-    handle = createServer(0, registry);
-    const port = (handle.wss.address() as { port: number }).port;
-    const screen = await open(port);
-    screen.send(JSON.stringify({ t: "createRoom" }));
-    const created = await nextOf(screen, "roomCreated");
-    attachScreenAuthority(screen, registry);
-
-    const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
-    const guest = await open(port); join(guest, created.code, "Bo"); await nextOf(guest, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo"); await nextOf(guest, "joined");
 
     // launch ttt (index 0)
     host.send(JSON.stringify({ t: "lobbyConfirm" }));
@@ -77,15 +84,9 @@ describe("lobby session with real games", () => {
 
 describe("rematch", () => {
   it("host rematch re-inits the current game fresh; non-host rematch is ignored", async () => {
-    handle = createServer(0, registry);
-    const port = (handle.wss.address() as { port: number }).port;
-    const screen = await open(port);
-    screen.send(JSON.stringify({ t: "createRoom" }));
-    const created = await nextOf(screen, "roomCreated");
-    attachScreenAuthority(screen, registry);
-
-    const host = await open(port); join(host, created.code, "Ann"); await nextOf(host, "joined");
-    const guest = await open(port); join(guest, created.code, "Bo"); await nextOf(guest, "joined");
+    const { base, screen, code } = await setup();
+    const host = await open(roomSocketUrl(base, code)); join(host, "Ann"); await nextOf(host, "joined");
+    const guest = await open(roomSocketUrl(base, code)); join(guest, "Bo"); await nextOf(guest, "joined");
 
     host.send(JSON.stringify({ t: "lobbyConfirm" })); // launch ttt (index 0)
     const ttt = await nextOf(screen, "gameState");

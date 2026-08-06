@@ -3,7 +3,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
-import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
+import { ROOM_CODE_LENGTH, createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { startHost, type RunningHost } from "./host.js";
 
 let screenDir: string;
@@ -68,14 +68,16 @@ describe("startHost", () => {
     expect(await res.text()).toContain("<title>screen</title>");
   });
 
-  it("accepts a screen createRoom then a controller join over WS", async () => {
-    const screen = await open(host.serverUrl);
-    screen.send(JSON.stringify({ t: "createRoom" }));
-    const created = await nextOf(screen, "roomCreated");
-    expect(created.code).toHaveLength(ROOM_CODE_LENGTH);
+  it("accepts a screen attachScreen then a controller join over WS", async () => {
+    const code = await createRoomHttp(host.serverUrl);
+    expect(code).toHaveLength(ROOM_CODE_LENGTH);
 
-    const phone = await open(host.serverUrl);
-    phone.send(JSON.stringify({ t: "joinRoom", code: created.code, name: "Ada", colorId: 3, emoji: "🦊" }));
+    const screen = await open(roomSocketUrl(host.serverUrl, code));
+    screen.send(JSON.stringify({ t: "attachScreen" }));
+    await nextOf(screen, "roomCreated");
+
+    const phone = await open(roomSocketUrl(host.serverUrl, code));
+    phone.send(JSON.stringify({ t: "joinRoom", name: "Ada", colorId: 3, emoji: "🦊" }));
     const joined = await nextOf(phone, "joined");
     expect(joined.playerId).toBeTruthy();
 

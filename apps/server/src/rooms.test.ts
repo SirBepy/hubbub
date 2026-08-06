@@ -120,4 +120,10 @@ describe("RoomManager", () => {
   it("errors when joining a missing room", () => {
     expect(rm.join("ZZZZ", ann)).toEqual({ ok: false, code: "no_room", message: expect.any(String) });
   });
+
+  it("reports existence via has()", () => {
+    const code = rm.createRoom();
+    expect(rm.has(code)).toBe(true);
+    expect(rm.has("ZZZZ")).toBe(false);
+  });
 });

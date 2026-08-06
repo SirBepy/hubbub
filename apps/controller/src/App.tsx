@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { WebSocketClientTransport, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
+import { WebSocketClientTransport, roomSocketUrl, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import { Avatar, GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
@@ -56,9 +56,17 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
   async function join() {
     if (!identity) return;
     setStatus("joining");
-    const t = new WebSocketClientTransport(SERVER_URL);
+    const t = new WebSocketClientTransport(roomSocketUrl(SERVER_URL, code));
     transportRef.current = t;
-    await t.connect();
+    try {
+      await t.connect();
+    } catch {
+      // An unknown/rate-limited code now fails the WS handshake itself (HTTP layer, before any
+      // wire message) - same user-facing outcome as the old joinRoom "no_room" error reply.
+      setError("Room not found");
+      setStatus("error");
+      return;
+    }
     t.onMessage((msg) => {
       if (msg.t === "joined") {
         localStorage.setItem(`hubbub:token:${code}`, msg.token);
@@ -80,7 +88,7 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
       }
     });
     const token = localStorage.getItem(`hubbub:token:${code}`) ?? undefined;
-    t.send({ t: "joinRoom", code, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, token });
+    t.send({ t: "joinRoom", name: identity.name, colorId: identity.colorId, emoji: identity.emoji, token });
   }
 
   // apps/web collects the code on its own join screen and hands it over, so joining

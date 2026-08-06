@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
-import { WebSocketClientTransport, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { WebSocketClientTransport, createRoomHttp, roomSocketUrl, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
 import { createGameAuthority, visibleSettingsFields } from "@hubbub/sdk";
 import {
   TVStage,
@@ -62,6 +62,7 @@ function GameSlot({ aspectRatio, children }: { aspectRatio?: number; children: R
 export function App() {
   const [code, setCode] = useState<string>("");
   const [qr, setQr] = useState<string>("");
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebSocketClientTransport>();
@@ -70,48 +71,59 @@ export function App() {
   const launchedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const t = new WebSocketClientTransport(SERVER_URL);
-    transportRef.current = t;
+    let cancelled = false;
+    let transport: WebSocketClientTransport | undefined;
+    let off = () => {};
     const authority = createGameAuthority((gameState) => {
       const gameId = launchedGameIdRef.current;
-      if (gameId) t.send({ t: "gameStatePush", gameId, state: gameState });
+      if (gameId) transport?.send({ t: "gameStatePush", gameId, state: gameState });
     });
     authorityRef.current = authority;
-    let off = () => {};
-    t.connect().then(() => {
-      off = t.onMessage((msg) => {
-        if (msg.t === "roomCreated") {
-          setCode(msg.code);
-          QRCode.toDataURL(`${CONTROLLER_URL}/?room=${msg.code}`).then(setQr);
-        } else if (msg.t === "roomState") {
-          setRoom({
-            players: msg.players,
-            hostId: msg.hostId,
-            mode: msg.mode,
-            currentGameId: msg.currentGameId,
-            cursorIndex: msg.cursorIndex,
-            games: msg.games,
-            suggestions: msg.suggestions,
-            config: msg.config ?? null,
-          });
-        } else if (msg.t === "gameState") {
-          setGame({ gameId: msg.gameId, state: msg.state });
-        } else if (msg.t === "gameLaunch") {
-          // setup() already ran server-side; construct the GameInstance here (screen authority).
-          launchedGameIdRef.current = msg.gameId;
-          loadGameScreen(msg.gameId)?.then(({ logic }) => {
-            authority.launch(logic, msg.players, msg.setupData, msg.now);
-          });
-        } else if (msg.t === "gameAction") {
-          authority.action(msg.playerId, msg.payload, msg.now);
-        }
+
+    // A Durable Object is addressed by name at connect time, so the room code has to exist
+    // before the socket opens: POST for the code, then connect straight to /room/:code.
+    createRoomHttp(SERVER_URL).then((roomCode) => {
+      if (cancelled) return;
+      setCode(roomCode);
+      QRCode.toDataURL(`${CONTROLLER_URL}/?room=${roomCode}`).then(setQr);
+      const t = new WebSocketClientTransport(roomSocketUrl(SERVER_URL, roomCode));
+      transport = t;
+      transportRef.current = t;
+      t.connect().then(() => {
+        off = t.onMessage((msg) => {
+          if (msg.t === "roomState") {
+            setRoom({
+              players: msg.players,
+              hostId: msg.hostId,
+              mode: msg.mode,
+              currentGameId: msg.currentGameId,
+              cursorIndex: msg.cursorIndex,
+              games: msg.games,
+              suggestions: msg.suggestions,
+              config: msg.config ?? null,
+            });
+          } else if (msg.t === "gameState") {
+            setGame({ gameId: msg.gameId, state: msg.state });
+          } else if (msg.t === "gameLaunch") {
+            // setup() already ran server-side; construct the GameInstance here (screen authority).
+            launchedGameIdRef.current = msg.gameId;
+            loadGameScreen(msg.gameId)?.then(({ logic }) => {
+              authority.launch(logic, msg.players, msg.setupData, msg.now);
+            });
+          } else if (msg.t === "gameAction") {
+            authority.action(msg.playerId, msg.payload, msg.now);
+          }
+        });
+        t.send({ t: "attachScreen" });
       });
-      t.send({ t: "createRoom" });
+    }).catch(() => {
+      if (!cancelled) setConnectError("Couldn't reach the server. Check your connection and refresh.");
     });
     return () => {
+      cancelled = true;
       off();
       authority.reset();
-      t.close();
+      transport?.close();
     };
   }, []);
 
@@ -224,7 +236,7 @@ export function App() {
   if ((room?.players.length ?? 0) === 0) {
     return (
       <TVStage>
-        <Hero code={code} qr={qr} />
+        <Hero code={code} qr={qr} error={connectError ?? undefined} />
       </TVStage>
     );
   }

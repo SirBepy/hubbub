@@ -14,7 +14,7 @@ describe("WebSocketClientTransport", () => {
     wss.on("connection", (ws) => {
       ws.on("message", (raw) => {
         const msg = JSON.parse(raw.toString());
-        if (msg.t === "createRoom") {
+        if (msg.t === "attachScreen") {
           ws.send(JSON.stringify({ t: "roomCreated", code: "ABCD" }));
         }
       });
@@ -24,7 +24,7 @@ describe("WebSocketClientTransport", () => {
     await t.connect();
     const got = await new Promise((resolve) => {
       t.onMessage(resolve);
-      t.send({ t: "createRoom" });
+      t.send({ t: "attachScreen" });
     });
     expect(got).toEqual({ t: "roomCreated", code: "ABCD" });
     t.close();

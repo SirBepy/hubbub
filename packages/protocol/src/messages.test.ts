@@ -2,9 +2,13 @@ import { describe, it, expect } from "vitest";
 import { parseClientMessage, parseServerMessage, GameSummarySchema } from "./messages.js";
 
 describe("protocol messages", () => {
-  it("parses a valid joinRoom with identity", () => {
-    const raw = { t: "joinRoom", code: "ABCD", name: "Joe", colorId: 3, emoji: "🦊" };
+  it("parses a valid joinRoom with identity (no code - that comes from the connection URL)", () => {
+    const raw = { t: "joinRoom", name: "Joe", colorId: 3, emoji: "🦊" };
     expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
+  });
+
+  it("parses attachScreen", () => {
+    expect(parseClientMessage(JSON.stringify({ t: "attachScreen" }))).toEqual({ t: "attachScreen" });
   });
 
   it("rejects an unknown message type", () => {
@@ -13,7 +17,7 @@ describe("protocol messages", () => {
 
   it("rejects joinRoom missing identity fields", () => {
     expect(() =>
-      parseClientMessage(JSON.stringify({ t: "joinRoom", code: "ABCD", name: "Joe" }))
+      parseClientMessage(JSON.stringify({ t: "joinRoom", name: "Joe" }))
     ).toThrow();
   });
 

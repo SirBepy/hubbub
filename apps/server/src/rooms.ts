@@ -31,6 +31,11 @@ export class RoomManager {
     return code;
   }
 
+  /** Used by the HTTP upgrade gate (/room/:code) to 404 before the WS handshake completes. */
+  has(code: string): boolean {
+    return this.rooms.has(code);
+  }
+
   join(code: string, identity: Identity, token?: string): JoinOk | JoinErr {
     const room = this.rooms.get(code);
     if (!room) return { ok: false, code: "no_room", message: "Room not found" };

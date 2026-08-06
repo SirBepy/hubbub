@@ -1,3 +1,5 @@
+import { createServer as createHttpServer, type IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { parseClientMessage, type GameSummary, type ServerMessage } from "@hubbub/protocol";
 import { gameSummaries, visibleSettingsFields, type GameRegistry, type PlayerInfo, type SettingsField } from "@hubbub/sdk";
@@ -10,7 +12,7 @@ function defaultConfigValues(schema: SettingsField[]): Record<string, string> {
   return values;
 }
 
-interface ConnState { roomCode?: string; playerId?: string; role?: "screen" | "controller"; }
+interface ConnState { roomCode: string; playerId?: string; role?: "screen" | "controller"; }
 
 interface RateLimitConfig { max: number; windowMs: number; }
 export interface JoinRateLimitOptions { perIp?: RateLimitConfig; perCode?: RateLimitConfig; }
@@ -33,9 +35,27 @@ function createLimiter({ max, windowMs }: RateLimitConfig) {
   };
 }
 
+// Cloudflare's proxy makes every connection share its own address; CF-Connecting-IP carries
+// the real client IP there. x-forwarded-for is the generic-proxy fallback.
+function clientIp(req: IncomingMessage): string {
+  const cf = req.headers["cf-connecting-ip"];
+  if (typeof cf === "string" && cf) return cf;
+  const xff = req.headers["x-forwarded-for"];
+  if (typeof xff === "string" && xff) return xff.split(",")[0]!.trim();
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+function roomCodeFromUrl(url: string | undefined): string | null {
+  const match = (url ?? "").split("?")[0].match(/^\/room\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export function createServer(port: number, games: GameRegistry, rateLimit: JoinRateLimitOptions = {}) {
-  const wss = new WebSocketServer({ port });
-  const ipLimited = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
+  const wss = new WebSocketServer({ noServer: true });
+  // Separate counters for POST /api/rooms vs the /room/:code upgrade: a screen's own room
+  // creation must not eat into the budget the join-flood limiter guards.
+  const ipLimitedCreate = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
+  const ipLimitedJoin = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
   const codeLimited = createLimiter(rateLimit.perCode ?? DEFAULT_PER_CODE);
   const rooms = new RoomManager();
   const sockets = new Map<string, Set<WebSocket>>();
@@ -50,6 +70,11 @@ export function createServer(port: number, games: GameRegistry, rateLimit: JoinR
 
   const send = (ws: WebSocket, msg: ServerMessage) => ws.send(JSON.stringify(msg));
   const broadcast = (code: string, msg: ServerMessage) => sockets.get(code)?.forEach((ws) => send(ws, msg));
+  function addSocket(code: string, ws: WebSocket) {
+    let set = sockets.get(code);
+    if (!set) { set = new Set(); sockets.set(code, set); }
+    set.add(ws);
+  }
 
   function broadcastRoomState(code: string) {
     broadcast(code, {
@@ -107,49 +132,90 @@ export function createServer(port: number, games: GameRegistry, rateLimit: JoinR
     if (summary) void launchGame(code, summary, options, notifyWs);
   }
 
-  wss.on("connection", (ws, req) => {
-    // Behind a future Cloudflare deployment every connection shares the proxy's own address;
-    // read the `CF-Connecting-IP` header there instead of remoteAddress.
-    const ip = req.socket.remoteAddress ?? "unknown";
-    state.set(ws, {});
+  // Cloud deploys serve the web app and this relay from the same origin, so CORS only bites
+  // in local dev (apps/web on 5175 vs server on 7787). "*" is fine: unauthenticated, no cookies.
+  const CORS_HEADERS = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+  };
+
+  // POST /api/rooms (allocate + return the code) and the /room/:code upgrade gate live on one
+  // http.Server in front of the noServer WebSocketServer - a Durable Object is addressed by
+  // name at connect time, so the code must be resolvable before the WS handshake completes.
+  const http = createHttpServer((req, res) => {
+    if (req.url === "/api/rooms" && req.method === "OPTIONS") {
+      res.writeHead(204, CORS_HEADERS);
+      res.end();
+      return;
+    }
+    if (req.method === "POST" && req.url === "/api/rooms") {
+      if (ipLimitedCreate(clientIp(req), Date.now())) {
+        res.writeHead(429, { "content-type": "application/json", ...CORS_HEADERS });
+        res.end(JSON.stringify({ message: RATE_LIMIT_MESSAGE }));
+        return;
+      }
+      const code = rooms.createRoom();
+      res.writeHead(201, { "content-type": "application/json", ...CORS_HEADERS });
+      res.end(JSON.stringify({ code }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+
+  // Connection: close (not just destroy()) so the client's HTTP parser has an explicit end
+  // for the bodyless response instead of waiting on the socket teardown to infer it.
+  function rejectUpgrade(socket: Duplex, status: number, statusText: string) {
+    socket.write(`HTTP/1.1 ${status} ${statusText}\r\nConnection: close\r\n\r\n`);
+    socket.destroy();
+  }
+
+  http.on("upgrade", (req, socket, head) => {
+    const code = roomCodeFromUrl(req.url);
+    if (!code) { rejectUpgrade(socket, 404, "Not Found"); return; }
+    const now = Date.now();
+    if (ipLimitedJoin(clientIp(req), now)) { rejectUpgrade(socket, 429, "Too Many Requests"); return; }
+    if (!rooms.has(code)) {
+      // Per-code counts only failures, so guessing at one room throttles harder than a real join.
+      const status = codeLimited(code, now) ? 429 : 404;
+      rejectUpgrade(socket, status, status === 429 ? "Too Many Requests" : "Not Found");
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  });
+  http.listen(port);
+
+  wss.on("connection", (ws, req: IncomingMessage) => {
+    const roomCode = roomCodeFromUrl(req.url)!;
+    state.set(ws, { roomCode });
     ws.on("message", (raw) => {
       let msg;
       try { msg = parseClientMessage(raw.toString()); }
       catch { send(ws, { t: "error", code: "bad_message", message: "Invalid message" }); return; }
       const cs = state.get(ws)!;
+      const code = cs.roomCode;
 
-      if (msg.t === "createRoom") {
-        const code = rooms.createRoom();
-        cs.role = "screen"; cs.roomCode = code;
-        sockets.set(code, new Set([ws]));
+      if (msg.t === "attachScreen") {
+        cs.role = "screen";
         screens.set(code, ws);
+        addSocket(code, ws);
         send(ws, { t: "roomCreated", code });
         broadcastRoomState(code);
         return;
       }
 
       if (msg.t === "joinRoom") {
-        const now = Date.now();
-        // Per-code counts only failures, so guessing at one room throttles harder than joining.
-        if (ipLimited(ip, now)) { send(ws, { t: "error", code: "rate_limited", message: RATE_LIMIT_MESSAGE }); return; }
-        const result = rooms.join(msg.code, { name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
-        if (!result.ok) {
-          // Same shape either way, so a rate-limited guess is indistinguishable from a
-          // plain wrong-code reply - neither confirms nor denies the room's existence.
-          if (codeLimited(msg.code, now)) { send(ws, { t: "error", code: "rate_limited", message: RATE_LIMIT_MESSAGE }); return; }
-          send(ws, { t: "error", code: result.code, message: result.message }); return;
-        }
-        cs.role = "controller"; cs.roomCode = msg.code; cs.playerId = result.playerId;
-        sockets.get(msg.code)?.add(ws);
+        const result = rooms.join(code, { name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
+        if (!result.ok) { send(ws, { t: "error", code: result.code, message: result.message }); return; }
+        cs.role = "controller"; cs.playerId = result.playerId;
+        addSocket(code, ws);
         send(ws, { t: "joined", playerId: result.playerId, token: result.token });
-        broadcastRoomState(msg.code);
-        const cached = lastGameState.get(msg.code);
-        if (rooms.mode(msg.code) === "in-game" && cached) send(ws, { t: "gameState", gameId: cached.gameId, state: cached.state });
+        broadcastRoomState(code);
+        const cached = lastGameState.get(code);
+        if (rooms.mode(code) === "in-game" && cached) send(ws, { t: "gameState", gameId: cached.gameId, state: cached.state });
         return;
       }
-
-      const code = cs.roomCode;
-      if (!code) return;
 
       if (msg.t === "setIdentity") {
         if (!cs.playerId) return;
@@ -278,10 +344,11 @@ export function createServer(port: number, games: GameRegistry, rateLimit: JoinR
   });
 
   return {
-    wss,
+    server: http,
     close: () => new Promise<void>((resolve) => {
       wss.clients.forEach((c) => c.terminate());
-      wss.close(() => resolve());
+      wss.close();
+      http.close(() => resolve());
     }),
   };
 }
