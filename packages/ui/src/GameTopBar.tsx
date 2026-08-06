@@ -13,6 +13,8 @@ export type GameTopBarProps = {
   /** Game wordmark, e.g. "Music Guesser". */
   title: string;
   roomCode: string;
+  /** Where to join, already formatted for display (see apps/screen's formatHostLabel). */
+  hostLabel: string;
   /** Fallback center content when `players` isn't supplied. */
   children?: ReactNode;
   /** Renders the avatar-with-name-under fixed-width columns from a6-game-tv.html. */
@@ -20,7 +22,7 @@ export type GameTopBarProps = {
 };
 
 /** Platform chrome for in-game TV screens (a6-game-tv.html). Fluid, sized off --u. */
-export function GameTopBar({ title, roomCode, children, players }: GameTopBarProps) {
+export function GameTopBar({ title, roomCode, hostLabel, children, players }: GameTopBarProps) {
   return (
     <div
       style={{
@@ -156,9 +158,13 @@ export function GameTopBar({ title, roomCode, children, players }: GameTopBarPro
               fontWeight: 700,
               letterSpacing: "0.1em",
               color: "var(--kraft-ink-mid)",
+              maxWidth: "calc(var(--u)*7.4)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
-            HUBBUB.TV
+            {hostLabel}
           </div>
         </div>
       </div>

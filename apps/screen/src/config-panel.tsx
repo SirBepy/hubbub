@@ -5,12 +5,14 @@ import type { SettingsField } from "@hubbub/sdk";
 // not a separately approved design. Read-only: input happens on the host's phone remote.
 export function ConfigPanel({
   code,
+  hostLabel,
   gameName,
   fields,
   values,
   cursorIndex,
 }: {
   code: string;
+  hostLabel: string;
   gameName: string;
   fields: SettingsField[];
   values: Record<string, string>;
@@ -38,7 +40,14 @@ export function ConfigPanel({
           <div style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*1.3)", lineHeight: 1, letterSpacing: "0.08em", color: "var(--kraft-ink)" }}>
             {code || "…"}
           </div>
-          <div style={{ fontSize: "calc(var(--u)*.56)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--kraft-ink-mid)" }}>HUBBUB.TV</div>
+          <div
+            style={{
+              fontSize: "calc(var(--u)*.56)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--kraft-ink-mid)",
+              maxWidth: "calc(var(--u)*7.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}
+          >
+            {hostLabel}
+          </div>
         </div>
       </div>
 

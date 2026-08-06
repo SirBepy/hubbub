@@ -16,6 +16,9 @@ import { Lobby } from "./lobby";
 import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
+import { formatHostLabel } from "./format-host-label";
+
+const HOST_LABEL = formatHostLabel(CONTROLLER_URL);
 
 interface RoomState {
   players: Player[];
@@ -204,7 +207,7 @@ export function App() {
             animation: "hb-game-in 260ms cubic-bezier(.2,.8,.2,1) 1 both",
           }}
         >
-          <GameTopBar title={summary?.name ?? ""} roomCode={code} players={topBarPlayers} />
+          <GameTopBar title={summary?.name ?? ""} roomCode={code} hostLabel={HOST_LABEL} players={topBarPlayers} />
           <GameSlot aspectRatio={summary?.aspectRatio}>
             <Screen state={game.state} players={players} />
           </GameSlot>
@@ -222,6 +225,7 @@ export function App() {
         <div className="hb-anim-enter" style={{ flex: 1, minHeight: 0, display: "flex", animation: "hb-fade-in 200ms ease-out 1 both" }}>
         <ConfigPanel
           code={code}
+          hostLabel={HOST_LABEL}
           gameName={gameName}
           fields={visibleSettingsFields(schema, room.config.values)}
           values={room.config.values}
