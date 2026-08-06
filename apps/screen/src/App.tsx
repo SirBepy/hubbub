@@ -13,6 +13,7 @@ import {
 } from "@hubbub/ui";
 import { loadGameScreen, getSettingsSchema } from "./game";
 import { Lobby } from "./lobby";
+import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
 import { SERVER_URL, CONTROLLER_URL } from "./config";
 
@@ -215,6 +216,15 @@ export function App() {
           cursorIndex={room.config.cursorIndex}
         />
         </div>
+      </TVStage>
+    );
+  }
+
+  // Zero players: hero screen instead of the lobby. First join flips this for good.
+  if ((room?.players.length ?? 0) === 0) {
+    return (
+      <TVStage>
+        <Hero code={code} qr={qr} />
       </TVStage>
     );
   }
