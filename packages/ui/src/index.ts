@@ -40,3 +40,6 @@ export type { GameLoadingScreenProps } from "./GameLoadingScreen";
 
 export { useLoadingGate, LOADER_SHOW_AFTER_MS, LOADER_MIN_VISIBLE_MS } from "./useLoadingGate";
 export type { LoadingGate } from "./useLoadingGate";
+
+export { ConnectionBadge } from "./ConnectionBadge";
+export type { ConnectionBadgeProps } from "./ConnectionBadge";

@@ -75,6 +75,10 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("configSet"), field: z.string(), value: z.string() }),
   z.object({ t: z.literal("configConfirm") }),
   z.object({ t: z.literal("configCancel") }),
+  // WebRTC signalling (Phase E): opaque offer/answer/ICE payload between a controller and the
+  // screen. The relay only forwards this by connId - it never parses `data`. A controller omits
+  // toPlayerId (there is only one screen); the screen must supply it to reach a specific peer.
+  z.object({ t: z.literal("rtcSignal"), toPlayerId: z.string().optional(), data: z.unknown() }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -105,6 +109,9 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
   }),
   // Server -> screen only: relays a controller's action for the screen's local reducer.
   z.object({ t: z.literal("gameAction"), playerId: z.string(), payload: z.unknown().optional(), now: z.number() }),
+  // Relayed rtcSignal: fromPlayerId is set only when delivered to the screen (which peer this
+  // came from); a controller only ever hears from the one screen, so it's absent there.
+  z.object({ t: z.literal("rtcSignal"), fromPlayerId: z.string().optional(), data: z.unknown() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),
 ]);
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;

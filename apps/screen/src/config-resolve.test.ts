@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { DEFAULT_STUN_URL } from "@hubbub/protocol";
 import { resolveConfig } from "./config-resolve.js";
 
 describe("resolveConfig", () => {
@@ -26,6 +27,7 @@ describe("resolveConfig", () => {
     const cfg = resolveConfig(undefined, {}, "myhost");
     expect(cfg.serverUrl).toBe("ws://myhost:7787");
     expect(cfg.controllerUrl).toBe("http://myhost:5174");
+    expect(cfg.stunUrl).toBe(DEFAULT_STUN_URL);
   });
 
   it("uses an injected value even if a partial injection omits the other", () => {

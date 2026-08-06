@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { CaretLeft } from "@phosphor-icons/react";
-import { Avatar, NEUTRAL_RING } from "@hubbub/ui";
+import { Avatar, ConnectionBadge, NEUTRAL_RING } from "@hubbub/ui";
 
 // Re-exported so this app's existing `./header` importers keep resolving it from one place.
 export { NEUTRAL_RING };
@@ -12,11 +12,15 @@ export function IdentityHeader({
   emoji,
   isHost,
   onOpenMenu,
+  connectionTier = null,
+  connectionRttMs = null,
 }: {
   name: string;
   emoji: string;
   isHost: boolean;
   onOpenMenu: () => void;
+  connectionTier?: "direct" | "relay" | null;
+  connectionRttMs?: number | null;
 }) {
   return (
     <div style={bar}>
@@ -25,6 +29,7 @@ export function IdentityHeader({
         <span style={meName}>{name}</span>
         {isHost ? <span style={hostTag}>HOST</span> : null}
       </button>
+      <ConnectionBadge tier={connectionTier} rttMs={connectionRttMs} />
     </div>
   );
 }

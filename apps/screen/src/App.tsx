@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
-import { WebSocketClientTransport, createRoomHttp, roomSocketUrl, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { createRoomHttp, roomSocketUrl, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
 import { createGameAuthority, visibleSettingsFields } from "@hubbub/sdk";
 import {
   TVStage,
@@ -15,7 +16,7 @@ import { loadGameScreen, getSettingsSchema } from "./game";
 import { Lobby } from "./lobby";
 import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
-import { SERVER_URL, CONTROLLER_URL } from "./config";
+import { SERVER_URL, CONTROLLER_URL, STUN_URL } from "./config";
 import { formatHostLabel } from "./format-host-label";
 
 const HOST_LABEL = formatHostLabel(CONTROLLER_URL);
@@ -68,14 +69,14 @@ export function App() {
   const [connectError, setConnectError] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
-  const transportRef = useRef<WebSocketClientTransport>();
+  const transportRef = useRef<WebRtcClientTransport>();
   const authorityRef = useRef<ReturnType<typeof createGameAuthority>>();
   // Set by gameLaunch so the authority's onState callback (gameId-less) knows what to push.
   const launchedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    let transport: WebSocketClientTransport | undefined;
+    let transport: WebRtcClientTransport | undefined;
     let off = () => {};
     const authority = createGameAuthority((gameState) => {
       const gameId = launchedGameIdRef.current;
@@ -89,7 +90,7 @@ export function App() {
       if (cancelled) return;
       setCode(roomCode);
       QRCode.toDataURL(`${CONTROLLER_URL}/?room=${roomCode}`).then(setQr);
-      const t = new WebSocketClientTransport(roomSocketUrl(SERVER_URL, roomCode));
+      const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, roomCode), "screen", { stunUrl: STUN_URL });
       transport = t;
       transportRef.current = t;
       t.connect().then(() => {

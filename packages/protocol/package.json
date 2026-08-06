@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./tokens": "./src/tokens.ts"
+    "./tokens": "./src/tokens.ts",
+    "./webrtc": "./src/webrtc.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": { "zod": "^3.23.0" },

@@ -156,4 +156,34 @@ describe("Room", () => {
     expect(findConn(out, "c2", "joined")).toBeDefined();
     expect(room2.snapshot().cursorIndex).toBe(1); // the nav survived the round trip
   });
+
+  it("rtcSignal forwards a controller's offer to the screen with fromPlayerId attached, opaque data untouched", async () => {
+    const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+    await room.handleMessage("s", { t: "attachScreen" }, 0);
+    const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+
+    const out = await room.handleMessage("c1", { t: "rtcSignal", data: { kind: "offer", sdp: "opaque" } }, 0);
+    const signal = findConn(out, "s", "rtcSignal");
+    expect(signal).toEqual({ t: "rtcSignal", fromPlayerId: a.playerId, data: { kind: "offer", sdp: "opaque" } });
+  });
+
+  it("rtcSignal routes the screen's answer to the named player's connId, and drops it with no target", async () => {
+    const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+    await room.handleMessage("s", { t: "attachScreen" }, 0);
+    const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+
+    const out = await room.handleMessage("s", { t: "rtcSignal", toPlayerId: a.playerId, data: { kind: "answer", sdp: "opaque" } }, 0);
+    const signal = findConn(out, "c1", "rtcSignal");
+    expect(signal).toEqual({ t: "rtcSignal", data: { kind: "answer", sdp: "opaque" } });
+
+    const dropped = await room.handleMessage("s", { t: "rtcSignal", data: { kind: "answer", sdp: "x" } }, 0);
+    expect(dropped).toEqual([]);
+  });
+
+  it("rtcSignal from a controller with no room screen attached is dropped", async () => {
+    const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+    await room.handleMessage("c1", join("Ann"), 0);
+    const out = await room.handleMessage("c1", { t: "rtcSignal", data: { kind: "offer", sdp: "x" } }, 0);
+    expect(out).toEqual([]);
+  });
 });

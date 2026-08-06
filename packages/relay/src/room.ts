@@ -249,6 +249,17 @@ export class Room {
       return [{ to: "conn", connId: this.data.screenConnId, msg: { t: "gameAction", playerId: conn.playerId, payload: msg.payload, now } }];
     }
 
+    if (msg.t === "rtcSignal") {
+      // Pure forwarding by connId - the payload (SDP/ICE) is never parsed or stored here.
+      if (conn?.role === "screen") {
+        const targetConnId = msg.toPlayerId ? this.connIdForPlayer(msg.toPlayerId) : null;
+        if (!targetConnId) return [];
+        return [{ to: "conn", connId: targetConnId, msg: { t: "rtcSignal", data: msg.data } }];
+      }
+      if (!conn?.playerId || !this.data.screenConnId) return [];
+      return [{ to: "conn", connId: this.data.screenConnId, msg: { t: "rtcSignal", fromPlayerId: conn.playerId, data: msg.data } }];
+    }
+
     if (msg.t === "gameStatePush") {
       // The obvious forgery hole: only the room's own screen connection may push state, and
       // only for the game currently in play - not a controller, and not a stale/superseded launch.
@@ -334,6 +345,12 @@ export class Room {
   }
   private oldestConnected(): string | null {
     for (const p of Object.values(this.data.players)) if (p.connected) return p.id;
+    return null;
+  }
+  private connIdForPlayer(playerId: string): string | null {
+    for (const [connId, info] of Object.entries(this.data.connections)) {
+      if (info.playerId === playerId) return connId;
+    }
     return null;
   }
 

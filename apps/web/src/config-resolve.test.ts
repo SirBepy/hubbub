@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { DEFAULT_STUN_URL } from "@hubbub/protocol";
 import { resolveWebConfig } from "./config-resolve.js";
 
 describe("resolveWebConfig", () => {
@@ -10,6 +11,16 @@ describe("resolveWebConfig", () => {
     );
     expect(cfg.controllerUrl).toBe("http://192.168.1.42:5175");
     expect(cfg.serverUrl).toBe("ws://192.168.1.42:7787");
+    expect(cfg.stunUrl).toBe(DEFAULT_STUN_URL);
+  });
+
+  it("lets VITE_STUN_URL override the default STUN server", () => {
+    const cfg = resolveWebConfig(
+      { VITE_STUN_URL: "stun:stun.example.com:3478" },
+      { hostname: "example.com", origin: "https://example.com", protocol: "https:" },
+      { dev: false },
+    );
+    expect(cfg.stunUrl).toBe("stun:stun.example.com:3478");
   });
 
   it("prod mode with no env var resolves to the page's own origin (http -> ws)", () => {

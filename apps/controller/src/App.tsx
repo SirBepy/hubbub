@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { WebSocketClientTransport, roomSocketUrl, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
+import { roomSocketUrl, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
+import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import { Avatar, GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
@@ -15,7 +16,7 @@ import { HowToPlayScreen } from "./how-to-play";
 import { PassRemoteScreen } from "./pass-remote";
 import { IdentityHeader, NEUTRAL_RING } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
-import { SERVER_URL } from "./config";
+import { SERVER_URL, STUN_URL } from "./config";
 
 const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
 
@@ -45,7 +46,8 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [configError, setConfigError] = useState("");
   const [phoneView, setPhoneView] = useState<PhoneView>(null);
-  const transportRef = useRef<WebSocketClientTransport>();
+  const [tier, setTier] = useState<TierState>({ tier: null, rttMs: null });
+  const transportRef = useRef<WebRtcClientTransport>();
 
   const isHost = room?.hostId === playerId;
 
@@ -56,7 +58,10 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
   async function join() {
     if (!identity) return;
     setStatus("joining");
-    const t = new WebSocketClientTransport(roomSocketUrl(SERVER_URL, code));
+    const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, code), "controller", {
+      stunUrl: STUN_URL,
+      onTierChange: setTier,
+    });
     transportRef.current = t;
     try {
       await t.connect();
@@ -110,6 +115,7 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
     setGame(null);
     setPlayerId("");
     setPhoneView(null);
+    setTier({ tier: null, rttMs: null });
   }
 
   // Identity-first: no saved identity means show Settings before anything else.
@@ -225,7 +231,14 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
 
       return (
         <main style={gamePage}>
-          <IdentityHeader name={me.name} emoji={me.emoji} isHost={isHost} onOpenMenu={() => setPhoneView("menu")} />
+          <IdentityHeader
+            name={me.name}
+            emoji={me.emoji}
+            isHost={isHost}
+            onOpenMenu={() => setPhoneView("menu")}
+            connectionTier={tier.tier}
+            connectionRttMs={tier.rttMs}
+          />
           <div style={gameBody}>
             {Controller && game && transportRef.current ? (
               <Controller
