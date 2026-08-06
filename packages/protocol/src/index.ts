@@ -1,5 +1,5 @@
-// Browser-safe surface only. Server-only token helpers (node:crypto) live at
-// "@hubbub/protocol/tokens" so browser bundles never pull in Node built-ins.
+// Browser-safe surface only. Token/room-code generation lives at "@hubbub/protocol/tokens" -
+// server/relay-issued only, kept out of this barrel so no client code can mint its own.
 export * from "./constants.js";
 export * from "./messages.js";
 export * from "./transport.js";

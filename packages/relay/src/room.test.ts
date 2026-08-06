@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { GameSummary } from "@hubbub/protocol";
-import { Room } from "./room.js";
+import { Room, timingSafeEqual } from "./room.js";
 import type { GameCatalog, Outbound, TokenSource } from "./types.js";
 
 const SUMMARIES: GameSummary[] = [
@@ -185,5 +185,62 @@ describe("Room", () => {
     await room.handleMessage("c1", join("Ann"), 0);
     const out = await room.handleMessage("c1", { t: "rtcSignal", data: { kind: "offer", sdp: "x" } }, 0);
     expect(out).toEqual([]);
+  });
+
+  describe("reconnect token hardening", () => {
+    it("timingSafeEqual matches only identical strings, rejecting near-misses and length mismatches", () => {
+      expect(timingSafeEqual("abc123", "abc123")).toBe(true);
+      expect(timingSafeEqual("abc123", "abc124")).toBe(false); // last char differs
+      expect(timingSafeEqual("abc123", "xbc123")).toBe(false); // first char differs
+      expect(timingSafeEqual("abc123", "abc12")).toBe(false); // shorter
+      expect(timingSafeEqual("abc123", "abc1234")).toBe(false); // longer
+    });
+
+    it("a wrong/unknown token never reclaims an existing player's slot - it joins as a brand-new player", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+      room.handleDisconnect("c1");
+
+      const out = await room.handleMessage("c2", join("Mallory", "not-a-real-token"), 0);
+      const joined = findConn(out, "c2", "joined");
+
+      expect(joined.playerId).not.toBe(a.playerId);
+      expect(room.snapshot().players[a.playerId].connected).toBe(false); // Ann's slot untouched
+      expect(Object.keys(room.snapshot().players)).toHaveLength(2);
+    });
+
+    it("a near-miss token (shares a prefix with a real one) does not reclaim that player's slot", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+      room.handleDisconnect("c1");
+
+      const nearMiss = `${a.token}x`;
+      const out = await room.handleMessage("c2", join("Ann", nearMiss), 0);
+      const joined = findConn(out, "c2", "joined");
+      expect(joined.playerId).not.toBe(a.playerId);
+    });
+
+    it("a token issued by a different room is refused - it never matches a player there", async () => {
+      const tokens = fakeTokens(); // one shared generator, like production's single token source
+      const roomA = Room.create("AAAA", fakeCatalog(), tokens);
+      const roomB = Room.create("BBBB", fakeCatalog(), tokens);
+
+      const a = findConn(await roomA.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+      const bBefore = findConn(await roomB.handleMessage("c9", join("Bo"), 0), "c9", "joined");
+
+      const out = await roomB.handleMessage("c2", join("Eve", a.token), 0);
+      const joined = findConn(out, "c2", "joined");
+
+      expect(joined.playerId).not.toBe(bBefore.playerId);
+      expect(joined.token).not.toBe(a.token);
+      expect(Object.keys(roomB.snapshot().players)).toHaveLength(2);
+    });
+
+    it("roomState never serializes a player's token to the room", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      const out = await room.handleMessage("c1", join("Ann"), 0);
+      const state = findAll(out, "roomState");
+      for (const p of state.players) expect(p).not.toHaveProperty("token");
+    });
   });
 });

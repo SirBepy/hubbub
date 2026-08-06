@@ -1,6 +1,5 @@
-// Room code length: 32^6 ~= 1.07 billion combinations on CODE_ALPHABET (tokens.ts), vs
-// 32^4 ~= 1.05 million at the old length. Its own file (not tokens.ts) because tokens.ts is
-// server-only (node:crypto) while messages.ts's wire validators need this browser-side too.
+// 4 chars over CODE_ALPHABET (tokens.ts) is ~1.05M codes; rate limiting, not length, defends
+// the join path. Lives here, not in tokens.ts, so messages.ts's validators can import it alone.
 export const ROOM_CODE_LENGTH = 4;
 
 // Cloudflare's public STUN needs no auth and matches where we already host; override per deploy.

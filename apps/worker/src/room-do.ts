@@ -1,12 +1,13 @@
 import { DurableObject } from "cloudflare:workers";
 import { parseClientMessage } from "@hubbub/protocol";
-import { Room, type Outbound, type RoomSnapshot } from "@hubbub/relay";
+import { newToken } from "@hubbub/protocol/tokens";
+import { Room, type Outbound, type RoomSnapshot, type TokenSource } from "@hubbub/relay";
 import { catalog } from "./catalog.js";
-import { webCryptoTokens } from "./tokens.js";
 import type { WorkerEnv } from "./env.js";
 
 interface RateLimitConfig { max: number; windowMs: number; }
 const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
+const tokens: TokenSource = { next: newToken };
 
 interface ConnAttachment { connId: string; }
 
@@ -24,7 +25,7 @@ export class RoomDO extends DurableObject<WorkerEnv> {
    * to retry with a fresh code), true means this DO now holds a freshly created room. */
   async create(code: string): Promise<boolean> {
     if (await this.ctx.storage.get<RoomSnapshot>("room")) return false;
-    const room = Room.create(code, catalog, webCryptoTokens);
+    const room = Room.create(code, catalog, tokens);
     await this.ctx.storage.put("room", room.snapshot());
     return true;
   }
@@ -33,7 +34,7 @@ export class RoomDO extends DurableObject<WorkerEnv> {
     if (this.room) return this.room;
     const snap = await this.ctx.storage.get<RoomSnapshot>("room");
     if (!snap) return null;
-    this.room = Room.fromSnapshot(snap, catalog, webCryptoTokens);
+    this.room = Room.fromSnapshot(snap, catalog, tokens);
     return this.room;
   }
 

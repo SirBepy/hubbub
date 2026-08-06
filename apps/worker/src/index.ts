@@ -1,4 +1,4 @@
-import { newRoomCode } from "./tokens.js";
+import { newRoomCode } from "@hubbub/protocol/tokens";
 import type { WorkerEnv } from "./env.js";
 
 export { RoomDO } from "./room-do.js";

@@ -50,6 +50,15 @@ export interface RoomSnapshot {
   screenConnId: string | null;
 }
 
+// Guards against timing side channels on token comparison. Length is checked first (not
+// secret - all real tokens share one fixed length), then every char is compared unconditionally.
+export function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function defaultConfigValues(schema: RelaySettingsField[]): Record<string, string> {
   const values: Record<string, string> = {};
   for (const f of schema) values[f.key] = f.default;
@@ -316,7 +325,7 @@ export class Room {
   private join(identity: Identity, token?: string): { ok: true; playerId: string; token: string } | { ok: false; code: "no_room"; message: string } {
     if (token) {
       for (const p of Object.values(this.data.players)) {
-        if (p.token === token) {
+        if (timingSafeEqual(p.token, token)) {
           p.name = identity.name; p.colorId = identity.colorId; p.emoji = identity.emoji;
           p.connected = true;
           this.ensureHost();
