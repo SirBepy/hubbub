@@ -1,10 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // Name determines the workers.dev subdomain (https://hubbub.<account-subdomain>.workers.dev).
-  // This is the one constant a human changes when a real domain replaces it (see README).
   "name": "hubbub",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-04",
+  // Deploy fails until hubbub.tv is a zone on this Cloudflare account. Delete this block to fall
+  // back to the workers.dev subdomain; the client reads its endpoint from the served origin.
+  "routes": [
+    { "pattern": "hubbub.tv", "custom_domain": true }
+  ],
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS"

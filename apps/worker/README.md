@@ -49,15 +49,24 @@ The root `pnpm test` runs this suite too, via the `test:worker` script.
 
 ## Remaining steps to actually deploy (a human, by hand)
 
-1. Create a Cloudflare account (free tier is enough) if one doesn't exist yet.
-2. `wrangler login` from `apps/worker` to authenticate the CLI.
-3. Pick the account's `workers.dev` subdomain in the Cloudflare dashboard the first time you
-   deploy from that account - after that it's fixed.
-4. `wrangler deploy` - publishes at `https://hubbub.<your-subdomain>.workers.dev`
-   (`wrangler.jsonc`'s `"name"` is the only thing to change for a different Worker name; a
-   later custom domain needs a DNS record plus a `routes` entry in `wrangler.jsonc`, nothing
-   in the code).
-5. Point the deployed `apps/web`'s `VITE_SERVER_URL` build-time env var at
-   `wss://hubbub.<your-subdomain>.workers.dev` and rebuild/redeploy the web app - this is the
-   one-line client-side change the design calls for.
-6. No secrets are used by this Worker today; none to set.
+1. Create a Cloudflare account, then subscribe to **Workers Paid** (about 5 USD/month). The free
+   tier does NOT include Durable Objects, and the relay is entirely Durable Objects, so a free
+   account cannot run this.
+2. Register `hubbub.tv` (chosen 2026-08-07) and add it as a zone on that same account.
+   Registering it through Cloudflare Registrar puts it on Cloudflare DNS with no transfer step.
+   `wrangler.jsonc`'s `routes` entry already points at it; **deploying before the zone exists
+   will fail.** Delete that block to fall back to the `workers.dev` subdomain.
+3. `wrangler login` from `apps/worker` to authenticate the CLI. This opens a browser consent page.
+4. `wrangler deploy`.
+
+There is deliberately **no client-side step**. `apps/web` resolves its relay endpoint from the
+origin it was served from in production builds (`apps/web/src/config-resolve.ts`), and the Worker
+serves the app and the relay from that one origin, so a plain `pnpm build` is correct for any
+hostname. Setting `VITE_SERVER_URL` is only for pointing a build at some OTHER backend; it is not
+part of a normal deploy. Defaulting it to a hardcoded port was a real bug, fixed in `cb71cd3`.
+
+No secrets are used by this Worker today, so there are none to set. `VITE_STUN_URL` optionally
+overrides the default STUN server for the WebRTC tier.
+
+Note for local runs on Joe's machine: port 8787 is occupied by an unrelated process, so
+`wrangler dev --port 8788` is the working invocation there.
