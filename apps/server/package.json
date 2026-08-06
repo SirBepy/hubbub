@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hubbub/protocol": "workspace:*",
+    "@hubbub/relay": "workspace:*",
     "@hubbub/sdk": "workspace:*",
     "@hubbub/games": "workspace:*",
     "ws": "^8.18.0"
