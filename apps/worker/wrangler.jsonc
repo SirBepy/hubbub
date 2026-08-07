@@ -4,11 +4,9 @@
   "name": "hubbub",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-04",
-  // Deploy fails until hubbub.tv is a zone on this Cloudflare account. Delete this block to fall
-  // back to the workers.dev subdomain; the client reads its endpoint from the served origin.
-  "routes": [
-    { "pattern": "hubbub.tv", "custom_domain": true }
-  ],
+  // No custom domain yet: served from the workers.dev subdomain. Adding one later means a
+  // "routes" entry with custom_domain plus the zone on this account, and no code change.
+  "workers_dev": true,
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS"
