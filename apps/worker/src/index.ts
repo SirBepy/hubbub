@@ -51,8 +51,8 @@ function deezerPathFromUrl(pathname: string): string | null {
 }
 
 async function handleDeezerProxy(request: Request, env: WorkerEnv, path: string): Promise<Response> {
-  const limiter = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName("global"));
-  if (await limiter.checkDeezer(clientIp(request))) {
+  const limiter = env.RATE_LIMITER.getByName(`ip:${clientIp(request)}`);
+  if (await limiter.checkDeezer()) {
     return new Response(JSON.stringify({ message: RATE_LIMIT_MESSAGE }), {
       status: 429,
       headers: { "content-type": "application/json", ...CORS_HEADERS },
@@ -82,8 +82,8 @@ async function handleDeezerProxy(request: Request, env: WorkerEnv, path: string)
 }
 
 async function handleCreateRoom(request: Request, env: WorkerEnv): Promise<Response> {
-  const limiter = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName("global"));
-  if (await limiter.checkCreate(clientIp(request))) {
+  const limiter = env.RATE_LIMITER.getByName(`ip:${clientIp(request)}`);
+  if (await limiter.checkCreate()) {
     return new Response(JSON.stringify({ message: RATE_LIMIT_MESSAGE }), {
       status: 429,
       headers: { "content-type": "application/json", ...CORS_HEADERS },
@@ -92,10 +92,10 @@ async function handleCreateRoom(request: Request, env: WorkerEnv): Promise<Respo
   // Collision retry, same shape as apps/server's RoomManager.createRoom(): RoomDO.create() is
   // the DO's own atomic check-and-reserve, so no separate exists()-then-create() race is possible.
   let code = newRoomCode();
-  let stub = env.ROOM.get(env.ROOM.idFromName(code));
+  let stub = env.ROOM.getByName(code);
   while (!(await stub.create(code))) {
     code = newRoomCode();
-    stub = env.ROOM.get(env.ROOM.idFromName(code));
+    stub = env.ROOM.getByName(code);
   }
   return new Response(JSON.stringify({ code }), {
     status: 201,
@@ -104,13 +104,13 @@ async function handleCreateRoom(request: Request, env: WorkerEnv): Promise<Respo
 }
 
 async function handleRoomUpgrade(request: Request, env: WorkerEnv, code: string): Promise<Response> {
-  const limiter = env.RATE_LIMITER.get(env.RATE_LIMITER.idFromName("global"));
-  if (await limiter.checkJoin(clientIp(request))) {
+  const limiter = env.RATE_LIMITER.getByName(`ip:${clientIp(request)}`);
+  if (await limiter.checkJoin()) {
     return new Response(null, { status: 429 });
   }
   // Forwarding the live Request (Upgrade header intact) to the room's own DO - its fetch()
   // owns the 404/429-on-unknown-code check and the actual acceptWebSocket call.
-  const stub = env.ROOM.get(env.ROOM.idFromName(code));
+  const stub = env.ROOM.getByName(code);
   return stub.fetch(request);
 }
 

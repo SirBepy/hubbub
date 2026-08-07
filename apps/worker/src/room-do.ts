@@ -103,7 +103,8 @@ export class RoomDO extends DurableObject<WorkerEnv> {
   }
 
   /** Fires when a coalesced gameStatePush write comes due. The alarm survives hibernation, but an
-   * eviction before it runs loses the unflushed push: that blob is best-effort by design. */
+   * eviction before it runs loses the unflushed push: that blob is best-effort by design. A DO
+   * has only one alarm slot; a future idle-cleanup alarm must share this same slot, not add one. */
   async alarm(): Promise<void> {
     const room = await this.getRoom();
     if (room) await this.flush(room);
