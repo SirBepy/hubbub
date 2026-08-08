@@ -16,7 +16,8 @@
     "@hubbub/game-tictactoe": "workspace:*",
     "@hubbub/game-ultimate-tictactoe": "workspace:*",
     "@hubbub/game-tap-race": "link:../../../hubbub-game-tap-race",
-    "@hubbub/game-music-guesser": "link:../../../hubbub-game-music-guesser"
+    "@hubbub/game-music-guesser": "link:../../../hubbub-game-music-guesser",
+    "@hubbub/game-split-opinions": "link:../../../hubbub-game-split-opinions"
   },
   "peerDependencies": { "react": "^18.3.0" },
   "peerDependenciesMeta": { "react": { "optional": true } },

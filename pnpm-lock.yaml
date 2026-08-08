@@ -260,6 +260,9 @@ importers:
       '@hubbub/game-music-guesser':
         specifier: link:../../../hubbub-game-music-guesser
         version: link:../../../hubbub-game-music-guesser
+      '@hubbub/game-split-opinions':
+        specifier: link:../../../hubbub-game-split-opinions
+        version: link:../../../hubbub-game-split-opinions
       '@hubbub/game-tap-race':
         specifier: link:../../../hubbub-game-tap-race
         version: link:../../../hubbub-game-tap-race

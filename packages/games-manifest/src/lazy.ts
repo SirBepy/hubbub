@@ -45,6 +45,13 @@ export const GAME_CHUNKS: Record<string, GameChunk> = {
       import("@hubbub/game-music-guesser/controller").then((m) => m.MusicGuesserController as ControllerComponent),
     logic: () => import("@hubbub/game-music-guesser").then((m) => m.musicGuesserLogic),
   },
+  "split-opinions": {
+    screen: () =>
+      import("@hubbub/game-split-opinions/screen").then((m) => m.SplitOpinionsScreen as ScreenComponent),
+    controller: () =>
+      import("@hubbub/game-split-opinions/controller").then((m) => m.SplitOpinionsController as ControllerComponent),
+    logic: () => import("@hubbub/game-split-opinions").then((m) => m.splitOpinionsLogic),
+  },
 };
 
 export type LoadedGameScreen = { Screen: ScreenComponent; logic: GameLogic };
