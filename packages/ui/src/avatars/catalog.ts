@@ -1,6 +1,8 @@
-import { GAME_ICONS } from "./game-icons";
-import { FLUENT_EMOJI } from "./fluent-emoji";
-import { TWEMOJI } from "./twemoji";
+// Metadata only (id/label) - the heavy per-icon art lives in game-icons.ts / fluent-emoji.ts /
+// twemoji.ts and is loaded on demand by resolve.ts, so it never rides the eager bundle.
+import { GAME_ICONS_META } from "./game-icons-meta";
+import { FLUENT_EMOJI_META } from "./fluent-emoji-meta";
+import { TWEMOJI_META } from "./twemoji-meta";
 
 export type AvatarSetId = "gi" | "fe" | "tw";
 
@@ -24,7 +26,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     licenseName: "CC BY 3.0",
     attribution: "Icons made by delapouite and lorc (game-icons.net), licensed under CC BY 3.0.",
     licenseFile: "packages/ui/licenses/LICENSE-game-icons.txt",
-    characters: GAME_ICONS.map((g) => ({ id: g.id, label: g.label, setId: "gi" as const })),
+    characters: GAME_ICONS_META.map((g) => ({ id: g.id, label: g.label, setId: "gi" as const })),
   },
   {
     id: "fe",
@@ -32,7 +34,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     licenseName: "MIT",
     attribution: "Fluent Emoji by Microsoft, MIT License.",
     licenseFile: "packages/ui/licenses/LICENSE-fluent-emoji.txt",
-    characters: FLUENT_EMOJI.map((f) => ({ id: f.id, label: f.label, setId: "fe" as const })),
+    characters: FLUENT_EMOJI_META.map((f) => ({ id: f.id, label: f.label, setId: "fe" as const })),
   },
   {
     id: "tw",
@@ -40,7 +42,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     licenseName: "CC BY 4.0",
     attribution: "Graphics titled Twemoji, copyright Twitter Inc and other contributors, licensed under CC BY 4.0.",
     licenseFile: "packages/ui/licenses/LICENSE-twemoji.txt",
-    characters: TWEMOJI.map((t) => ({ id: t.id, label: t.label, setId: "tw" as const })),
+    characters: TWEMOJI_META.map((t) => ({ id: t.id, label: t.label, setId: "tw" as const })),
   },
 ];
 

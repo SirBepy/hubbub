@@ -23,10 +23,10 @@ describe("avatar catalog", () => {
     expect(isAvatarCharacterId("giraffe")).toBe(false);
   });
 
-  it("resolves every shipped id to bundled artwork and falls back to null otherwise", () => {
-    for (const id of ALL_AVATAR_IDS) expect(resolveAvatarCharacter(id)).not.toBeNull();
-    expect(resolveAvatarCharacter("🦊")).toBeNull();
-    expect(resolveAvatarCharacter("gi:nonexistent")).toBeNull();
+  it("resolves every shipped id to bundled artwork and falls back to null otherwise", async () => {
+    for (const id of ALL_AVATAR_IDS) expect(await resolveAvatarCharacter(id)).not.toBeNull();
+    expect(await resolveAvatarCharacter("🦊")).toBeNull();
+    expect(await resolveAvatarCharacter("gi:nonexistent")).toBeNull();
   });
 
   it("randomAvatarId avoids taken ids when room has spare characters", () => {

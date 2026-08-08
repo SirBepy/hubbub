@@ -1,4 +1,6 @@
-import { resolveAvatarCharacter, type ResolvedAvatarCharacter } from "./avatars/resolve";
+import { useEffect, useState } from "react";
+import { resolveAvatarCharacter, resolveAvatarCharacterSync, type ResolvedAvatarCharacter } from "./avatars/resolve";
+import { isAvatarCharacterId } from "./avatars/catalog";
 
 // Players carry no colour; identity is the character alone. Matches apps/controller's
 // header.tsx NEUTRAL_RING so every Avatar ring in the product is the same fixed tone.
@@ -23,7 +25,22 @@ export type AvatarProps = {
 };
 
 export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host }: AvatarProps) {
-  const character = resolveAvatarCharacter(emoji);
+  // Art loads lazily per set (see resolve.ts); the sync cache is warm almost immediately since
+  // it starts loading at app boot, so this only shows a blank ring on a genuinely cold start.
+  const [character, setCharacter] = useState<ResolvedAvatarCharacter | null>(() => resolveAvatarCharacterSync(emoji));
+  useEffect(() => {
+    const cached = resolveAvatarCharacterSync(emoji);
+    if (cached) {
+      setCharacter(cached);
+      return;
+    }
+    let alive = true;
+    resolveAvatarCharacter(emoji).then((c) => alive && setCharacter(c));
+    return () => {
+      alive = false;
+    };
+  }, [emoji]);
+  const bundled = isAvatarCharacterId(emoji);
   return (
     <div
       style={{
@@ -49,7 +66,7 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
           overflow: "hidden",
         }}
       >
-        {character ? <AvatarGlyph character={character} /> : emoji}
+        {character ? <AvatarGlyph character={character} /> : bundled ? null : emoji}
       </div>
       {host ? (
         <span
