@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { roomSocketUrl, ROOM_CODE_LENGTH, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
+import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import { Avatar, GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
+import { GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
 import { loadGameController, getSettingsSchema } from "./game";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
@@ -14,7 +14,8 @@ import { ShareScreen } from "./share";
 import { AboutScreen } from "./about";
 import { HowToPlayScreen } from "./how-to-play";
 import { PassRemoteScreen } from "./pass-remote";
-import { IdentityHeader, NEUTRAL_RING } from "./header";
+import { JoinScreen } from "./join";
+import { IdentityHeader } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
 import { SERVER_URL, STUN_URL } from "./config";
 
@@ -318,90 +319,24 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
   }
 
   return (
-    <main style={joinPage}>
-      <div style={wordmark}>HUBBUB</div>
-      <div style={joinIdentityRow}>
-        <Avatar size={52} colorHex={NEUTRAL_RING} emoji={identity.emoji} surface={1} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={joinIdentityName}>{identity.name}</div>
-        </div>
-        <button type="button" onClick={() => setSettingsOpen(true)} style={editButton}>
-          Edit
-        </button>
-      </div>
-      {settingsOpen ? (
-        <Settings
-          initial={identity}
-          onSave={(id) => {
-            saveIdentity(id);
-            setIdentityState(id);
-            setSettingsOpen(false);
-          }}
-          onCancel={() => setSettingsOpen(false)}
-        />
-      ) : (
-        <>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="CODE"
-            maxLength={ROOM_CODE_LENGTH}
-            style={codeInput}
-          />
-          <GlowButton
-            height={56}
-            label={status === "joining" ? "Joining…" : "Join room"}
-            disabled={code.length !== ROOM_CODE_LENGTH || status === "joining"}
-            onClick={join}
-          />
-          {status === "error" && <p style={{ color: "var(--player-magenta)", font: "500 13px var(--font-ui)" }}>{error}</p>}
-        </>
-      )}
-    </main>
+    <JoinScreen
+      identity={identity}
+      code={code}
+      onCodeChange={setCode}
+      status={status}
+      error={error}
+      onJoin={join}
+      settingsOpen={settingsOpen}
+      onOpenSettings={() => setSettingsOpen(true)}
+      onSaveIdentity={(id) => {
+        saveIdentity(id);
+        setIdentityState(id);
+        setSettingsOpen(false);
+      }}
+      onCancelSettings={() => setSettingsOpen(false)}
+    />
   );
 }
-
-const joinPage: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 16,
-  height: "100dvh",
-  padding: 16,
-  background: "var(--surface-0)",
-  color: "var(--text-primary)",
-};
-const wordmark: CSSProperties = { font: "700 22px var(--font-display)", letterSpacing: "0.03em" };
-const joinIdentityRow: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  padding: 12,
-  background: "var(--surface-1)",
-  border: "1px solid var(--divider)",
-  borderRadius: "var(--radius-md)",
-};
-const joinIdentityName: CSSProperties = { font: "600 18px var(--font-ui)" };
-const editButton: CSSProperties = {
-  flex: "none",
-  font: "600 13px var(--font-ui)",
-  color: "var(--accent)",
-  background: "transparent",
-  border: "1px solid rgba(145,132,217,.55)",
-  borderRadius: "var(--radius-md)",
-  padding: "8px 12px",
-  cursor: "pointer",
-};
-const codeInput: CSSProperties = {
-  height: 56,
-  padding: "0 12px",
-  textAlign: "center",
-  background: "var(--surface-1)",
-  border: "1px solid var(--divider)",
-  borderRadius: "var(--radius-md)",
-  color: "var(--text-primary)",
-  font: "700 32px var(--font-display)",
-  letterSpacing: "0.12em",
-};
 
 const loadingPage: CSSProperties = {
   display: "flex",
