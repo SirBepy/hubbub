@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Avatar, NEUTRAL_RING } from "./Avatar";
+import { hostLabelFontScale } from "./host-label-scale";
 
 export type GameTopBarPlayer = {
   name: string;
@@ -154,14 +155,13 @@ export function GameTopBar({ title, roomCode, hostLabel, children, players }: Ga
           </div>
           <div
             style={{
-              fontSize: "calc(var(--u)*.56)",
+              fontSize: `calc(var(--u)*.56*${hostLabelFontScale(hostLabel)})`,
               fontWeight: 700,
               letterSpacing: "0.1em",
               color: "var(--kraft-ink-mid)",
               maxWidth: "calc(var(--u)*7.4)",
               whiteSpace: "nowrap",
               overflow: "hidden",
-              textOverflow: "ellipsis",
             }}
           >
             {hostLabel}

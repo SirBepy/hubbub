@@ -43,3 +43,5 @@ export type { LoadingGate } from "./useLoadingGate";
 
 export { ConnectionBadge } from "./ConnectionBadge";
 export type { ConnectionBadgeProps } from "./ConnectionBadge";
+
+export { hostLabelFontScale } from "./host-label-scale";

@@ -1,4 +1,5 @@
 import type { SettingsField } from "@hubbub/sdk";
+import { hostLabelFontScale } from "@hubbub/ui";
 
 // Platform-owned pre-game config panel (mode "configuring"). No dedicated mockup exists for
 // this screen - derived from the lobby's kraft-chit/hero treatment and the a6 top-bar chit,
@@ -42,8 +43,8 @@ export function ConfigPanel({
           </div>
           <div
             style={{
-              fontSize: "calc(var(--u)*.56)", fontWeight: 700, letterSpacing: "0.1em", color: "var(--kraft-ink-mid)",
-              maxWidth: "calc(var(--u)*7.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              fontSize: `calc(var(--u)*.56*${hostLabelFontScale(hostLabel)})`, fontWeight: 700, letterSpacing: "0.1em", color: "var(--kraft-ink-mid)",
+              maxWidth: "calc(var(--u)*7.4)", whiteSpace: "nowrap", overflow: "hidden",
             }}
           >
             {hostLabel}
