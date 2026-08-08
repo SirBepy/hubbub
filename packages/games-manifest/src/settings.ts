@@ -4,9 +4,11 @@
 // - no sync test needed here since this map is intentionally partial.
 import type { SettingsSchema } from "@hubbub/sdk";
 import { MUSIC_GUESSER_SETTINGS_SCHEMA } from "@hubbub/game-music-guesser/settings";
+import { SPLIT_OPINIONS_SETTINGS_SCHEMA } from "@hubbub/game-split-opinions/settings";
 
 export const GAME_SETTINGS_SCHEMAS: Partial<Record<string, SettingsSchema>> = {
   "music-guesser": MUSIC_GUESSER_SETTINGS_SCHEMA,
+  "split-opinions": SPLIT_OPINIONS_SETTINGS_SCHEMA,
 };
 
 export function getSettingsSchema(gameId: string | null): SettingsSchema | null {
