@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { ROOM_CODE_LENGTH, createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
+import { noopLogger } from "@hubbub/relay";
 import { createServer } from "./server.js";
 
 let handle: ReturnType<typeof createServer> | undefined;
@@ -22,7 +23,7 @@ const nextOf = (ws: WebSocket, t: string) =>
 
 describe("createServer", () => {
   it("creates a room then a controller joins and the screen sees the player + lobby context", async () => {
-    handle = createServer(0, {});
+    handle = createServer(0, {}, {}, noopLogger);
     const port = (handle.server.address() as { port: number }).port;
     const base = `ws://localhost:${port}`;
 
@@ -50,7 +51,7 @@ describe("createServer", () => {
   // Node's fetch doesn't enforce CORS, so this can only catch a regression by asserting
   // the header itself is present, not by reproducing the browser's block.
   it("sends Access-Control-Allow-Origin on POST /api/rooms and its OPTIONS preflight", async () => {
-    handle = createServer(0, {});
+    handle = createServer(0, {}, {}, noopLogger);
     const port = (handle.server.address() as { port: number }).port;
     const base = `http://localhost:${port}`;
 

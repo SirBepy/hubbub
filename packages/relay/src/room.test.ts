@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { GameSummary } from "@hubbub/protocol";
+import { createLogger } from "./log.js";
 import { Room, timingSafeEqual } from "./room.js";
 import type { GameCatalog, Outbound, TokenSource } from "./types.js";
+
+function capturingLogger(level: "info" | "debug" = "info") {
+  const lines: string[] = [];
+  return { logger: createLogger(level, (line) => lines.push(line)), lines };
+}
 
 const SUMMARIES: GameSummary[] = [
   { id: "counter", name: "Counter", minPlayers: 1 },
@@ -241,6 +247,61 @@ describe("Room", () => {
       const out = await room.handleMessage("c1", join("Ann"), 0);
       const state = findAll(out, "roomState");
       for (const p of state.players) expect(p).not.toHaveProperty("token");
+    });
+  });
+
+  describe("logging", () => {
+    it("produces a room-prefixed, followable log from create through join, reconnect and close", async () => {
+      const { logger, lines } = capturingLogger();
+      const room = Room.create("TDP4", fakeCatalog(), fakeTokens(), logger);
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      const out1 = await room.handleMessage("c1", join("Ann"), 0);
+      const a = findConn(out1, "c1", "joined");
+      room.handleDisconnect("c1");
+      await room.handleMessage("c2", join("Ann", a.token), 0);
+      room.handleDisconnect("s");
+
+      expect(lines).toEqual([
+        "[TDP4] room created",
+        "[TDP4] joined playerId=tok0",
+        "[TDP4] left playerId=tok0",
+        "[TDP4] reconnected playerId=tok0",
+        "[TDP4] screen closed",
+      ]);
+      expect(lines.every((l) => l.startsWith("[TDP4] "))).toBe(true);
+    });
+
+    it("names the real setup_failed reason", async () => {
+      const { logger, lines } = capturingLogger();
+      const failing = fakeCatalog({ setup: async () => { throw new Error("bad playlist url"); } });
+      const room = Room.create("TDP4", failing, fakeTokens(), logger);
+      await room.handleMessage("c1", join("Ann"), 0);
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+
+      expect(lines).toContain("[TDP4] setup_failed gameId=counter reason=bad playlist url");
+    });
+
+    it("createLogger never invokes the debug thunk while the level is 'info' - the disabled path is free", () => {
+      const logger = createLogger("info", () => {});
+      expect(() => logger.debug(() => { throw new Error("must not be built"); })).not.toThrow();
+    });
+
+    it("emits the debug-tier state-push line only when the level is on, silent by default", async () => {
+      const off = capturingLogger("info");
+      const roomOff = Room.create("TDP4", fakeCatalog(), fakeTokens(), off.logger);
+      await roomOff.handleMessage("s", { t: "attachScreen" }, 0);
+      await roomOff.handleMessage("c1", join("Ann"), 0);
+      await roomOff.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      await roomOff.handleMessage("s", { t: "gameStatePush", gameId: "counter", state: { x: 1 } }, 0);
+      expect(off.lines.some((l) => l.includes("state pushed"))).toBe(false);
+
+      const on = capturingLogger("debug");
+      const roomOn = Room.create("TDP4", fakeCatalog(), fakeTokens(), on.logger);
+      await roomOn.handleMessage("s", { t: "attachScreen" }, 0);
+      await roomOn.handleMessage("c1", join("Ann"), 0);
+      await roomOn.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      await roomOn.handleMessage("s", { t: "gameStatePush", gameId: "counter", state: { x: 1 } }, 0);
+      expect(on.lines).toContain("[TDP4] state pushed gameId=counter");
     });
   });
 });

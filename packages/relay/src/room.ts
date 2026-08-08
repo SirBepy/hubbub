@@ -1,4 +1,5 @@
 import type { Identity } from "@hubbub/protocol";
+import { noopLogger, type RelayLogger } from "./log.js";
 import type {
   ClientMessage,
   GameCatalog,
@@ -78,12 +79,13 @@ export class Room {
     private readonly catalog: GameCatalog,
     private readonly tokens: TokenSource,
     snapshot: RoomSnapshot,
+    private readonly logger: RelayLogger,
   ) {
     this.data = snapshot;
   }
 
-  static create(code: string, catalog: GameCatalog, tokens: TokenSource): Room {
-    return new Room(catalog, tokens, {
+  static create(code: string, catalog: GameCatalog, tokens: TokenSource, logger: RelayLogger = noopLogger): Room {
+    const room = new Room(catalog, tokens, {
       code,
       players: {},
       hostId: null,
@@ -96,12 +98,14 @@ export class Room {
       lastGameState: null,
       connections: {},
       screenConnId: null,
-    });
+    }, logger);
+    logger.info(`[${code}] room created`);
+    return room;
   }
 
   /** Reconstructs a room from a previously-taken snapshot() - the DO rehydration path. */
-  static fromSnapshot(snapshot: RoomSnapshot, catalog: GameCatalog, tokens: TokenSource): Room {
-    return new Room(catalog, tokens, snapshot);
+  static fromSnapshot(snapshot: RoomSnapshot, catalog: GameCatalog, tokens: TokenSource, logger: RelayLogger = noopLogger): Room {
+    return new Room(catalog, tokens, snapshot, logger);
   }
 
   /** Plain JSON-safe value; round-tripping it through JSON.stringify/parse and passing the
@@ -119,6 +123,13 @@ export class Room {
     return this.data.screenConnId;
   }
 
+  private info(line: string): void {
+    this.logger.info(`[${this.data.code}] ${line}`);
+  }
+  private debug(build: () => string): void {
+    this.logger.debug(() => `[${this.data.code}] ${build()}`);
+  }
+
   async handleMessage(connId: string, msg: ClientMessage, now: number): Promise<Outbound[]> {
     const conn = this.data.connections[connId];
 
@@ -134,6 +145,7 @@ export class Room {
     if (msg.t === "joinRoom") {
       const result = this.join({ name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
       if (!result.ok) return [{ to: "conn", connId, msg: { t: "error", code: result.code, message: result.message } }];
+      this.info(`${result.via === "reconnect" ? "reconnected" : "joined"} playerId=${result.playerId}`);
       this.data.connections[connId] = { role: "controller", playerId: result.playerId };
       const out: Outbound[] = [
         { to: "conn", connId, msg: { t: "joined", playerId: result.playerId, token: result.token } },
@@ -173,6 +185,7 @@ export class Room {
         return this.launch(summary.id, msg.options, connId, now);
       }
       if (msg.t === "returnToLobby") {
+        this.info(`game finished gameId=${this.data.currentGameId}`);
         this.data.lastGameState = null;
         this.data.mode = "lobby";
         this.data.currentGameId = null;
@@ -275,6 +288,9 @@ export class Room {
       if (conn?.role !== "screen" || this.data.screenConnId !== connId) return [];
       if (this.data.mode !== "in-game" || this.data.currentGameId !== msg.gameId) return [];
       this.data.lastGameState = { gameId: msg.gameId, state: msg.state };
+      // Noisy path: a real-time game pushes state at tickRateHz, so this stays off by default
+      // (state itself is never logged - only relay knows a push happened, never its shape).
+      this.debug(() => `state pushed gameId=${msg.gameId}`);
       return [{ to: "all", msg: { t: "gameState", gameId: msg.gameId, state: msg.state } }];
     }
 
@@ -287,9 +303,11 @@ export class Room {
     delete this.data.connections[connId];
     if (conn.role === "screen") {
       if (this.data.screenConnId === connId) this.data.screenConnId = null;
+      this.info("screen closed");
       return [];
     }
     if (conn.playerId) {
+      this.info(`left playerId=${conn.playerId}`);
       this.setConnected(conn.playerId, false);
       delete this.data.suggestions[conn.playerId];
       return this.broadcastRoomState();
@@ -302,13 +320,17 @@ export class Room {
     if (!summary) return [];
     const players = Object.values(this.data.players).filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name }));
     if (players.length < summary.minPlayers) return [];
+    this.info(`setup started gameId=${gameId} players=${players.length}`);
     let setupData: unknown;
     try {
       setupData = await this.catalog.setup(gameId, options, players);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Game setup failed";
+      this.info(`setup_failed gameId=${gameId} reason=${message}`);
       if (!notifyConnId) return [];
-      return [{ to: "conn", connId: notifyConnId, msg: { t: "error", code: "setup_failed", message: err instanceof Error ? err.message : "Game setup failed" } }];
+      return [{ to: "conn", connId: notifyConnId, msg: { t: "error", code: "setup_failed", message } }];
     }
+    this.info(`game launched gameId=${gameId}`);
     this.data.lastOptions = options;
     this.data.lastGameState = null;
     this.data.mode = "in-game";
@@ -322,14 +344,14 @@ export class Room {
     return out;
   }
 
-  private join(identity: Identity, token?: string): { ok: true; playerId: string; token: string } | { ok: false; code: "no_room"; message: string } {
+  private join(identity: Identity, token?: string): { ok: true; playerId: string; token: string; via: "reconnect" | "new" } | { ok: false; code: "no_room"; message: string } {
     if (token) {
       for (const p of Object.values(this.data.players)) {
         if (timingSafeEqual(p.token, token)) {
           p.name = identity.name; p.colorId = identity.colorId; p.emoji = identity.emoji;
           p.connected = true;
           this.ensureHost();
-          return { ok: true, playerId: p.id, token: p.token };
+          return { ok: true, playerId: p.id, token: p.token, via: "reconnect" };
         }
       }
     }
@@ -337,7 +359,7 @@ export class Room {
     const tok = this.tokens.next();
     this.data.players[id] = { id, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, connected: true, token: tok };
     this.ensureHost();
-    return { ok: true, playerId: id, token: tok };
+    return { ok: true, playerId: id, token: tok, via: "new" };
   }
 
   private setConnected(playerId: string, connected: boolean): void {

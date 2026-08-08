@@ -55,4 +55,15 @@ describe("Deezer proxy", () => {
     expect(res.status).toBe(405);
     expect(upstream).not.toHaveBeenCalled();
   });
+
+  it("logs the real failure reason and returns 502 when the upstream fetch throws", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network unreachable"); }));
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const res = await SELF.fetch("http://worker.local/proxy/deezer/search?q=queen");
+    expect(res.status).toBe(502);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("deezer fetch error path=search reason=network unreachable"));
+
+    log.mockRestore();
+  });
 });

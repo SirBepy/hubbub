@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { GAME_LOGICS as registry } from "@hubbub/games"; // index 0 = ttt, 1 = uttt
 import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
+import { noopLogger } from "@hubbub/relay";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
@@ -20,7 +21,7 @@ const join = (ws: WebSocket, name: string) =>
   ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
 
 async function setup() {
-  handle = createServer(0, registry);
+  handle = createServer(0, registry, {}, noopLogger);
   const port = (handle.server.address() as { port: number }).port;
   const base = `ws://localhost:${port}`;
   const code = await createRoomHttp(base);

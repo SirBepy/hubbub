@@ -1,5 +1,5 @@
 import { newRoomCode } from "@hubbub/protocol/tokens";
-import { Room, type GameCatalog, type TokenSource } from "@hubbub/relay";
+import { noopLogger, Room, type GameCatalog, type RelayLogger, type TokenSource } from "@hubbub/relay";
 
 /** Multi-room index only - all per-room relay logic (join, host, lobby, config, game launch)
  * now lives in @hubbub/relay's Room, since a Durable Object instance IS one room. This class
@@ -7,12 +7,12 @@ import { Room, type GameCatalog, type TokenSource } from "@hubbub/relay";
 export class RoomManager {
   private rooms = new Map<string, Room>();
 
-  constructor(private catalog: GameCatalog, private tokens: TokenSource) {}
+  constructor(private catalog: GameCatalog, private tokens: TokenSource, private logger: RelayLogger = noopLogger) {}
 
   createRoom(): string {
     let code = newRoomCode();
     while (this.rooms.has(code)) code = newRoomCode();
-    this.rooms.set(code, Room.create(code, this.catalog, this.tokens));
+    this.rooms.set(code, Room.create(code, this.catalog, this.tokens, this.logger));
     return code;
   }
 

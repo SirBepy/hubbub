@@ -1,13 +1,16 @@
 import { DurableObject } from "cloudflare:workers";
 import { parseClientMessage } from "@hubbub/protocol";
 import { newToken } from "@hubbub/protocol/tokens";
-import { Room, type Outbound, type RoomSnapshot, type TokenSource } from "@hubbub/relay";
+import { createLogger, Room, type Outbound, type RoomSnapshot, type TokenSource } from "@hubbub/relay";
 import { catalog } from "./catalog.js";
 import type { WorkerEnv } from "./env.js";
 
 interface RateLimitConfig { max: number; windowMs: number; }
 const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
 const tokens: TokenSource = { next: newToken };
+// console.* is captured by `wrangler tail`. "debug" also emits per-gameStatePush lines (noisy
+// for a tickRateHz game) - flip only for local debugging, never the hosted default.
+const logger = createLogger("info", (line) => console.log(line));
 
 // gameStatePush is a best-effort cache (design spec), so it buffers behind an alarm rather than
 // costing a write per message. Membership, host, mode, config and cursor still flush immediately.
@@ -31,7 +34,7 @@ export class RoomDO extends DurableObject<WorkerEnv> {
    * to retry with a fresh code), true means this DO now holds a freshly created room. */
   async create(code: string): Promise<boolean> {
     if (await this.ctx.storage.get<RoomSnapshot>("room")) return false;
-    const room = Room.create(code, catalog, tokens);
+    const room = Room.create(code, catalog, tokens, logger);
     await this.ctx.storage.put("room", room.snapshot());
     return true;
   }
@@ -40,7 +43,7 @@ export class RoomDO extends DurableObject<WorkerEnv> {
     if (this.room) return this.room;
     const snap = await this.ctx.storage.get<RoomSnapshot>("room");
     if (!snap) return null;
-    this.room = Room.fromSnapshot(snap, catalog, tokens);
+    this.room = Room.fromSnapshot(snap, catalog, tokens, logger);
     return this.room;
   }
 

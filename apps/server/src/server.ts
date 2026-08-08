@@ -3,26 +3,19 @@ import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { parseClientMessage, type ServerMessage } from "@hubbub/protocol";
 import { newToken } from "@hubbub/protocol/tokens";
+import { hit, type RateLimitConfig } from "@hubbub/protocol/rate-limit";
 import { gameSummaries, type GameRegistry } from "@hubbub/sdk";
 import { getSettingsSchema } from "@hubbub/games/settings";
-import type { GameCatalog } from "@hubbub/relay";
+import { createLogger, toCatalog, type LogLevel, type RelayLogger } from "@hubbub/relay";
 import { RoomManager } from "./rooms.js";
 
-/** Bridges the Node GameRegistry (setup() may do real network I/O) and settings schema lookup
- * into the shape @hubbub/relay's Room needs - a Worker will supply a different implementation
- * of this same interface, never a different Room. */
-function toCatalog(games: GameRegistry): GameCatalog {
-  return {
-    summaries: gameSummaries(games),
-    settingsSchema: (gameId) => getSettingsSchema(gameId),
-    setup: async (gameId, options, players) => {
-      const logic = games[gameId];
-      return logic?.setup ? await logic.setup(options, players) : undefined;
-    },
-  };
+// LOG_LEVEL=debug also emits per-gameStatePush lines (noisy for a tickRateHz game); default
+// stays "info" so a hosted deploy never pays for that unless explicitly asked.
+function defaultLogger(): RelayLogger {
+  const level: LogLevel = process.env.LOG_LEVEL === "debug" ? "debug" : "info";
+  return createLogger(level, (line) => console.log(line));
 }
 
-interface RateLimitConfig { max: number; windowMs: number; }
 export interface JoinRateLimitOptions { perIp?: RateLimitConfig; perCode?: RateLimitConfig; }
 
 // Real thresholds (design spec "Room codes and abuse"). Injectable so tests can throttle
@@ -31,15 +24,14 @@ const DEFAULT_PER_IP: RateLimitConfig = { max: 20, windowMs: 60_000 };
 const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
 const RATE_LIMIT_MESSAGE = "Too many join attempts. Try again shortly.";
 
-// Sliding window via a per-key timestamp list, pruned on each hit. In-memory and reset on
-// restart is fine: rooms are already ephemeral with no persistence layer to match.
-function createLimiter({ max, windowMs }: RateLimitConfig) {
+// In-memory per-key timestamp lists, reset on restart is fine: rooms are already ephemeral
+// with no persistence layer to match.
+function createLimiter(config: RateLimitConfig) {
   const hits = new Map<string, number[]>();
   return (key: string, now: number): boolean => {
-    const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-    recent.push(now);
+    const recent = hit(hits.get(key) ?? [], now, config);
     hits.set(key, recent);
-    return recent.length > max;
+    return recent.length > config.max;
   };
 }
 
@@ -58,14 +50,14 @@ function roomCodeFromUrl(url: string | undefined): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export function createServer(port: number, games: GameRegistry, rateLimit: JoinRateLimitOptions = {}) {
+export function createServer(port: number, games: GameRegistry, rateLimit: JoinRateLimitOptions = {}, logger: RelayLogger = defaultLogger()) {
   const wss = new WebSocketServer({ noServer: true });
   // Separate counters for POST /api/rooms vs the /room/:code upgrade: a screen's own room
   // creation must not eat into the budget the join-flood limiter guards.
   const ipLimitedCreate = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
   const ipLimitedJoin = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
   const codeLimited = createLimiter(rateLimit.perCode ?? DEFAULT_PER_CODE);
-  const rooms = new RoomManager(toCatalog(games), { next: newToken });
+  const rooms = new RoomManager(toCatalog(games, gameSummaries(games), getSettingsSchema), { next: newToken }, logger);
   // connId -> live socket. Only @hubbub/relay's Room decides WHO is in a room's broadcast set
   // (room.connIds()); this map exists purely to resolve an opaque connId to something sendable.
   const sockets = new Map<string, WebSocket>();

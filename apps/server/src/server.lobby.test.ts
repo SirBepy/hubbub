@@ -3,6 +3,7 @@ import { WebSocket } from "ws";
 import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
 import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
+import { noopLogger } from "@hubbub/relay";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
@@ -38,7 +39,7 @@ const nextOf = (ws: WebSocket, t: string) =>
 const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function setup() {
-  handle = createServer(0, registry);
+  handle = createServer(0, registry, {}, noopLogger);
   const port = (handle.server.address() as { port: number }).port;
   const base = `ws://localhost:${port}`;
   const code = await createRoomHttp(base);

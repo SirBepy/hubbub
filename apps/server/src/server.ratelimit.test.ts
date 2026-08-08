@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { ROOM_CODE_LENGTH, createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
+import { noopLogger } from "@hubbub/relay";
 import { createServer } from "./server.js";
 
 // Valid shape, so it reaches the room lookup, but never generated in practice.
@@ -42,7 +43,7 @@ describe("join rate limiting", () => {
     // max is 4, not 3: the screen's own /room/:code upgrade shares this same per-IP counter
     // (the limiter can't yet tell attachScreen from joinRoom - both are just an upgrade to the
     // same URL), so it spends 1 of the budget before any of the 4 controller attempts below.
-    handle = createServer(0, {}, { perIp: { max: 4, windowMs: 60_000 } });
+    handle = createServer(0, {}, { perIp: { max: 4, windowMs: 60_000 } }, noopLogger);
     const port = (handle.server.address() as { port: number }).port;
     const base = `ws://localhost:${port}`;
     const code = await createRoomHttp(base);
@@ -58,7 +59,7 @@ describe("join rate limiting", () => {
   });
 
   it("throttles repeated fails against one code without blocking a fresh valid join", async () => {
-    handle = createServer(0, {}, { perCode: { max: 2, windowMs: 60_000 }, perIp: { max: 100, windowMs: 60_000 } });
+    handle = createServer(0, {}, { perCode: { max: 2, windowMs: 60_000 }, perIp: { max: 100, windowMs: 60_000 } }, noopLogger);
     const port = (handle.server.address() as { port: number }).port;
     const base = `ws://localhost:${port}`;
 

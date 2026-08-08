@@ -67,9 +67,23 @@ async function handleDeezerProxy(request: Request, env: WorkerEnv, path: string)
 
   const upstream = new URL(`${DEEZER_ORIGIN}/${path}`);
   upstream.search = new URL(request.url).search;
-  // No client headers forwarded upstream, and nothing from the upstream response (cookies,
-  // auth) is forwarded back - only the JSON body and a fresh content-type.
-  const upstreamRes = await fetch(upstream.toString(), { method: "GET" });
+  const started = Date.now();
+  // Target and outcome only - never the response body (could be a full playlist) and never a
+  // signed URL, so a track/album fetch's cdnt-preview.dzcdn.net links never reach the log.
+  let upstreamRes: Response;
+  try {
+    // No client headers forwarded upstream, and nothing from the upstream response (cookies,
+    // auth) is forwarded back - only the JSON body and a fresh content-type.
+    upstreamRes = await fetch(upstream.toString(), { method: "GET" });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "fetch failed";
+    console.log(`deezer fetch error path=${path} reason=${reason} ${Date.now() - started}ms`);
+    return new Response(JSON.stringify({ message: "Deezer fetch failed" }), {
+      status: 502,
+      headers: { "content-type": "application/json", ...CORS_HEADERS },
+    });
+  }
+  console.log(`deezer fetch ${upstreamRes.ok ? "ok" : "error"} path=${path} status=${upstreamRes.status} ${Date.now() - started}ms`);
   const body = await upstreamRes.text();
   const res = new Response(body, {
     status: upstreamRes.status,
