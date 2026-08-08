@@ -1,19 +1,14 @@
 import { DEFAULT_STUN_URL } from "@hubbub/protocol";
 
-// Mirrors apps/screen/src/config-resolve.ts's injected-config precedence, so the merged
-// apps/web app can drive both roles from one resolved config (see apps/web/src/config-resolve.ts).
-declare global {
-  interface Window {
-    __HUBBUB__?: { serverUrl?: string; controllerUrl?: string; stunUrl?: string };
-  }
-}
+// Cast instead of `declare global`: apps/web's TS program also pulls in apps/screen's config,
+// whose Window.__HUBBUB__ type carries controllerUrl too - a shared ambient declaration would
+// force this app's type to match that one exactly, even though it never reads that field.
+type InjectedConfig = { serverUrl?: string; stunUrl?: string };
+const injected =
+  typeof window !== "undefined" ? (window as unknown as { __HUBBUB__?: InjectedConfig }).__HUBBUB__ : undefined;
 
 export const SERVER_URL =
-  (typeof window !== "undefined" ? window.__HUBBUB__?.serverUrl : undefined) ??
-  import.meta.env.VITE_SERVER_URL ??
-  `ws://${location.hostname}:7787`;
+  injected?.serverUrl ?? import.meta.env.VITE_SERVER_URL ?? `ws://${location.hostname}:7787`;
 
 export const STUN_URL =
-  (typeof window !== "undefined" ? window.__HUBBUB__?.stunUrl : undefined) ??
-  import.meta.env.VITE_STUN_URL ??
-  DEFAULT_STUN_URL;
+  injected?.stunUrl ?? import.meta.env.VITE_STUN_URL ?? DEFAULT_STUN_URL;
