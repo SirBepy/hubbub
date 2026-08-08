@@ -33,7 +33,6 @@ export function App() {
     return (
       <>
         <ScreenApp key="screen" />
-        {/* Low-observability escape hatch until the big-screen host view gets its own pass. */}
         <button type="button" onClick={switchRole} style={switcherStyle}>
           Join instead
         </button>
@@ -44,16 +43,17 @@ export function App() {
   return <ControllerEntry key="controller" onHostInstead={switchRole} />;
 }
 
+// Mirrors join.tsx's "Host instead": plain muted text, no fill/border/glow.
+// Corner-anchored, not centred, since nothing on the hero anchors it like the phone's CTA does.
 const switcherStyle: CSSProperties = {
   position: "fixed",
-  bottom: 8,
-  right: 8,
+  bottom: "calc(var(--u) * 1)",
+  right: "calc(var(--u) * 1)",
   zIndex: 9999,
-  font: "500 11px sans-serif",
-  padding: "4px 8px",
-  background: "rgba(0,0,0,.6)",
-  color: "#fff",
-  border: "1px solid rgba(255,255,255,.3)",
-  borderRadius: 6,
-  opacity: 0.6,
+  background: "none",
+  border: "none",
+  padding: "calc(var(--u) * .55) calc(var(--u) * .85)",
+  font: "500 calc(var(--u) * .85) var(--font-ui)",
+  color: "var(--text-muted)",
+  cursor: "pointer",
 };
