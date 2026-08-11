@@ -50,6 +50,11 @@ a pointer with access control**. None of them model a channel as a separate depl
 - Each is a **version-controlled catalogue file in the platform repo**: `catalogue/staging.json`
   and `catalogue/public.json`. Git is the audit trail, a PR diff is the review, and revocation is
   a revert.
+- **The platform does NOT read those files at runtime. Merging the PR syncs the catalogue into
+  KV, and the platform reads KV.** Caught 2026-08-11: a file in the repo only takes effect on
+  deploy, so a git-only catalogue would mean **publishing a game redeploys the platform** - the
+  exact thing Joe ruled out. Git keeps the approval record and the history; KV makes it live.
+  This is also why KV is in the stack regardless of what stores the bundles (2.4).
 - **The approval gate of Phase I is merging that PR.** No new infrastructure. This is the F-Droid
   `fdroiddata` pattern and it survives the transition to third-party authors unchanged: only who
   may open the PR changes, not the mechanism.
@@ -71,28 +76,41 @@ no approval record points at.
   The two are compatible: the key is derived from the bytes, the catalogue entry is keyed by
   commit.
 
-### 2.4 Bundle storage: R2
+### 2.4 Bundle storage: Workers KV
 
-Rated 8/10 against the alternatives on 2026-08-11, with Joe's explicit constraint that rebuilding
-one game must not rebuild the platform.
+**Revised the same day. R2 was chosen first and then rejected on cost-safety grounds; this
+section records both, because the reasoning matters more than the answer.**
 
-- **R2 bucket, fronted by the sandbox Worker.** CI publishes with a single object write and **no
-  Worker deploy at all**. Blast radius is one bundle; retention is one delete call.
-- Key: `games/<id>/<sha256-of-bytes>.js`, the hash computed **server-side at ingest**, never
-  taken from author metadata (2026-08-08 record, section 2.7: content-addressed, not
-  label-based).
+**The hard constraint is no payment method on the account.** Joe, 2026-08-11: "im scared about
+the card... what if we fuck something up, make something like a infinite loop and i get a huge
+fine... i prefer knowing im not paying for anything and im not in danger."
+
+This is not squeamishness, it is a real architectural property. **With no payment method, the
+free plan fails closed:** exceed a limit and requests start failing. Adding any subscription
+flips that to "keeps serving, sends an invoice", and a runaway CI loop is exactly the shape that
+produces a surprise bill. Preserving fail-closed outranks architectural preference.
+
+- **Workers KV**, included in the Workers free plan with **no separate subscription and no card**.
+- Key: `games/<id>/<sha256-of-bytes>.js`, hash computed **server-side at ingest**, never taken
+  from author metadata (2026-08-08 record, section 2.7: content-addressed, not label-based).
+- Publishing is **one KV write. No Worker deploy.** Per-game rollback works by repointing the
+  catalogue. No git growth, no shared blast radius, no concurrent-publish race.
+- Free limits against this workload: 1 GB storage (~3,000 bundles at 300 kB), 1,000 writes/day
+  (a publish is one write), 100k reads/day, 25 MiB max value against ~300 kB bundles.
+- **The eventual-consistency objection does not apply here.** KV takes up to 60s to propagate
+  globally, which is why this option was first rated 4/10. That was wrong for this flow: CI
+  writes the bundle, opens a PR, and a **human merges it**. The gap is minutes to days, so the
+  60s window has always closed before anything can fetch the object.
+- Rejected: **R2 (best pure architecture, but requires a card on file).** The dashboard
+  screenshot on 2026-08-11 settled the long-unverified question: the R2 page is a subscription
+  signup reading "Add R2 subscription to my account", billed to "your payment method on file",
+  with "Cloudflare may preauthorize your payment method during the period to validate funds".
+  Due Monthly is $0.00 with no floor fee, so the only exposure is overage - but the exposure is
+  non-zero, which is what disqualifies it.
 - Rejected: **static assets in the platform repo (5/10)** - bytes land in git forever and cannot
-  be reclaimed without a history rewrite, every game becomes one deployment unit, and the
-  approval PR shows a minified blob nobody can review. Rejected: **Workers KV (4/10)** - up to
-  60s eventual consistency puts an intermittent failure directly in the publish path, and blob
-  storage in KV is a known misuse.
-- Free tier is over-provisioned for this by orders of magnitude: 10 GB storage, 10M class-B
-  reads/month, zero egress, against roughly 50 objects and a few hundred fetches a day.
-
-**UNVERIFIED, and it gates this decision:** whether enabling R2 requires a payment method on the
-account even at zero spend. Cloudflare's docs do not state it; the community threads reporting it
-are behind a login wall. A `wrangler r2 bucket list` probe on 2026-08-11 failed on API-token scope,
-not on R2 being disabled, so it settled nothing. **Do not assert either answer.** See section 5.
+  be reclaimed without a history rewrite; every game becomes one deployment unit, so a bad deploy
+  takes down all games and rollback becomes all-or-nothing across games; concurrent publishes
+  race to deploy the same Worker; and the approval PR shows a minified blob nobody can review.
 
 ### 2.5 Four Workers
 
@@ -149,7 +167,9 @@ The underlying concern (unbounded growth) is valid and gets a retention policy i
 
 - Keep every version referenced by **any** catalogue, plus the **last 3 public builds per game**.
 - GC the rest on a schedule.
-- 10 versions x 50 games x 300 kB is about 150 MB, roughly 1.5% of the R2 free tier.
+- At the retention policy above, 50 games x 3 builds x 300 kB is about 45 MB, comfortably inside
+  KV's 1 GB free storage. Retention matters more on KV than it would have on R2, since the
+  ceiling is 1 GB rather than 10 GB - so the GC job is required, not optional.
 
 ### 2.8 Credentials
 
@@ -162,8 +182,8 @@ The underlying concern (unbounded growth) is valid and gets a retention policy i
 - **The platform job must NOT run the games' tests.** That is the one direction requiring a
   credential (public repo reading private siblings), and dropping it removes tokens from the
   checks pipeline entirely. This amends todo 46 step 5.
-- Cloudflare deploys need an API token with Workers deploy + **R2 write** scope, stored as a
-  repo secret.
+- Cloudflare deploys need an API token with Workers deploy + **Workers KV write** scope, stored
+  as a repo secret. **No R2 scope** - see 2.4.
 
 ### 2.9 CI checks
 
@@ -225,14 +245,20 @@ Vite. There is no bundler in `hubbub-game-template` - only `tsconfig.json` and
 
 ## 5. Owed by Joe before implementation
 
-1. **Open the R2 tab on the `tabsxlabs@gmail.com` Cloudflare dashboard** and report whether it
-   demands a payment method. This gates 2.4. If it does, the decision reopens rather than
-   silently falling back.
-2. **Mint a Cloudflare API token** with Workers deploy + R2 write scope. Needed regardless; the
-   current token lacks R2 scope, which is what the 2026-08-11 probe actually proved.
-3. **Create the GitHub App** for publishing (2.8).
+1. **Mint a Cloudflare API token** with Workers Scripts edit + Workers KV Storage edit + Account
+   Settings read. The account's only existing token is "Workers AI" with no permissions, which is
+   why the 2026-08-11 `wrangler r2 bucket list` probe failed on auth rather than on R2 status.
+2. **Create the GitHub App** for publishing (2.8).
 
 `wrangler login` cannot run from Claude's shell, and dashboard actions are Joe's either way.
+
+**Settled 2026-08-11 by dashboard screenshots, no longer owed:**
+
+- **R2 requires a card.** See 2.4; the decision moved to KV and does not reopen.
+- **Custom domains are NOT paid-gated.** The `hubbub` Worker page offers "Connect a custom
+  domain" as a next step with no upgrade prompt, and shows `Custom domains —` empty. A domain
+  therefore remains a live option on the free plan; only availability and price are unknown, and
+  the name itself is still open (Joe leans to keeping `hubbub`).
 
 ---
 
