@@ -75,6 +75,13 @@ no approval record points at.
 - Storage stays content-addressed exactly as the 2026-08-08 record requires (its section 2.7).
   The two are compatible: the key is derived from the bytes, the catalogue entry is keyed by
   commit.
+- **A catalogue entry stores the storage KEY, never an absolute URL.** The original design's
+  `entryUrl` field is replaced by `{ id, version, commit, contentHash }`, and the shell derives
+  the fetch URL by joining its configured sandbox origin with the key. Decided 2026-08-11 so that
+  changing origins - moving to a custom domain, renaming a Worker, standing up a new staging
+  environment - is a config change plus redeploy, and never a rewrite of already-approved
+  catalogue entries. Bundles are origin-agnostic by construction, so nothing needs rebuilding or
+  re-approving. **This is what makes the custom-domain decision safely deferrable.**
 
 ### 2.4 Bundle storage: Workers KV
 
