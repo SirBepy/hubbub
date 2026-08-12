@@ -175,8 +175,12 @@ The underlying concern (unbounded growth) is valid and gets a retention policy i
 
 - **Publish uses a GitHub App**, not a PAT. Fine-grained PATs cannot be non-expiring (366 days
   hard maximum), so a PAT-based pipeline breaks silently within a year. The App mints a per-run
-  token that expires in an hour, so there is nothing to rotate. One-time setup on Joe's account,
-  private key stored as a repo secret.
+  token that expires in an hour, so there is nothing to rotate.
+- **The App's private key lives ONLY in `hubbub` and is never copied into a game repo.** Decided
+  2026-08-11 after Joe asked how third-party games would work. The original write-up had each
+  game repo holding the key so its CI could write into the platform; that is first-party-only by
+  construction, because handing the key to an outside author grants write access to the platform
+  repo. Installed on this account only.
 - **Checks need no token at all.** A private repo can check out a public sibling unauthenticated,
   which is what made publishing `hubbub` worth doing.
 - **The platform job must NOT run the games' tests.** That is the one direction requiring a
@@ -211,17 +215,39 @@ Joe's call, 2026-08-11: **check workflows everywhere**, per todo 46.
 
 **Game repo, push to `develop`:** nothing.
 
+**Direction: PULL, not push.** Decided 2026-08-11. A game repo never writes into `hubbub`. It
+publishes to its own GitHub Release; the platform fetches. This keeps the App key in one place
+(2.8) and means the first-party and third-party paths are the same mechanism, so nothing gets
+rebuilt when an outside game appears.
+
 **Game repo, push to `staging`:**
 1. Checks: sibling-checkout `hubbub`, `pnpm install`, typecheck, test.
 2. Build the self-contained ESM bundle.
-3. Upload to R2. The sandbox Worker computes sha256 at ingest and stores at
-   `games/<id>/<sha256>.js`.
-4. Open/update a PR against `hubbub` adding the entry to `catalogue/staging.json`, keyed by
-   commit SHA, carrying the hash. Auto-mergeable: this is pre-approval.
-5. Staging platform serves it.
+3. Publish it as a **GitHub Release asset in the game's own repo**.
+4. The platform is notified (webhook into the Worker), fetches the asset, **computes sha256
+   itself**, and writes KV at `games/<id>/<sha256>.js`. The hash is never taken from the author.
+5. Platform opens/updates a PR adding the entry to `catalogue/staging.json`, keyed by commit SHA.
+   Auto-mergeable: this is pre-approval, staging-only.
+6. Merge syncs the staging catalogue into KV; the staging platform serves it.
 
 **Game repo, push to `main`:** same, but the PR targets `catalogue/public.json` and **is not
 auto-merged**. Merging it is the approval gate.
+
+**Third-party submission** (not built yet, but the flow the above must not preclude):
+1. Author publishes a Release in their own repo and opens a **fork PR** adding a catalogue entry.
+   They receive no credential from Joe at any point.
+2. A validation job posts a bot comment: author, source repo, release, platform-computed sha256,
+   bundle size, automated check results.
+3. The submission auto-lands in **staging only**, so Joe plays it at the staging URL before
+   deciding. Unapproved code never reaches production to be evaluated.
+4. Approve = merge. Reject = close the PR; nothing was ever in production and GC reclaims the
+   staging entry. Revoke later = revert the catalogue commit.
+
+**HARD CONSTRAINT on that validation job: it must never check out and execute the fork's code
+with a write-scoped token.** That is the `pull_request_target` footgun and it is the most
+exploited mistake in exactly this scenario. The job reads the JSON, downloads the asset, hashes
+and measures it. It does not run it. The only place a submitted bundle ever executes is inside
+the Phase G sandbox iframe.
 
 **Platform repo, push to `staging` / `main`:** checks, then deploy the corresponding shell and
 sandbox Workers.
