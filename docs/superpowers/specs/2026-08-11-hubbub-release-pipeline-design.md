@@ -191,8 +191,20 @@ The underlying concern (unbounded growth) is valid and gets a retention policy i
 - **Checks need no token at all.** A private repo can check out a public sibling unauthenticated,
   which is what made publishing `hubbub` worth doing.
 - **The platform job must NOT run the games' tests.** That is the one direction requiring a
-  credential (public repo reading private siblings), and dropping it removes tokens from the
-  checks pipeline entirely. This amends todo 46 step 5.
+  credential (public repo reading private siblings). This amends todo 46 step 5.
+- **CORRECTION, 2026-08-11.** The sentence above originally continued "...and dropping it removes
+  tokens from the checks pipeline entirely." That was wrong, and it was wrong because it assumed
+  the platform could verify itself alone. Measured on a clean clone with no sibling game repos:
+  `pnpm install` passes, but **`pnpm typecheck` fails at `@hubbub/games`, `pnpm build` fails at
+  `@hubbub/server`, and 8 of 29 test files fail to load** (the 141 tests that do run all pass -
+  the failures are import errors, not breakage). `packages/games-manifest` imports every game
+  statically, so the platform depends on private repos at build time whether or not it runs their
+  tests.
+  **Resolution (Joe, 2026-08-11): decouple the manifest rather than hand CI a credential.** That
+  is Phase G work pulled earlier rather than new work, so the alternative would have been built
+  and then deleted. Tracked as its own todo. Until it lands, the platform has no checks workflow;
+  the game repos' workflows are unaffected and ship now, because they only need themselves plus
+  the **public** hubbub checkout, which requires no token.
 - Cloudflare deploys need an API token with Workers deploy + **Workers KV write** scope, stored
   as a repo secret. **No R2 scope** - see 2.4.
 

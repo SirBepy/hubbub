@@ -1,0 +1,47 @@
+name: Hubbub game setup
+description: Checks the platform out beside a game repo and installs its dependencies with pnpm.
+
+inputs:
+  platform-ref:
+    description: Branch or tag of SirBepy/hubbub to build the game against.
+    required: false
+    default: main
+  game-path:
+    description: Directory the calling workflow checked the game out into.
+    required: false
+    default: game
+
+runs:
+  using: composite
+  steps:
+    # Games depend on the platform by relative path (file:../hubbub/packages/sdk), so the two
+    # repos must sit side by side. actions/checkout refuses paths above the workspace, hence
+    # both go UNDER it as siblings of each other rather than the game living at the root.
+    - name: Check out the platform beside the game
+      uses: actions/checkout@v4
+      with:
+        repository: SirBepy/hubbub
+        ref: ${{ inputs.platform-ref }}
+        path: hubbub
+
+    # Must precede setup-node: its pnpm cache shells out to `pnpm store path`.
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: pnpm
+        cache-dependency-path: ${{ inputs.game-path }}/package.json
+
+    # No --frozen-lockfile on purpose: game repos gitignore their lockfile because the platform
+    # is a live sibling rather than a versioned dependency, so a pinned lockfile would go stale
+    # and fail CI on every platform change. Reproducibility comes from keeping built artifacts
+    # (see the release pipeline spec), not from rebuilding a commit.
+    - name: Install
+      shell: bash
+      working-directory: ${{ inputs.game-path }}
+      run: pnpm install
