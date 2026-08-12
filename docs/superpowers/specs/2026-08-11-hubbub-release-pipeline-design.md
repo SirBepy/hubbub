@@ -295,6 +295,44 @@ Vite. There is no bundler in `hubbub-game-template` - only `tsconfig.json` and
 
 ---
 
+## 5a. Lessons taken from AirConsole
+
+Researched 2026-08-11. AirConsole is the closest commercial analog (TV screen, phone controllers,
+third-party game authors). Two findings changed this design; the rest confirmed it.
+
+**Confirmed, do not revisit:**
+
+- **Per-game self-contained bundles are what AirConsole does too.** Every game is a standalone
+  payload with no shared runtime and no import map; their only lever against bloat is a size cap
+  enforced at review. So 2.6 is validated, not a scaling mistake.
+- **They keep old versions and roll back by repointing**, never by rebuilding. More evidence for
+  2.7.
+- **They have no content hashing or integrity pinning of any kind**, and their docs never mention
+  `sandbox`, CSP or cross-origin isolation (absence confirmed across seven fetched pages). Their
+  storage API states outright that it is "public, not secure, and anyone can request and tamper
+  with it" - they protect the platform by exposing very little rather than by isolating strongly.
+  Our posture is stronger on both axes; do not weaken it on the grounds that a bigger platform
+  ships less.
+
+**Adopted, and both are gaps in this design:**
+
+1. **Enforce budgets, don't just report them.** AirConsole's review applies concrete numbers
+   (50MB gzipped initial load, 30fps browser / 25fps Android TV, <=512MB RAM, works to 320x480,
+   correct mid-game join/leave). The validation job in section 3 must **fail** on a budget, not
+   just print a number in the bot comment. Pick a bundle-size ceiling far tighter than theirs -
+   these are lazy-fetched party games, not 50MB downloads.
+
+2. **The local dev loop must be able to run a game inside the sandbox.** This is the real hole.
+   The 2026-08-05 design's "Local dev loop" resolves games as workspace packages and bypasses the
+   sandbox entirely, so an author develops against something structurally different from what
+   ships. A game that works locally can break in the iframe: state holding a `Map`, a reducer
+   touching `window`, anything that does not survive structured-clone. AirConsole's preview link
+   tests the exact uploaded build; ours would not test the shipping shape at all.
+   **Requirement: a sandbox-mode toggle in the dev loop** that mounts the local game through the
+   real iframe + MessageChannel path. The fast no-sandbox loop stays the default for iteration;
+   sandbox mode is what an author runs before publishing. This also makes Blocker #3's state
+   schema testable locally instead of in production.
+
 ## 6. Not decided here
 
 - The `stateSchema` migration question when a version bump changes the schema under an existing
