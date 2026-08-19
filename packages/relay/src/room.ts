@@ -1,4 +1,5 @@
 import type { Identity } from "@hubbub/protocol";
+import { hit, type RateLimitConfig } from "@hubbub/protocol/rate-limit";
 import { noopLogger, type RelayLogger } from "./log.js";
 import type {
   ClientMessage,
@@ -8,6 +9,11 @@ import type {
   ServerMessage,
   TokenSource,
 } from "./types.js";
+
+// A tickRateHz real-time game's screen loop runs at 60fps (CLAUDE.md's "60fps loop"), so 60/sec
+// is the fastest plausible legitimate per-frame action rate. 120 over 1s doubles that ceiling -
+// room for a stray double-send in one frame, nowhere near a flood (thousands/sec).
+const ACTION_LIMIT: RateLimitConfig = { max: 120, windowMs: 1_000 };
 
 export type RoomMode = "lobby" | "configuring" | "in-game";
 
@@ -74,6 +80,10 @@ function visibleFields(schema: RelaySettingsField[], values: Record<string, stri
  * handleMessage/handleDisconnect, identified only by opaque connId strings. */
 export class Room {
   private data: RoomSnapshot;
+  // Per-connection sliding window for the "action" hot path, kept outside RoomSnapshot on
+  // purpose: like RoomDO's own codeFails, it need not survive hibernation/snapshot round trips,
+  // only an active flood, which keeps the instance memoized and awake.
+  private actionHits: Record<string, number[]> = {};
 
   private constructor(
     private readonly catalog: GameCatalog,
@@ -268,6 +278,9 @@ export class Room {
 
     if (msg.t === "action") {
       if (!conn?.playerId || this.data.mode !== "in-game" || !this.data.screenConnId) return [];
+      const recent = hit(this.actionHits[connId] ?? [], now, ACTION_LIMIT);
+      this.actionHits[connId] = recent;
+      if (recent.length > ACTION_LIMIT.max) return [];
       return [{ to: "conn", connId: this.data.screenConnId, msg: { t: "gameAction", playerId: conn.playerId, payload: msg.payload, now } }];
     }
 
@@ -301,6 +314,7 @@ export class Room {
     const conn = this.data.connections[connId];
     if (!conn) return [];
     delete this.data.connections[connId];
+    delete this.actionHits[connId];
     if (conn.role === "screen") {
       if (this.data.screenConnId === connId) this.data.screenConnId = null;
       this.info("screen closed");

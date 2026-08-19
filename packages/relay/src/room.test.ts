@@ -250,6 +250,46 @@ describe("Room", () => {
     });
   });
 
+  describe("action rate limiting", () => {
+    async function launchedRoom() {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      return { room, playerId: a.playerId as string };
+    }
+
+    it("drops actions once a connection exceeds the window budget, at a fixed timestamp", async () => {
+      const { room } = await launchedRoom();
+      // 121 sends at the same instant: the 121st is the first over ACTION_LIMIT.max (120).
+      const results: Outbound[][] = [];
+      for (let i = 0; i < 121; i++) results.push(await room.handleMessage("c1", { t: "action", payload: i }, 1_000));
+
+      expect(results.slice(0, 120).every((out) => findConn(out, "s", "gameAction") !== undefined)).toBe(true);
+      expect(findConn(results[120], "s", "gameAction")).toBeUndefined();
+      expect(results[120]).toEqual([]);
+    });
+
+    it("never throttles a normal-rate player spread across the window", async () => {
+      const { room } = await launchedRoom();
+      // 100 sends over 1s at 10ms apart - a fast human/60fps burst, well under the 120/1s budget.
+      let lastOut: Outbound[] = [];
+      for (let i = 0; i < 100; i++) lastOut = await room.handleMessage("c1", { t: "action", payload: i }, i * 10);
+      expect(findConn(lastOut, "s", "gameAction")).toBeDefined();
+    });
+
+    it("throttling one connection does not affect another connection's actions", async () => {
+      const { room } = await launchedRoom();
+      const b = findConn(await room.handleMessage("c2", join("Bo"), 0), "c2", "joined");
+
+      for (let i = 0; i < 121; i++) await room.handleMessage("c1", { t: "action", payload: i }, 1_000);
+      const untouched = await room.handleMessage("c2", { t: "action", payload: "x" }, 1_000);
+      const action = findConn(untouched, "s", "gameAction");
+      expect(action).toBeDefined();
+      expect(action.playerId).toBe(b.playerId);
+    });
+  });
+
   describe("logging", () => {
     it("produces a room-prefixed, followable log from create through join, reconnect and close", async () => {
       const { logger, lines } = capturingLogger();
