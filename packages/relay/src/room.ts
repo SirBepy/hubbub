@@ -14,6 +14,10 @@ import type {
 // is the fastest plausible legitimate per-frame action rate. 120 over 1s doubles that ceiling -
 // room for a stray double-send in one frame, nowhere near a flood (thousands/sec).
 const ACTION_LIMIT: RateLimitConfig = { max: 120, windowMs: 1_000 };
+// Same 60fps ceiling as ACTION_LIMIT; generous headroom for the taps/signaling limits below.
+const GAME_STATE_PUSH_LIMIT: RateLimitConfig = { max: 120, windowMs: 1_000 };
+const UI_ACTION_LIMIT: RateLimitConfig = { max: 20, windowMs: 1_000 };
+const RTC_SIGNAL_LIMIT: RateLimitConfig = { max: 60, windowMs: 1_000 };
 
 export type RoomMode = "lobby" | "configuring" | "in-game";
 
@@ -80,10 +84,7 @@ function visibleFields(schema: RelaySettingsField[], values: Record<string, stri
  * handleMessage/handleDisconnect, identified only by opaque connId strings. */
 export class Room {
   private data: RoomSnapshot;
-  // Per-connection sliding window for the "action" hot path, kept outside RoomSnapshot on
-  // purpose: like RoomDO's own codeFails, it need not survive hibernation/snapshot round trips,
-  // only an active flood, which keeps the instance memoized and awake.
-  private actionHits: Record<string, number[]> = {};
+  private msgHits: Record<string, Record<string, number[]>> = {};
 
   private constructor(
     private readonly catalog: GameCatalog,
@@ -140,6 +141,14 @@ export class Room {
     this.logger.debug(() => `[${this.data.code}] ${build()}`);
   }
 
+  /** Reuses hit()'s shared sliding window per (message type, connId). true means over budget. */
+  private limited(type: string, connId: string, now: number, cfg: RateLimitConfig): boolean {
+    const perConn = this.msgHits[type] ?? (this.msgHits[type] = {});
+    const recent = hit(perConn[connId] ?? [], now, cfg);
+    perConn[connId] = recent;
+    return recent.length > cfg.max;
+  }
+
   async handleMessage(connId: string, msg: ClientMessage, now: number): Promise<Outbound[]> {
     const conn = this.data.connections[connId];
 
@@ -153,6 +162,9 @@ export class Room {
     }
 
     if (msg.t === "joinRoom") {
+      // A socket already holding a player slot cannot mint another one - the actual flood fix,
+      // not a rate limit (a limiter only slows an unbounded resource, never bounds it).
+      if (conn?.playerId) return [{ to: "conn", connId, msg: { t: "error", code: "already_joined", message: "Connection already joined" } }];
       const result = this.join({ name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
       if (!result.ok) return [{ to: "conn", connId, msg: { t: "error", code: result.code, message: result.message } }];
       this.info(`${result.via === "reconnect" ? "reconnected" : "joined"} playerId=${result.playerId}`);
@@ -170,11 +182,13 @@ export class Room {
 
     if (msg.t === "setIdentity") {
       if (!conn?.playerId) return [];
+      if (this.limited("setIdentity", connId, now, UI_ACTION_LIMIT)) return [];
       const p = this.data.players[conn.playerId];
       if (p) { p.name = msg.name; p.colorId = msg.colorId; p.emoji = msg.emoji; }
       return this.broadcastRoomState();
     }
 
+    // Host-gated types (here, config* below) stay unlimited: threat model is a compromised host.
     if (msg.t === "lobbyNav" || msg.t === "lobbyFocus" || msg.t === "lobbyConfirm" || msg.t === "returnToLobby" || msg.t === "transferHost" || msg.t === "rematch") {
       if (!conn?.playerId || this.data.hostId !== conn.playerId) return [];
       const count = this.catalog.summaries.length;
@@ -217,6 +231,7 @@ export class Room {
 
     if (msg.t === "suggestGame") {
       if (!conn?.playerId || this.data.mode !== "lobby") return [];
+      if (this.limited("suggestGame", connId, now, UI_ACTION_LIMIT)) return [];
       if (!this.catalog.summaries.some((s) => s.id === msg.gameId)) return [];
       if (!this.data.players[conn.playerId]) return [];
       if (this.data.suggestions[conn.playerId] === msg.gameId) delete this.data.suggestions[conn.playerId];
@@ -278,14 +293,13 @@ export class Room {
 
     if (msg.t === "action") {
       if (!conn?.playerId || this.data.mode !== "in-game" || !this.data.screenConnId) return [];
-      const recent = hit(this.actionHits[connId] ?? [], now, ACTION_LIMIT);
-      this.actionHits[connId] = recent;
-      if (recent.length > ACTION_LIMIT.max) return [];
+      if (this.limited("action", connId, now, ACTION_LIMIT)) return [];
       return [{ to: "conn", connId: this.data.screenConnId, msg: { t: "gameAction", playerId: conn.playerId, payload: msg.payload, now } }];
     }
 
     if (msg.t === "rtcSignal") {
       // Pure forwarding by connId - the payload (SDP/ICE) is never parsed or stored here.
+      if (this.limited("rtcSignal", connId, now, RTC_SIGNAL_LIMIT)) return [];
       if (conn?.role === "screen") {
         const targetConnId = msg.toPlayerId ? this.connIdForPlayer(msg.toPlayerId) : null;
         if (!targetConnId) return [];
@@ -300,6 +314,7 @@ export class Room {
       // only for the game currently in play - not a controller, and not a stale/superseded launch.
       if (conn?.role !== "screen" || this.data.screenConnId !== connId) return [];
       if (this.data.mode !== "in-game" || this.data.currentGameId !== msg.gameId) return [];
+      if (this.limited("gameStatePush", connId, now, GAME_STATE_PUSH_LIMIT)) return [];
       this.data.lastGameState = { gameId: msg.gameId, state: msg.state };
       // Noisy path: a real-time game pushes state at tickRateHz, so this stays off by default
       // (state itself is never logged - only relay knows a push happened, never its shape).
@@ -314,7 +329,7 @@ export class Room {
     const conn = this.data.connections[connId];
     if (!conn) return [];
     delete this.data.connections[connId];
-    delete this.actionHits[connId];
+    for (const perConn of Object.values(this.msgHits)) delete perConn[connId];
     if (conn.role === "screen") {
       if (this.data.screenConnId === connId) this.data.screenConnId = null;
       this.info("screen closed");

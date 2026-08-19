@@ -1,11 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
 import { parseClientMessage } from "@hubbub/protocol";
+import { hit, type RateLimitConfig } from "@hubbub/protocol/rate-limit";
 import { newToken } from "@hubbub/protocol/tokens";
 import { createLogger, Room, type Outbound, type RoomSnapshot, type TokenSource } from "@hubbub/relay";
 import { catalog } from "./catalog.js";
 import type { WorkerEnv } from "./env.js";
 
-interface RateLimitConfig { max: number; windowMs: number; }
 const DEFAULT_PER_CODE: RateLimitConfig = { max: 10, windowMs: 60_000 };
 const tokens: TokenSource = { next: newToken };
 // console.* is captured by `wrangler tail`. "debug" also emits per-gameStatePush lines (noisy
@@ -52,11 +52,8 @@ export class RoomDO extends DurableObject<WorkerEnv> {
   async fetch(request: Request): Promise<Response> {
     const room = await this.getRoom();
     if (!room) {
-      const now = Date.now();
-      const recent = this.codeFails.filter((t) => now - t < DEFAULT_PER_CODE.windowMs);
-      recent.push(now);
-      this.codeFails = recent;
-      return new Response(null, { status: recent.length > DEFAULT_PER_CODE.max ? 429 : 404 });
+      this.codeFails = hit(this.codeFails, Date.now(), DEFAULT_PER_CODE);
+      return new Response(null, { status: this.codeFails.length > DEFAULT_PER_CODE.max ? 429 : 404 });
     }
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected websocket", { status: 400 });

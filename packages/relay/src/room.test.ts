@@ -290,6 +290,72 @@ describe("Room", () => {
     });
   });
 
+  describe("joinRoom flood protection", () => {
+    it("a single connection resending joinRoom cannot grow room membership past its first slot", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      const joined1 = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+
+      for (let i = 0; i < 50; i++) {
+        const out = await room.handleMessage("c1", join("Ann"), i);
+        expect(findConn(out, "c1", "error")?.code).toBe("already_joined");
+      }
+
+      expect(Object.keys(room.snapshot().players)).toHaveLength(1);
+      expect(room.snapshot().players[joined1.playerId]).toBeDefined();
+    });
+
+    it("a legitimate reconnect on a fresh connection is not rejected by the already-joined guard", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      const joined1 = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+      room.handleDisconnect("c1");
+
+      const joined2 = findConn(await room.handleMessage("c2", join("Ann", joined1.token), 0), "c2", "joined");
+      expect(joined2.playerId).toBe(joined1.playerId);
+      expect(Object.keys(room.snapshot().players)).toHaveLength(1);
+    });
+  });
+
+  describe("suggestGame/setIdentity/rtcSignal/gameStatePush rate limiting", () => {
+    it("drops suggestGame once a connection exceeds its window budget (UI_ACTION_LIMIT.max=20)", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("c1", join("Ann"), 0);
+      const results: Outbound[][] = [];
+      for (let i = 0; i < 21; i++) results.push(await room.handleMessage("c1", { t: "suggestGame", gameId: "counter" }, 1_000));
+      expect(findAll(results[19], "roomState")).toBeDefined();
+      expect(results[20]).toEqual([]);
+    });
+
+    it("drops setIdentity once a connection exceeds its window budget", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("c1", join("Ann"), 0);
+      const results: Outbound[][] = [];
+      for (let i = 0; i < 21; i++) results.push(await room.handleMessage("c1", { t: "setIdentity", name: "Ann", colorId: 0, emoji: "🦊" }, 1_000));
+      expect(findAll(results[19], "roomState")).toBeDefined();
+      expect(results[20]).toEqual([]);
+    });
+
+    it("drops rtcSignal once a connection exceeds its window budget (RTC_SIGNAL_LIMIT.max=60)", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      await room.handleMessage("c1", join("Ann"), 0);
+      const results: Outbound[][] = [];
+      for (let i = 0; i < 61; i++) results.push(await room.handleMessage("c1", { t: "rtcSignal", data: { kind: "offer", sdp: "x" } }, 1_000));
+      expect(findConn(results[59], "s", "rtcSignal")).toBeDefined();
+      expect(results[60]).toEqual([]);
+    });
+
+    it("drops gameStatePush once the screen connection exceeds its window budget", async () => {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      await room.handleMessage("c1", join("Ann"), 0);
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      const results: Outbound[][] = [];
+      for (let i = 0; i < 121; i++) results.push(await room.handleMessage("s", { t: "gameStatePush", gameId: "counter", state: { x: i } }, 1_000));
+      expect(findAll(results[119], "gameState")).toBeDefined();
+      expect(results[120]).toEqual([]);
+    });
+  });
+
   describe("logging", () => {
     it("produces a room-prefixed, followable log from create through join, reconnect and close", async () => {
       const { logger, lines } = capturingLogger();
