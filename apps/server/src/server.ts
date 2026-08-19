@@ -50,14 +50,20 @@ function roomCodeFromUrl(url: string | undefined): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export function createServer(port: number, games: GameRegistry, rateLimit: JoinRateLimitOptions = {}, logger: RelayLogger = defaultLogger()) {
+export function createServer(
+  port: number,
+  games: GameRegistry,
+  rateLimit: JoinRateLimitOptions = {},
+  logger: RelayLogger = defaultLogger(),
+  settingsSchema: (gameId: string) => ReturnType<typeof getSettingsSchema> = getSettingsSchema,
+) {
   const wss = new WebSocketServer({ noServer: true });
   // Separate counters for POST /api/rooms vs the /room/:code upgrade: a screen's own room
   // creation must not eat into the budget the join-flood limiter guards.
   const ipLimitedCreate = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
   const ipLimitedJoin = createLimiter(rateLimit.perIp ?? DEFAULT_PER_IP);
   const codeLimited = createLimiter(rateLimit.perCode ?? DEFAULT_PER_CODE);
-  const rooms = new RoomManager(toCatalog(games, gameSummaries(games), getSettingsSchema), { next: newToken }, logger);
+  const rooms = new RoomManager(toCatalog(games, gameSummaries(games), settingsSchema), { next: newToken }, logger);
   // connId -> live socket. Only @hubbub/relay's Room decides WHO is in a room's broadcast set
   // (room.connIds()); this map exists purely to resolve an opaque connId to something sendable.
   const sockets = new Map<string, WebSocket>();

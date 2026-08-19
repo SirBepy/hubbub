@@ -1,19 +1,17 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
 import { z } from "zod";
-import type { GameLogic, GameRegistry } from "@hubbub/sdk";
+import type { GameLogic, GameRegistry, SettingsSchema } from "@hubbub/sdk";
 import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { noopLogger } from "@hubbub/relay";
-import { getSettingsSchema } from "@hubbub/games/settings";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
-// "music-guesser" is the only id with a real schema in @hubbub/games/settings today - reuse that
-// id with a lightweight fake logic (no real Deezer fetch) to exercise the config phase generically
-// against the real schema's showIf/option shape without hitting the network.
+// A fixture id + fixture schema, owned entirely by this test file: no real game's id or
+// settings-schema.ts can turn this suite red (todo 55, closing the seam todo 48 hit).
 interface FakeState { launchedWith: unknown }
-const fakeMusicGuesser: GameLogic<FakeState, {}> = {
-  meta: { name: "FakeMusicGuesser", minPlayers: 1 },
+const fakeConfigurable: GameLogic<FakeState, {}> = {
+  meta: { name: "FakeConfigurable", minPlayers: 1 },
   actionSchema: z.object({}),
   setup: async (options) => ({ launchedWith: options }),
   init: (_players, setupData) => setupData as FakeState,
@@ -27,16 +25,25 @@ const schemaless: GameLogic<{ ok: boolean }, {}> = {
   onAction: (s) => s,
   onPlayersChanged: (s) => s,
 };
-const registry: GameRegistry = { "music-guesser": fakeMusicGuesser, schemaless }; // index 0, 1
+const registry: GameRegistry = { "fixture-configurable": fakeConfigurable, schemaless }; // index 0, 1
 
-// createServer resolves settingsSchema by id from the platform's real registry regardless of
-// what fakeMusicGuesser above declares, so expectations below are derived from the schema music-
-// guesser actually ships (todo 48) - a game repo editing its option list can't turn this red.
-const musicGuesserSchema = getSettingsSchema("music-guesser");
-if (!musicGuesserSchema) throw new Error("music-guesser has no settings schema - is @hubbub/games/settings wired?");
+const fixtureSchema: SettingsSchema = [
+  {
+    key: "roundMode", label: "Round Mode", type: "choice", default: "classic",
+    options: [{ value: "classic", label: "Classic" }, { value: "blitz", label: "Blitz" }, { value: "marathon", label: "Marathon" }],
+  },
+  {
+    key: "source", label: "Source", type: "choice", default: "builtin",
+    options: [{ value: "builtin", label: "Builtin" }, { value: "custom", label: "Custom" }],
+  },
+  { key: "playlistUrl", label: "Playlist URL", type: "text", default: "", showIf: { field: "source", value: "custom" } },
+];
+function settingsSchema(gameId: string): SettingsSchema | null {
+  return gameId === "fixture-configurable" ? fixtureSchema : null;
+}
 function schemaField(key: string) {
-  const f = musicGuesserSchema!.find((field) => field.key === key);
-  if (!f) throw new Error(`music-guesser schema has no "${key}" field`);
+  const f = fixtureSchema.find((field) => field.key === key);
+  if (!f) throw new Error(`fixture schema has no "${key}" field`);
   return f;
 }
 const roundModeField = schemaField("roundMode");
@@ -46,7 +53,7 @@ const cycleRoundMode = (from: string, dir: 1 | -1) =>
 const sourceField = schemaField("source");
 const sourceOptionCount = sourceField.options?.length ?? 0;
 const revealSourceValue = schemaField("playlistUrl").showIf?.value;
-if (!revealSourceValue) throw new Error("music-guesser's playlistUrl field has no showIf to derive the reveal value from");
+if (!revealSourceValue) throw new Error("fixture schema's playlistUrl field has no showIf to derive the reveal value from");
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
@@ -71,7 +78,7 @@ const join = (ws: WebSocket, name: string) =>
   ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
 
 async function setup() {
-  handle = createServer(0, registry, {}, noopLogger);
+  handle = createServer(0, registry, {}, noopLogger, settingsSchema);
   const port = (handle.server.address() as { port: number }).port;
   const base = `ws://localhost:${port}`;
   const code = await createRoomHttp(base);
@@ -104,8 +111,8 @@ describe("config phase", () => {
 
   it("a schema-having game opens the configuring phase (with schema defaults) instead of launching", async () => {
     const { screen, host } = await setup();
-    const room = await startConfiguring(screen, host); // cursor already at index 0, "music-guesser"
-    expect(room.config.gameId).toBe("music-guesser");
+    const room = await startConfiguring(screen, host); // cursor already at index 0, "fixture-configurable"
+    expect(room.config.gameId).toBe("fixture-configurable");
     expect(room.config.cursorIndex).toBe(0);
     expect(room.config.values.roundMode).toBe(roundModeField.default);
     screen.close(); host.close();
@@ -125,7 +132,7 @@ describe("config phase", () => {
 
     host.send(JSON.stringify({ t: "configConfirm" })); // launches with untouched defaults
     const gs = await nextOf(screen, "gameState");
-    expect(gs.gameId).toBe("music-guesser");
+    expect(gs.gameId).toBe("fixture-configurable");
     screen.close(); host.close(); guest.close();
   });
 
