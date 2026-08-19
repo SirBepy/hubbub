@@ -13,6 +13,7 @@ import {
   type GameTopBarPlayer,
 } from "@hubbub/ui";
 import { loadGameScreen, getSettingsSchema } from "./game";
+import { rosterIdsChanged } from "./roster-diff";
 import { Lobby } from "./lobby";
 import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
@@ -83,6 +84,8 @@ export function App() {
       if (gameId) transport?.send({ t: "gameStatePush", gameId, state: gameState });
     });
     authorityRef.current = authority;
+    let prevPlayerIds: Set<string> | null = null;
+    let latestPlayers: { id: string; name: string }[] = [];
 
     // A Durable Object is addressed by name at connect time, so the room code has to exist
     // before the socket opens: POST for the code, then connect straight to /room/:code.
@@ -96,6 +99,12 @@ export function App() {
       t.connect().then(() => {
         off = t.onMessage((msg) => {
           if (msg.t === "roomState") {
+            const ids = new Set(msg.players.map((p) => p.id));
+            latestPlayers = msg.players.map((p) => ({ id: p.id, name: p.name }));
+            if (msg.mode === "in-game" && rosterIdsChanged(prevPlayerIds, ids)) {
+              authority.playersChanged(latestPlayers);
+            }
+            prevPlayerIds = ids;
             setRoom({
               players: msg.players,
               hostId: msg.hostId,
@@ -113,6 +122,11 @@ export function App() {
             launchedGameIdRef.current = msg.gameId;
             loadGameScreen(msg.gameId)?.then(({ logic }) => {
               authority.launch(logic, msg.players, msg.setupData, msg.now);
+              // The chunk import above is async, so a roster change landing mid-load hits a null
+              // instance and no-ops. It never re-fires, so reconcile once the instance exists.
+              if (rosterIdsChanged(new Set(msg.players.map((p) => p.id)), new Set(latestPlayers.map((p) => p.id)))) {
+                authority.playersChanged(latestPlayers);
+              }
             });
           } else if (msg.t === "gameAction") {
             authority.action(msg.playerId, msg.payload, msg.now);

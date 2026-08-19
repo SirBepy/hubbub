@@ -17,6 +17,33 @@ const staleDeadlineGame: GameLogic<State, Action> = {
   nextDeadline: () => Date.now() - 5000,
 };
 
+const rosterGame: GameLogic<State & { playerIds: string[] }, Action> = {
+  meta: { name: "Roster", minPlayers: 1 },
+  actionSchema: z.object({}),
+  init: () => ({ tick: 0, playerIds: [] }),
+  onAction: (s) => s,
+  onPlayersChanged: (s, players) => ({ ...s, playerIds: players.map((p) => p.id) }),
+};
+
+describe("createGameAuthority.playersChanged", () => {
+  it("forwards a mid-game roster change to onPlayersChanged and broadcasts via onState", () => {
+    const states: unknown[] = [];
+    const authority = createGameAuthority((s) => states.push(s));
+    authority.launch(rosterGame, [{ id: "p1", name: "Joe" }], undefined, Date.now());
+
+    authority.playersChanged([{ id: "p1", name: "Joe" }, { id: "p2", name: "Ann" }]);
+
+    expect(states.at(-1)).toEqual({ tick: 0, playerIds: ["p1", "p2"] });
+  });
+
+  it("no-ops when no instance is live", () => {
+    const onState = vi.fn();
+    const authority = createGameAuthority(onState);
+    authority.playersChanged([{ id: "p1", name: "Joe" }]);
+    expect(onState).not.toHaveBeenCalled();
+  });
+});
+
 describe("createGameAuthority re-arm floor and termination", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

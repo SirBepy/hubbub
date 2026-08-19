@@ -6,6 +6,8 @@ export interface GameAuthority {
   launch(logic: GameLogic<any, any>, players: PlayerInfo[], setupData: unknown, now: number): void;
   /** Applies a forwarded action; no-ops (no onState call) if the action fails schema validation. */
   action(playerId: string, payload: unknown, now: number): void;
+  /** Forwards a roster change to the live instance's onPlayersChanged and broadcasts the result. */
+  playersChanged(players: PlayerInfo[]): void;
   /** Drops the current instance and cancels its pending timeout. */
   reset(): void;
 }
@@ -45,6 +47,12 @@ export function createGameAuthority(onState: (state: unknown) => void): GameAuth
     },
     action(playerId, payload, now) {
       if (!inst?.applyAction(playerId, payload, now)) return;
+      onState(inst.get());
+      scheduleTimer();
+    },
+    playersChanged(players) {
+      if (!inst) return;
+      inst.playersChanged(players);
       onState(inst.get());
       scheduleTimer();
     },
