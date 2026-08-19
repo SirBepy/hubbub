@@ -149,15 +149,27 @@ All edits below are inside the `hubbub` repo (this repo).
    No `pnpm-workspace.yaml` change needed - `link:`/`file:` deps resolve by path,
    bypassing the workspace glob (`packages/*`, `apps/*`, `packages/games/*`), which
    is why sibling-repo games don't need to live under `packages/games/`.
-2. One line each, following the existing `ttt`/`uttt` pattern exactly:
-   - `src/logics.ts`: import `<camelId>Logic` from `@hubbub/game-<gameId>`, add
+2. Following the existing `tap-race`/`music-guesser`/`split-opinions` pattern exactly:
+   - `src/logics.ts` (eager registry, server + host-desktop only): import
+     `<camelId>Logic` from `@hubbub/game-<gameId>`, add
      `<gameId>: <camelId>Logic` to `GAME_LOGICS`.
-   - `src/screens.ts`: import `<PascalId>Screen` from `@hubbub/game-<gameId>/screen`,
-     add `<gameId>: <PascalId>Screen as ScreenComponent` to `GAME_SCREENS`.
-   - `src/controllers.ts`: import `<PascalId>Controller` from
-     `@hubbub/game-<gameId>/controller`, add
-     `<gameId>: <PascalId>Controller as ControllerComponent` to `GAME_CONTROLLERS`.
-   `manifest.test.ts` enforces the three key sets match - a missed line fails it.
+   - `src/lazy.ts` (browser registry, dynamic `import()` so a game's code stays out
+     of the initial chunk): add a `<gameId>` entry to `GAME_CHUNKS` with `screen`,
+     `controller`, and `logic` loaders pointing at `@hubbub/game-<gameId>/screen`,
+     `@hubbub/game-<gameId>/controller`, and `@hubbub/game-<gameId>` respectively -
+     copy an existing entry's `.then((m) => m.X as ...)` shape.
+   - `src/settings.ts` (only if the game has a pre-game settings schema; this map
+     is intentionally partial - `ttt`/`uttt`/`tap-race` skip it entirely): add
+     `"./settings": "./src/settings-schema.ts"` to the game's own `package.json`
+     `exports`, then import `<GAME_ID_UPPER_SNAKE>_SETTINGS_SCHEMA` from
+     `@hubbub/game-<gameId>/settings` and add
+     `<gameId>: <GAME_ID_UPPER_SNAKE>_SETTINGS_SCHEMA` to `GAME_SETTINGS_SCHEMAS`.
+     `settings-schema.ts` must stay an import-leaf (see todo 41 in this repo's
+     backlog) - it is bundled eagerly into every browser app, so it must not
+     import the game's `logic.ts` or anything else heavy.
+   `manifest.test.ts` enforces `GAME_CHUNKS`' keys match `GAME_LOGICS`' keys - a
+   missed `logics.ts`/`lazy.ts` line fails it. There is no equivalent test for
+   `settings.ts` since that map is intentionally partial.
 3. Verify floor at hubbub root (each its own command):
 ```
 pnpm install
