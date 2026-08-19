@@ -8,6 +8,9 @@ export type AvatarSetId = "gi" | "fe" | "tw";
 
 export type AvatarCharacter = { id: string; label: string; setId: AvatarSetId };
 
+// Adding a set: give it an id here AND matching entries in both its -meta.ts (eager) and
+// its art file (lazy, resolve.ts). meta-sync.test.ts fails by name if the two ever disagree.
+
 export type AvatarSet = {
   id: AvatarSetId;
   /** Group label shown in the picker. */

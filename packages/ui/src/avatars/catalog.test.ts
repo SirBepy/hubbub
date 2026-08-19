@@ -1,13 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./catalog";
 import { resolveAvatarCharacter } from "./resolve";
+import { GAME_ICONS_META } from "./game-icons-meta";
+import { FLUENT_EMOJI_META } from "./fluent-emoji-meta";
+import { TWEMOJI_META } from "./twemoji-meta";
+
+// Expected counts derive from the meta files (same source AVATAR_SETS itself builds from),
+// not hardcoded numbers, so this test never needs a manual bump on top of the meta edit.
+const EXPECTED_COUNTS: Record<string, number> = {
+  gi: GAME_ICONS_META.length,
+  fe: FLUENT_EMOJI_META.length,
+  tw: TWEMOJI_META.length,
+};
 
 describe("avatar catalog", () => {
-  it("ships 58 characters (gi trimmed to 18 for 30px distinctness), all namespaced and unique", () => {
-    expect(ALL_AVATAR_IDS.length).toBe(58);
-    expect(new Set(ALL_AVATAR_IDS).size).toBe(58);
+  it("ships one character per meta entry, all namespaced and unique", () => {
+    const total = GAME_ICONS_META.length + FLUENT_EMOJI_META.length + TWEMOJI_META.length;
+    expect(ALL_AVATAR_IDS.length).toBe(total);
+    expect(new Set(ALL_AVATAR_IDS).size).toBe(total);
     for (const set of AVATAR_SETS) {
-      expect(set.characters.length).toBe(set.id === "gi" ? 18 : 20);
+      expect(set.characters.length).toBe(EXPECTED_COUNTS[set.id]);
       for (const c of set.characters) expect(c.id.startsWith(`${set.id}:`)).toBe(true);
     }
   });
