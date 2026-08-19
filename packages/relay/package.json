@@ -7,7 +7,14 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "@hubbub/protocol": "workspace:*" },
-  "devDependencies": { "typescript": "^5.5.0" }
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hubbub/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0"
+  }
 }
