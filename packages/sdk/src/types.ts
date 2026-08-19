@@ -52,6 +52,10 @@ export interface SettingsField {
   showIf?: { field: string; value: string };
 }
 
+/** A game's `settings-schema.ts` module is bundled EAGERLY into every browser app's initial
+ * chunk (games-manifest/settings.ts), unlike logic/lazy loaders. Keep it an import leaf: type-only
+ * imports from this SDK plus literal data only, never a game's logic/questions/API-client module -
+ * games-manifest's `settings-schema-leaf.test.ts` enforces this. */
 export type SettingsSchema = SettingsField[];
 
 /** Server clock at the moment something happened. Games read `now` from here, never call Date.now() themselves. */
