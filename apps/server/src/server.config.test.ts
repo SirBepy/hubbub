@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { GameLogic, GameRegistry } from "@hubbub/sdk";
 import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { noopLogger } from "@hubbub/relay";
+import { getSettingsSchema } from "@hubbub/games/settings";
 import { createServer } from "./server.js";
 import { attachScreenAuthority } from "./test-screen.js";
 
@@ -27,6 +28,25 @@ const schemaless: GameLogic<{ ok: boolean }, {}> = {
   onPlayersChanged: (s) => s,
 };
 const registry: GameRegistry = { "music-guesser": fakeMusicGuesser, schemaless }; // index 0, 1
+
+// createServer resolves settingsSchema by id from the platform's real registry regardless of
+// what fakeMusicGuesser above declares, so expectations below are derived from the schema music-
+// guesser actually ships (todo 48) - a game repo editing its option list can't turn this red.
+const musicGuesserSchema = getSettingsSchema("music-guesser");
+if (!musicGuesserSchema) throw new Error("music-guesser has no settings schema - is @hubbub/games/settings wired?");
+function schemaField(key: string) {
+  const f = musicGuesserSchema!.find((field) => field.key === key);
+  if (!f) throw new Error(`music-guesser schema has no "${key}" field`);
+  return f;
+}
+const roundModeField = schemaField("roundMode");
+const roundModeValues = (roundModeField.options ?? []).map((o) => o.value);
+const cycleRoundMode = (from: string, dir: 1 | -1) =>
+  roundModeValues[(roundModeValues.indexOf(from) + dir + roundModeValues.length) % roundModeValues.length];
+const sourceField = schemaField("source");
+const sourceOptionCount = sourceField.options?.length ?? 0;
+const revealSourceValue = schemaField("playlistUrl").showIf?.value;
+if (!revealSourceValue) throw new Error("music-guesser's playlistUrl field has no showIf to derive the reveal value from");
 
 let handle: ReturnType<typeof createServer> | undefined;
 afterEach(async () => await handle?.close());
@@ -87,7 +107,7 @@ describe("config phase", () => {
     const room = await startConfiguring(screen, host); // cursor already at index 0, "music-guesser"
     expect(room.config.gameId).toBe("music-guesser");
     expect(room.config.cursorIndex).toBe(0);
-    expect(room.config.values.roundMode).toBe("mixed");
+    expect(room.config.values.roundMode).toBe(roundModeField.default);
     screen.close(); host.close();
   });
 
@@ -125,15 +145,17 @@ describe("config phase", () => {
   it("configAdjust cycles a choice field's value, wrapping both directions", async () => {
     const { screen, host } = await setup();
     await startConfiguring(screen, host);
-    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "right" })); // mixed -> title
-    let room = await untilRoomState(screen, (r) => r.config.values.roundMode !== "mixed");
-    expect(room.config.values.roundMode).toBe("title");
-    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "left" })); // back to mixed
-    room = await untilRoomState(screen, (r) => r.config.values.roundMode !== "title");
-    expect(room.config.values.roundMode).toBe("mixed");
-    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "left" })); // wraps to "year"
-    room = await untilRoomState(screen, (r) => r.config.values.roundMode !== "mixed");
-    expect(room.config.values.roundMode).toBe("year");
+    const afterRight = cycleRoundMode(roundModeField.default, 1);
+    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "right" }));
+    let room = await untilRoomState(screen, (r) => r.config.values.roundMode !== roundModeField.default);
+    expect(room.config.values.roundMode).toBe(afterRight);
+    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "left" }));
+    room = await untilRoomState(screen, (r) => r.config.values.roundMode !== afterRight);
+    expect(room.config.values.roundMode).toBe(roundModeField.default);
+    const afterWrapLeft = cycleRoundMode(roundModeField.default, -1);
+    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "left" }));
+    room = await untilRoomState(screen, (r) => r.config.values.roundMode !== roundModeField.default);
+    expect(room.config.values.roundMode).toBe(afterWrapLeft);
     screen.close(); host.close();
   });
 
@@ -141,12 +163,12 @@ describe("config phase", () => {
     const { screen, host } = await setup();
     await startConfiguring(screen, host);
     let room: any;
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < sourceOptionCount; i++) {
       host.send(JSON.stringify({ t: "configAdjust", field: "source", dir: "right" }));
       room = await nextOf(screen, "roomState");
-      if (room.config.values.source === "custom") break;
+      if (room.config.values.source === revealSourceValue) break;
     }
-    expect(room.config.values.source).toBe("custom");
+    expect(room.config.values.source).toBe(revealSourceValue);
     host.send(JSON.stringify({ t: "configSet", field: "playlistUrl", value: "https://deezer.com/playlist/42" }));
     room = await untilRoomState(screen, (r) => r.config.values.playlistUrl === "https://deezer.com/playlist/42");
     // configSet is a no-op on a choice field
@@ -158,13 +180,14 @@ describe("config phase", () => {
   it("configConfirm assembles the draft's values into options and feeds the game's setup", async () => {
     const { screen, host } = await setup();
     await startConfiguring(screen, host);
-    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "right" })); // -> title
-    await untilRoomState(screen, (r) => r.config.values.roundMode === "title");
+    const afterRight = cycleRoundMode(roundModeField.default, 1);
+    host.send(JSON.stringify({ t: "configAdjust", field: "roundMode", dir: "right" }));
+    await untilRoomState(screen, (r) => r.config.values.roundMode === afterRight);
     const launched = Promise.all([untilRoomState(screen, (r) => r.mode === "in-game"), nextOf(screen, "gameState")]);
     host.send(JSON.stringify({ t: "configConfirm" }));
     const [room, gs] = await launched;
     expect(room.config).toBeNull();
-    expect(gs.state.launchedWith).toMatchObject({ roundMode: "title" });
+    expect(gs.state.launchedWith).toMatchObject({ roundMode: afterRight });
     screen.close(); host.close();
   });
 
