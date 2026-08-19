@@ -104,6 +104,13 @@ shipped *plain* TTT as the proof. Ultimate TTT is now being added as the real se
 Verified state at handoff: **8 packages typecheck, 55 tests pass, full build + portable
 exe build succeed.**
 
+- **Dependency audit (2026-08-19, todo 57)** - `pnpm audit` went from 29 advisories (2
+  critical, incl. Electron and the root vitest pin) to 0. Electron, vite (controller/
+  screen/web) and root vitest all took clean major/minor bumps; `electron-builder`'s
+  transitive tar/js-yaml/fast-uri/brace-expansion/postcss/nanoid chain is pinned via
+  `pnpm.overrides` in the root `package.json` (same shape as the existing undici entry).
+  See `vitest.config.ts`'s comment for why the vitest bump was safe.
+
 ---
 
 ## 5. What's NEXT - finish Ultimate Tic-Tac-Toe

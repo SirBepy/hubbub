@@ -5,11 +5,12 @@ export default defineConfig({
     globals: true,
     passWithNoTests: true,
     pool: "forks",
-    poolOptions: { forks: { singleFork: true } },
+    fileParallelism: false,
     maxConcurrency: 5,
-    // apps/worker runs on @cloudflare/vitest-pool-workers, which requires vitest 4 - this repo
-    // pins vitest 2 at the root, so that package tests via its own `pnpm test:worker` instead
-    // (wired into the root "test" script; see package.json).
+    // apps/worker runs on @cloudflare/vitest-pool-workers via its own `pnpm test:worker`
+    // (root "test" script), so it stays excluded here.
+    // Root vitest bumped 2.x -> ^4.1.0 on 2026-08-19 (todo 57, cleared critical
+    // GHSA-5xrq-8626-4rwp) to match apps/worker's own vitest-pool-workers peer range.
     exclude: ["**/node_modules/**", "**/dist/**", "apps/worker/**"],
   },
 });
