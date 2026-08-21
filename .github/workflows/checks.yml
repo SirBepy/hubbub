@@ -1,0 +1,43 @@
+name: Checks
+
+# develop deliberately triggers nothing: it is the working branch.
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # .github/actions/setup is for GAME repos: it unconditionally checks out a second copy of
+      # SirBepy/hubbub beside itself, which is meaningless here since this checkout already IS
+      # hubbub. Reimplementing its pnpm/node steps directly instead (see action.yml for why
+      # pnpm/action-setup must precede setup-node).
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # No sibling hubbub-game-* repos exist on this runner, so postinstall's generate.mjs
+      # narrows the games manifest to the two core games and rewrites the git-tracked
+      # src/{logics,lazy,settings}.ts to match. That leaves the tree dirty; nothing here checks
+      # for that, matching local dev where the same postinstall runs unconditionally.
+      - run: pnpm install
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
