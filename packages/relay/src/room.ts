@@ -59,6 +59,9 @@ export interface RoomSnapshot {
   lastGameState: LastGameState | null;
   connections: Record<string, ConnInfo>;
   screenConnId: string | null;
+  // Minted on the first attachScreen (mirrors a player's join() token), null until then.
+  // A later attachScreen must present it to reattach - see the handler below.
+  screenToken: string | null;
 }
 
 // Guards against timing side channels on token comparison. Length is checked first (not
@@ -109,6 +112,7 @@ export class Room {
       lastGameState: null,
       connections: {},
       screenConnId: null,
+      screenToken: null,
     }, logger);
     logger.info(`[${code}] room created`);
     return room;
@@ -153,10 +157,23 @@ export class Room {
     const conn = this.data.connections[connId];
 
     if (msg.t === "attachScreen") {
+      // A joined controller must not be able to flip its own connId into the screen role.
+      if (conn?.playerId) return [{ to: "conn", connId, msg: { t: "error", code: "already_joined", message: "Connection already joined as a player" } }];
+      // Mint on first attach (mirrors join()'s token); after that only the holder may (re)attach.
+      let screenToken = this.data.screenToken;
+      if (screenToken) {
+        if (!msg.token || !timingSafeEqual(msg.token, screenToken)) {
+          return [{ to: "conn", connId, msg: { t: "error", code: "invalid_screen_token", message: "Wrong or missing screen token" } }];
+        }
+      } else {
+        screenToken = this.tokens.next();
+        this.data.screenToken = screenToken;
+      }
+      if (this.data.screenConnId && this.data.screenConnId !== connId) delete this.data.connections[this.data.screenConnId];
       this.data.connections[connId] = { role: "screen" };
       this.data.screenConnId = connId;
       return [
-        { to: "conn", connId, msg: { t: "roomCreated", code: this.data.code } },
+        { to: "conn", connId, msg: { t: "roomCreated", code: this.data.code, screenToken } },
         ...this.broadcastRoomState(),
       ];
     }

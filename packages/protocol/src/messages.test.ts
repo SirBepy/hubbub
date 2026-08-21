@@ -7,8 +7,16 @@ describe("protocol messages", () => {
     expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
   });
 
-  it("parses attachScreen", () => {
+  it("parses attachScreen with and without a reattach token", () => {
     expect(parseClientMessage(JSON.stringify({ t: "attachScreen" }))).toEqual({ t: "attachScreen" });
+    const withToken = { t: "attachScreen", token: "tok0" };
+    expect(parseClientMessage(JSON.stringify(withToken))).toEqual(withToken);
+  });
+
+  it("parses roomCreated with and without a screenToken", () => {
+    expect(parseServerMessage(JSON.stringify({ t: "roomCreated", code: "ABCD" }))).toEqual({ t: "roomCreated", code: "ABCD" });
+    const withToken = { t: "roomCreated", code: "ABCD", screenToken: "tok0" };
+    expect(parseServerMessage(JSON.stringify(withToken))).toEqual(withToken);
   });
 
   it("rejects an unknown message type", () => {

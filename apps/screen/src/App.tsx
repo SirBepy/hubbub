@@ -19,6 +19,7 @@ import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
 import { SERVER_URL, CONTROLLER_URL, STUN_URL } from "./config";
 import { formatHostLabel } from "./format-host-label";
+import { loadScreenSession, saveScreenSession, clearScreenSession } from "./screen-session";
 
 const HOST_LABEL = formatHostLabel(CONTROLLER_URL);
 
@@ -87,56 +88,104 @@ export function App() {
     let prevPlayerIds: Set<string> | null = null;
     let latestPlayers: { id: string; name: string }[] = [];
 
-    // A Durable Object is addressed by name at connect time, so the room code has to exist
-    // before the socket opens: POST for the code, then connect straight to /room/:code.
-    createRoomHttp(SERVER_URL).then((roomCode) => {
-      if (cancelled) return;
-      setCode(roomCode);
-      QRCode.toDataURL(`${CONTROLLER_URL}/?room=${roomCode}`).then(setQr);
-      const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, roomCode), "screen", { stunUrl: STUN_URL });
-      transport = t;
-      transportRef.current = t;
-      t.connect().then(() => {
-        off = t.onMessage((msg) => {
-          if (msg.t === "roomState") {
-            const ids = new Set(msg.players.map((p) => p.id));
-            latestPlayers = msg.players.map((p) => ({ id: p.id, name: p.name }));
-            if (msg.mode === "in-game" && rosterIdsChanged(prevPlayerIds, ids)) {
+    // Registers the steady-state handlers a screen needs for the room's entire lifetime,
+    // whether this connection was a fresh createRoomHttp or a resumed reattach.
+    function wire(t: WebRtcClientTransport) {
+      return t.onMessage((msg) => {
+        if (msg.t === "roomCreated") {
+          setCode(msg.code);
+          if (msg.screenToken) saveScreenSession(sessionStorage, { code: msg.code, token: msg.screenToken });
+          QRCode.toDataURL(`${CONTROLLER_URL}/?room=${msg.code}`).then(setQr);
+        } else if (msg.t === "roomState") {
+          const ids = new Set(msg.players.map((p) => p.id));
+          latestPlayers = msg.players.map((p) => ({ id: p.id, name: p.name }));
+          if (msg.mode === "in-game" && rosterIdsChanged(prevPlayerIds, ids)) {
+            authority.playersChanged(latestPlayers);
+          }
+          prevPlayerIds = ids;
+          setRoom({
+            players: msg.players,
+            hostId: msg.hostId,
+            mode: msg.mode,
+            currentGameId: msg.currentGameId,
+            cursorIndex: msg.cursorIndex,
+            games: msg.games,
+            suggestions: msg.suggestions,
+            config: msg.config ?? null,
+          });
+        } else if (msg.t === "gameState") {
+          setGame({ gameId: msg.gameId, state: msg.state });
+        } else if (msg.t === "gameLaunch") {
+          // setup() already ran server-side; construct the GameInstance here (screen authority).
+          launchedGameIdRef.current = msg.gameId;
+          loadGameScreen(msg.gameId)?.then(({ logic }) => {
+            authority.launch(logic, msg.players, msg.setupData, msg.now);
+            // The chunk import above is async, so a roster change landing mid-load hits a null
+            // instance and no-ops. It never re-fires, so reconcile once the instance exists.
+            if (rosterIdsChanged(new Set(msg.players.map((p) => p.id)), new Set(latestPlayers.map((p) => p.id)))) {
               authority.playersChanged(latestPlayers);
             }
-            prevPlayerIds = ids;
-            setRoom({
-              players: msg.players,
-              hostId: msg.hostId,
-              mode: msg.mode,
-              currentGameId: msg.currentGameId,
-              cursorIndex: msg.cursorIndex,
-              games: msg.games,
-              suggestions: msg.suggestions,
-              config: msg.config ?? null,
-            });
-          } else if (msg.t === "gameState") {
-            setGame({ gameId: msg.gameId, state: msg.state });
-          } else if (msg.t === "gameLaunch") {
-            // setup() already ran server-side; construct the GameInstance here (screen authority).
-            launchedGameIdRef.current = msg.gameId;
-            loadGameScreen(msg.gameId)?.then(({ logic }) => {
-              authority.launch(logic, msg.players, msg.setupData, msg.now);
-              // The chunk import above is async, so a roster change landing mid-load hits a null
-              // instance and no-ops. It never re-fires, so reconcile once the instance exists.
-              if (rosterIdsChanged(new Set(msg.players.map((p) => p.id)), new Set(latestPlayers.map((p) => p.id)))) {
-                authority.playersChanged(latestPlayers);
-              }
-            });
-          } else if (msg.t === "gameAction") {
-            authority.action(msg.playerId, msg.payload, msg.now);
-          }
-        });
-        t.send({ t: "attachScreen" });
+          });
+        } else if (msg.t === "gameAction") {
+          authority.action(msg.playerId, msg.payload, msg.now);
+        }
       });
-    }).catch(() => {
-      if (!cancelled) setConnectError("Couldn't reach the server. Check your connection and refresh.");
-    });
+    }
+
+    // A reload's saved room+token reattaches instead of creating a new room. Any failure
+    // (dead room, rejected token) reports false so start() falls back to a fresh room -
+    // never a hang or an error screen.
+    async function tryReattach(stored: { code: string; token: string }): Promise<boolean> {
+      const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, stored.code), "screen", { stunUrl: STUN_URL });
+      try {
+        await t.connect();
+      } catch {
+        return false; // unknown/dead room 404s the WS handshake itself
+      }
+      if (cancelled) { t.close(); return true; }
+      const permanentOff = wire(t);
+      const accepted = await new Promise<boolean>((resolve) => {
+        const stopWaiting = t.onMessage((msg) => {
+          if (msg.t === "roomCreated") { stopWaiting(); resolve(true); }
+          else if (msg.t === "error") { stopWaiting(); resolve(false); }
+        });
+        t.send({ t: "attachScreen", token: stored.token });
+      });
+      if (!accepted) { permanentOff(); t.close(); return false; }
+      transport = t;
+      transportRef.current = t;
+      off = permanentOff;
+      return true;
+    }
+
+    // A Durable Object is addressed by name at connect time, so the room code has to exist
+    // before the socket opens: POST for the code, then connect straight to /room/:code.
+    async function createFresh() {
+      try {
+        const roomCode = await createRoomHttp(SERVER_URL);
+        if (cancelled) return;
+        const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, roomCode), "screen", { stunUrl: STUN_URL });
+        transport = t;
+        transportRef.current = t;
+        await t.connect();
+        off = wire(t);
+        t.send({ t: "attachScreen" });
+      } catch {
+        if (!cancelled) setConnectError("Couldn't reach the server. Check your connection and refresh.");
+      }
+    }
+
+    async function start() {
+      const stored = loadScreenSession(sessionStorage);
+      if (stored) {
+        if (await tryReattach(stored)) return;
+        if (cancelled) return;
+        clearScreenSession(sessionStorage);
+      }
+      await createFresh();
+    }
+    start();
+
     return () => {
       cancelled = true;
       off();

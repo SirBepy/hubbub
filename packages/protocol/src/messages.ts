@@ -51,7 +51,9 @@ export type RoomConfig = z.infer<typeof RoomConfigSchema>;
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   // The room code comes from the connection URL (/room/:code), not the message - a Durable
   // Object is addressed by name at connect time, so the code must be known before any message.
-  z.object({ t: z.literal("attachScreen") }),
+  // token: the screenToken from a prior roomCreated, for a reload to reattach as the same
+  // screen rather than a stranger with the room code taking it over. Absent on a first attach.
+  z.object({ t: z.literal("attachScreen"), token: z.string().optional() }),
   z.object({ t: z.literal("joinRoom"), ...IdentitySchema.shape, token: z.string().optional() }),
   z.object({ t: z.literal("setIdentity"), ...IdentitySchema.shape }),
   z.object({ t: z.literal("lobbyNav"), dir: z.enum(["up", "down", "left", "right"]) }),
@@ -84,7 +86,9 @@ export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 // Server -> Client
 export const ServerMessageSchema = z.discriminatedUnion("t", [
-  z.object({ t: z.literal("roomCreated"), code: z.string().length(ROOM_CODE_LENGTH) }),
+  // screenToken: persist alongside code to reattach on reload; optional only so older mock
+  // servers in tests still validate without it.
+  z.object({ t: z.literal("roomCreated"), code: z.string().length(ROOM_CODE_LENGTH), screenToken: z.string().optional() }),
   z.object({ t: z.literal("joined"), playerId: z.string(), token: z.string() }),
   z.object({
     t: z.literal("roomState"),

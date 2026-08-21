@@ -11,7 +11,7 @@ describe("room lobby, through the real Worker + Durable Object", () => {
 
     const screen = await attach(code);
     screen.ws.send(JSON.stringify({ t: "attachScreen" }));
-    expect(await screen.next()).toEqual({ t: "roomCreated", code });
+    expect(await screen.next()).toEqual({ t: "roomCreated", code, screenToken: expect.any(String) });
     await screen.next(); // initial roomState broadcast
 
     const p1 = await attach(code);
