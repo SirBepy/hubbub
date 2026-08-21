@@ -39,11 +39,10 @@ From the user's idea prompt, decide:
   as logical actions a D-pad can drive: cursor + select over free-pointer taps, discrete
   choice grids over sliders/gestures, text entry only where genuinely unavoidable (e.g.
   pasting a URL) and never on the core play loop.
-- Visual identity: **every game gets its own background treatment, distinct from the
-  lobby and from other games** (Joe, 2026-08-01: "i dont want the color palette to look
-  the same for every game"). CSS-only (no image assets): e.g. identityColors-tinted
-  gradients, a subtle thematic motif in pure CSS. Still bound by the design rules -
-  tokens/colorHex only, surfaces never animate, one glow per view.
+- Visual identity: the game owns its full visual identity, not just a background
+  tint - palette, typography, motion, and glow budget are the game's to invent.
+  Authority: `../hubbub-game-template/CLAUDE.md`'s "Design rules (must honor)"
+  section (hard floor there survives; the aesthetic tokens/glow-count rules do not).
 
 Only ask the user (AskUserQuestion, per global rules) if the idea is genuinely
 ambiguous on a product-level fork (e.g. turn-based vs real-time changes the whole
@@ -200,10 +199,10 @@ Hubbub-side registration changes (Step 5) get committed in `hubbub` via a separa
 Joe approves visuals before real code gets written - always (see the
 "disciplined design taste" project memory: mockup-approval loop before real code).
 Run `/mockup` for the game's two views (screen + controller, phone-framed for the
-controller), reusing `@hubbub/ui` tokens/components and honoring the design
-one-liners in Notes below. Show Joe the result and wait for his approval; iterate
-on his feedback. Only a user prompt that explicitly says to skip visuals (e.g.
-"no mockup, just build it") bypasses this gate - full-auto/autonomous mode does NOT
+controller), building the game's own visual world per the template's "Design
+rules" section (Notes below points at it). Show Joe the result and wait for
+his approval; iterate on his feedback. Only a user prompt that explicitly says
+to skip visuals (e.g. "no mockup, just build it") bypasses this gate - full-auto/autonomous mode does NOT
 bypass it: if Joe is AFK, stop after the mockup and park implementation until he
 reacts. The approved mockup files/screenshots become part of the builder's brief in
 Step 8.
@@ -236,12 +235,10 @@ re-run typecheck, re-verify before committing.
 
 - **Palette** (`packages/protocol/src/messages.ts` `PLAYER_COLOR_NAMES`): `0` magenta,
   `1` cyan, `2` lime, `3` amber, `4` violet, `5` blue.
-- **Design one-liners** (full rules in the new repo's `CLAUDE.md`): tokens only via
-  `@hubbub/ui` (`var(--surface-*)`, `colorHex(colorId)`) - never a raw hex; exactly
-  one glowing element per screen view and one per controller view
-  (`GlowButton` is the only glow); phone tap targets >= 44px both dimensions;
-  surfaces never animate, only borders/glow/content; no CDN, no new font imports -
-  local LAN mode has no internet.
+- **Design rules:** authority is the new repo's `CLAUDE.md` "Design rules (must
+  honor)" section (seeded from the template - don't restate it here). A game owns
+  its full visual identity; only the hard floor (no CDN, colorId's six stable
+  slots, 44px targets, D-pad drivable, contrast) is non-negotiable.
 - **Platform-update contract:** if a game needs something from `@hubbub/sdk`,
   `@hubbub/protocol`, or `@hubbub/ui` that doesn't exist, change it in `hubbub`
   directly (never fork/vendor into the game repo) - see the new repo's `CLAUDE.md`
