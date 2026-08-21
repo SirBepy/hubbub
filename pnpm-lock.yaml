@@ -265,15 +265,6 @@ importers:
 
   packages/games-manifest:
     dependencies:
-      '@hubbub/game-music-guesser':
-        specifier: link:../../../hubbub-game-music-guesser
-        version: link:../../../hubbub-game-music-guesser
-      '@hubbub/game-split-opinions':
-        specifier: link:../../../hubbub-game-split-opinions
-        version: link:../../../hubbub-game-split-opinions
-      '@hubbub/game-tap-race':
-        specifier: link:../../../hubbub-game-tap-race
-        version: link:../../../hubbub-game-tap-race
       '@hubbub/game-tictactoe':
         specifier: workspace:*
         version: link:../games/tictactoe
@@ -299,6 +290,16 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+    optionalDependencies:
+      '@hubbub/game-music-guesser':
+        specifier: link:../../../hubbub-game-music-guesser
+        version: link:../../../hubbub-game-music-guesser
+      '@hubbub/game-split-opinions':
+        specifier: link:../../../hubbub-game-split-opinions
+        version: link:../../../hubbub-game-split-opinions
+      '@hubbub/game-tap-race':
+        specifier: link:../../../hubbub-game-tap-race
+        version: link:../../../hubbub-game-tap-race
 
   packages/games/tictactoe:
     dependencies:

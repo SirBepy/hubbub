@@ -9,12 +9,18 @@
     "./lazy": "./src/lazy.ts",
     "./settings": "./src/settings.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "postinstall": "node scripts/generate.mjs",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@hubbub/sdk": "workspace:*",
     "@hubbub/protocol": "workspace:*",
     "@hubbub/game-tictactoe": "workspace:*",
-    "@hubbub/game-ultimate-tictactoe": "workspace:*",
+    "@hubbub/game-ultimate-tictactoe": "workspace:*"
+  },
+  "optionalDependencies": {
     "@hubbub/game-tap-race": "link:../../../hubbub-game-tap-race",
     "@hubbub/game-music-guesser": "link:../../../hubbub-game-music-guesser",
     "@hubbub/game-split-opinions": "link:../../../hubbub-game-split-opinions"
