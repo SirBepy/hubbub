@@ -9,21 +9,38 @@ Deploy: other (cloud = hosted server + screen over wss; local = Electron host ap
 
 ## Status
 
-Pre-scaffold. The only source of truth right now is the design spec:
-`docs/superpowers/specs/2026-06-24-hubbub-party-game-framework-design.md` - read it first.
-Scaffolding happens in Phase 0 (see the spec's build order); update the Structure/Commands sections below once it exists.
+Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.workers.dev (Cloudflare, free plan). The design specs in `docs/superpowers/specs/` are history/rationale now, not the current source of truth - `packages/games-manifest/src/logics.ts` and this file are.
 
-## Structure (planned, per spec)
+## Structure
 
 ```
-/apps     screen, controller (PWA), server (Node WS), host-desktop (Electron)
-/packages protocol (transport iface + Zod + reconnect), sdk (GameDefinition runtime), ui, games/*
+/apps
+  screen        big-screen renderer, authoritative game state (Vite/React)
+  controller    phone PWA, dumb input widgets (Vite/React)
+  web           cloud entry point; role-detects screen vs controller by viewport/room code,
+                builds the static assets the worker serves
+  server        local-LAN Node WS relay (tsx/ws)
+  worker        cloud relay: Cloudflare Worker + Durable Objects (RoomDO, RateLimiterDO)
+  host-desktop  Electron wrapper; bundles screen+controller, serves them over LAN
+/packages
+  protocol       transport iface + Zod schemas + reconnect tokens
+  sdk            GameDefinition runtime (server logic / screen / controller contract)
+  ui             shared component/token library
+  relay          transport-agnostic room logic shared by server + worker
+  games          ONLY tictactoe + ultimate-tictactoe live here
+  games-manifest (pkg name @hubbub/games) the REAL roster: tap-race, music-guesser and
+                 split-opinions are SEPARATE sibling repos, wired in via
+                 src/logics.ts - grepping packages/games/* alone misses 3 of 5 games
 ```
 
 ## Commands
 
-- Not yet scaffolded. After Phase 0: pnpm workspaces + Turborepo (cap concurrency at 5).
-- Planned - Dev: `pnpm dev`  Verify: `pnpm -w typecheck && pnpm -w build`  Test: `pnpm -w test`
+- Dev: `pnpm dev` (everything) or `pnpm dev:all` (server+web+screen+controller only)
+- Verify floor: `pnpm -w typecheck`, `pnpm -w test`, `pnpm -w build` - there is no lint script
+- Scoped typecheck: `pnpm --filter <pkg> typecheck` - never add `--concurrency`, it reaches `tsc` and errors TS5023
+- Scoped test: no package has its own `test` script except `@hubbub/worker`; everything else runs off the root `vitest.config.ts`, so scope by path instead: `pnpm exec vitest run apps/server`
+- Install: bare `pnpm install` is blocked by a global hook - use `corepack pnpm install`
+- Electron packaging: `pnpm host:build`, `pnpm host:dev`, `pnpm host:package`
 
 ## Architecture
 
