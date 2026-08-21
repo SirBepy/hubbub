@@ -357,9 +357,14 @@ third-party game authors). Two findings changed this design; the rest confirmed 
    `@hubbub/ui`'s avatar art (fluent-emoji + game-icons + twemoji, loaded unconditionally by
    `packages/ui/src/avatars/resolve.ts:54-56`) is a fixed 147,075 raw bytes, present in tap-race
    and music-guesser, absent from split-opinions and template. It is a per-game rendering
-   choice, not a platform requirement: split-opinions renders `player.emoji` as raw text
-   (`screen.tsx:88`) and pays zero avatar bytes today, proving the tax is already avoidable
-   without touching the bridge or S12.
+   choice, not a platform requirement: a game that does not import `@hubbub/ui`'s `Avatar` pays
+   zero avatar bytes, so the tax is avoidable without touching the bridge or S12.
+
+   Correction, 2026-08-21: an earlier draft of this section cited split-opinions as the live proof
+   of that. Its zero-byte measurement is real, but the reason is a bug, not a pattern worth
+   copying: it renders the raw `avatarId` string (`screen.tsx:88`, `controller.tsx:60`), so a TV
+   shows `gi:bear-head` where an avatar belongs. Todo 60 tracks the fix. Treat the zero-byte
+   figure as a bound, not as a worked example.
 
    512 KiB = today's largest avatar-free footprint (music-guesser, ~281 kB) + the avatar tax
    (~147 kB) + roughly 20% headroom, rounded to a clean power of two. That leaves ~218 kB of
@@ -368,8 +373,8 @@ third-party game authors). Two findings changed this design; the rest confirmed 
    over budget.
 
    Exit condition: drops to 384 KiB (avatar-free footprint + headroom, no tax) once no shipping
-   game bundle carries the avatar art payload - i.e. once every game follows split-opinions's
-   pattern or the tax itself leaves `packages/ui`. Todo 45's per-game visual-identity doctrine
+   game bundle carries the avatar art payload - i.e. once every game draws avatars from its own
+   art, or the tax itself leaves `packages/ui`. Todo 45's per-game visual-identity doctrine
    already points every future game that direction; re-set explicitly when it is true for the
    games actually shipping, not on the day one game happens to hit zero avatar bytes. Settles
    todo 52.
