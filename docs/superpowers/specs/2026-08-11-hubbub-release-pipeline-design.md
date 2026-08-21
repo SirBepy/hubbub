@@ -334,6 +334,46 @@ third-party game authors). Two findings changed this design; the rest confirmed 
    just print a number in the bot comment. Pick a bundle-size ceiling far tighter than theirs -
    these are lazy-fetched party games, not 50MB downloads.
 
+   **Resolved, 2026-08-21 (todo 52): 512 KiB raw bytes per game, hard failure at ingest, not
+   gzip and not a warning.** KV stores and serves raw bytes; gzip is a transport negotiation, so
+   the check runs on what is actually stored. Avatars stay inside the bundle for now: §2.6
+   already rejected externalizing `@hubbub/ui` as a runtime-loaded module (all-shared-external,
+   3/10, guts hash pinning) - but that rejection covers CODE, not avatar art as opaque bridge
+   data, so the only live alternative is widening the Phase G bridge payload past `PlayerInfo`.
+   The 2026-08-08 record's S12 names "passing full `Player` because the view wants an avatar" as
+   the literal scope-creep pattern it exists to resist, so that route is not a lever to pull as a
+   side effect of a budget number.
+
+   Basis (measured 2026-08-21, `pnpm build`, one `dist/bundle.js` per game,
+   `cssCodeSplit: false`):
+
+   | game | raw | gzip |
+   |---|---|---|
+   | template (no `@hubbub/ui`) | 158.92 kB | 35.78 kB |
+   | split-opinions (no `@hubbub/ui` import) | 253.57 kB | 76.76 kB |
+   | tap-race | 312.52 kB | 96.51 kB |
+   | music-guesser | 428.27 kB | 170.46 kB |
+
+   `@hubbub/ui`'s avatar art (fluent-emoji + game-icons + twemoji, loaded unconditionally by
+   `packages/ui/src/avatars/resolve.ts:54-56`) is a fixed 147,075 raw bytes, present in tap-race
+   and music-guesser, absent from split-opinions and template. It is a per-game rendering
+   choice, not a platform requirement: split-opinions renders `player.emoji` as raw text
+   (`screen.tsx:88`) and pays zero avatar bytes today, proving the tax is already avoidable
+   without touching the bridge or S12.
+
+   512 KiB = today's largest avatar-free footprint (music-guesser, ~281 kB) + the avatar tax
+   (~147 kB) + roughly 20% headroom, rounded to a clean power of two. That leaves ~218 kB of
+   headroom above music-guesser's own game-specific code (~122 kB today) - a game has to add
+   nearly as much bespoke code as music-guesser's entire logic to trip this, not just a few kB
+   over budget.
+
+   Exit condition: drops to 384 KiB (avatar-free footprint + headroom, no tax) once no shipping
+   game bundle carries the avatar art payload - i.e. once every game follows split-opinions's
+   pattern or the tax itself leaves `packages/ui`. Todo 45's per-game visual-identity doctrine
+   already points every future game that direction; re-set explicitly when it is true for the
+   games actually shipping, not on the day one game happens to hit zero avatar bytes. Settles
+   todo 52.
+
 2. **The local dev loop must be able to run a game inside the sandbox.** This is the real hole.
    The 2026-08-05 design's "Local dev loop" resolves games as workspace packages and bypasses the
    sandbox entirely, so an author develops against something structurally different from what
