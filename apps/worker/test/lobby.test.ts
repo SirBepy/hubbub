@@ -15,7 +15,7 @@ describe("room lobby, through the real Worker + Durable Object", () => {
     await screen.next(); // initial roomState broadcast
 
     const p1 = await attach(code);
-    p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, emoji: "🐱" }));
+    p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, avatarId: "🐱" }));
     expect((await p1.next()).t).toBe("joined");
     await p1.next(); // roomState reaching the joiner
     let state = await screen.next(); // roomState reaching the screen
@@ -24,7 +24,7 @@ describe("room lobby, through the real Worker + Durable Object", () => {
     expect(state.games.length).toBeGreaterThan(0); // the real @hubbub/games catalog, not a stub
 
     const p2 = await attach(code);
-    p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, emoji: "🐶" }));
+    p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, avatarId: "🐶" }));
     expect((await p2.next()).t).toBe("joined");
     await p2.next();
     state = await screen.next();

@@ -30,7 +30,7 @@ const attemptJoin = (base: string, code: string, name: string): Promise<JoinAtte
     ws.on("unexpected-response", (_req, res) => { clearTimeout(timer); resolve({ ok: false, status: res.statusCode! }); });
     ws.on("error", () => {}); // the rejected upgrade also fires a generic error; the response above already resolved
     ws.on("open", () => {
-      ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
+      ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, avatarId: "🐱" }));
       ws.on("message", (m) => {
         const msg = JSON.parse(m.toString());
         if (msg.t === "joined") { clearTimeout(timer); ws.close(); resolve({ ok: true }); }

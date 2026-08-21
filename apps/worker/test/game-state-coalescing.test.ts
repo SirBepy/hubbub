@@ -14,13 +14,13 @@ async function setupInGameRoom(): Promise<{ code: string; screen: Conn; p1: Conn
   await screen.next(); // roomState
 
   const p1 = await attach(code);
-  p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, emoji: "🐱" }));
+  p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, avatarId: "🐱" }));
   await p1.next(); // joined
   await p1.next(); // roomState
   await screen.next(); // roomState reflecting Bepy
 
   const p2 = await attach(code);
-  p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, emoji: "🐶" }));
+  p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, avatarId: "🐶" }));
   await p2.next(); // joined
   await p2.next(); // roomState
   await screen.next(); // roomState reflecting Mira
@@ -78,7 +78,7 @@ describe("gameStatePush write coalescing", () => {
     expect(await runDurableObjectAlarm(stub)).toBe(true);
 
     const p3 = await attach(code);
-    p3.ws.send(JSON.stringify({ t: "joinRoom", name: "Kimi", colorId: 2, emoji: "🐰" }));
+    p3.ws.send(JSON.stringify({ t: "joinRoom", name: "Kimi", colorId: 2, avatarId: "🐰" }));
     await p3.next(); // joined
     const stateMsg = await p3.next(); // roomState
     const cached = await p3.next(); // gameState replay from the rehydrated lastGameState cache

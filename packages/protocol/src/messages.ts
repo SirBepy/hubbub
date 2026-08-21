@@ -7,7 +7,7 @@ export const PLAYER_COLOR_NAMES = ["magenta", "cyan", "lime", "amber", "violet",
 export const IdentitySchema = z.object({
   name: z.string().min(1).max(24),
   colorId: z.number().int().min(0).max(5),
-  emoji: z.string().min(1).max(16),
+  avatarId: z.string().min(1).max(16),
 });
 export type Identity = z.infer<typeof IdentitySchema>;
 

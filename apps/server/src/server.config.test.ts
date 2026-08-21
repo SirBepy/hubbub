@@ -75,7 +75,7 @@ const untilRoomState = async (ws: WebSocket, pred: (r: any) => boolean) => {
 };
 const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const join = (ws: WebSocket, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
+  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, avatarId: "🐱" }));
 
 async function setup() {
   handle = createServer(0, registry, {}, noopLogger, settingsSchema);

@@ -21,7 +21,7 @@ function fakeTokens(): TokenSource {
 function fakeCatalog(overrides: Partial<GameCatalog> = {}): GameCatalog {
   return { summaries: SUMMARIES, settingsSchema: () => null, setup: async (_id, options) => options, ...overrides };
 }
-const join = (name: string, token?: string) => ({ t: "joinRoom" as const, name, colorId: 0, emoji: "🦊", token });
+const join = (name: string, token?: string) => ({ t: "joinRoom" as const, name, colorId: 0, avatarId: "🦊", token });
 
 function findConn(out: Outbound[], connId: string, t: string) {
   return out.find((o): o is Outbound & { to: "conn" } => o.to === "conn" && o.connId === connId && o.msg.t === t)?.msg as any;
@@ -381,7 +381,7 @@ describe("Room", () => {
       const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
       await room.handleMessage("c1", join("Ann"), 0);
       const results: Outbound[][] = [];
-      for (let i = 0; i < 21; i++) results.push(await room.handleMessage("c1", { t: "setIdentity", name: "Ann", colorId: 0, emoji: "🦊" }, 1_000));
+      for (let i = 0; i < 21; i++) results.push(await room.handleMessage("c1", { t: "setIdentity", name: "Ann", colorId: 0, avatarId: "🦊" }, 1_000));
       expect(findAll(results[19], "roomState")).toBeDefined();
       expect(results[20]).toEqual([]);
     });

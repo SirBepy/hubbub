@@ -24,7 +24,7 @@ export function MiniIdentity({ player, mark, roleColor, emphasized }: MiniIdenti
       }}
     >
       {player ? (
-        <Avatar size={32} colorHex={NEUTRAL_RING} emoji={player.emoji} />
+        <Avatar size={32} colorHex={NEUTRAL_RING} avatarId={player.avatarId} />
       ) : (
         <div style={{ width: 32, height: 32 }} />
       )}

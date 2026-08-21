@@ -31,7 +31,7 @@ export function MenuScreen({
   return (
     <main style={page}>
       <div style={header}>
-        <Avatar size={52} colorHex={NEUTRAL_RING} emoji={me.emoji} surface={1} />
+        <Avatar size={52} colorHex={NEUTRAL_RING} avatarId={me.avatarId} surface={1} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={name}>{me.name}</div>
           <div style={sub}>{isHost ? "Host of this room" : "In this room"}</div>

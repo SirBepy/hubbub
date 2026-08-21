@@ -3,7 +3,7 @@ import { parseClientMessage, parseServerMessage, GameSummarySchema } from "./mes
 
 describe("protocol messages", () => {
   it("parses a valid joinRoom with identity (no code - that comes from the connection URL)", () => {
-    const raw = { t: "joinRoom", name: "Joe", colorId: 3, emoji: "🦊" };
+    const raw = { t: "joinRoom", name: "Joe", colorId: 3, avatarId: "🦊" };
     expect(parseClientMessage(JSON.stringify(raw))).toEqual(raw);
   });
 
@@ -35,7 +35,7 @@ describe("protocol messages", () => {
     expect(parseClientMessage(JSON.stringify({ t: "lobbyConfirm" }))).toEqual({ t: "lobbyConfirm" });
     expect(parseClientMessage(JSON.stringify({ t: "returnToLobby" }))).toEqual({ t: "returnToLobby" });
     expect(parseClientMessage(JSON.stringify({ t: "transferHost", toPlayerId: "p2" }))).toEqual({ t: "transferHost", toPlayerId: "p2" });
-    expect(parseClientMessage(JSON.stringify({ t: "setIdentity", name: "Jo", colorId: 0, emoji: "🐼" }))).toEqual({ t: "setIdentity", name: "Jo", colorId: 0, emoji: "🐼" });
+    expect(parseClientMessage(JSON.stringify({ t: "setIdentity", name: "Jo", colorId: 0, avatarId: "🐼" }))).toEqual({ t: "setIdentity", name: "Jo", colorId: 0, avatarId: "🐼" });
     expect(parseClientMessage(JSON.stringify({ t: "suggestGame", gameId: "ttt" }))).toEqual({ t: "suggestGame", gameId: "ttt" });
     expect(parseClientMessage(JSON.stringify({ t: "rematch" }))).toEqual({ t: "rematch" });
   });
@@ -76,7 +76,7 @@ describe("protocol messages", () => {
   it("parses a roomState server message with lobby context", () => {
     const raw = {
       t: "roomState",
-      players: [{ id: "p1", name: "Joe", colorId: 4, emoji: "🐱", connected: true }],
+      players: [{ id: "p1", name: "Joe", colorId: 4, avatarId: "🐱", connected: true }],
       hostId: "p1",
       mode: "lobby",
       currentGameId: null,

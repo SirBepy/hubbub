@@ -15,7 +15,7 @@ export type AvatarProps = {
   colorHex: string;
   /** A bundled character id ("gi:fox-head", "fe:zombie", "tw:octopus") or a
    * plain emoji string. Unrecognized strings render as text, same as before. */
-  emoji: string;
+  avatarId: string;
   /** Fill surface. Screen rail uses --surface-2, phone chrome uses --surface-1. */
   surface?: 1 | 2;
   /** Drops the avatar to 45% opacity; identity is reserved, not cleared. */
@@ -24,23 +24,23 @@ export type AvatarProps = {
   host?: boolean;
 };
 
-export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host }: AvatarProps) {
+export function Avatar({ size, colorHex, avatarId, surface = 1, disconnected, host }: AvatarProps) {
   // Art loads lazily per set (see resolve.ts); the sync cache is warm almost immediately since
   // it starts loading at app boot, so this only shows a blank ring on a genuinely cold start.
-  const [character, setCharacter] = useState<ResolvedAvatarCharacter | null>(() => resolveAvatarCharacterSync(emoji));
+  const [character, setCharacter] = useState<ResolvedAvatarCharacter | null>(() => resolveAvatarCharacterSync(avatarId));
   useEffect(() => {
-    const cached = resolveAvatarCharacterSync(emoji);
+    const cached = resolveAvatarCharacterSync(avatarId);
     if (cached) {
       setCharacter(cached);
       return;
     }
     let alive = true;
-    resolveAvatarCharacter(emoji).then((c) => alive && setCharacter(c));
+    resolveAvatarCharacter(avatarId).then((c) => alive && setCharacter(c));
     return () => {
       alive = false;
     };
-  }, [emoji]);
-  const bundled = isAvatarCharacterId(emoji);
+  }, [avatarId]);
+  const bundled = isAvatarCharacterId(avatarId);
   return (
     <div
       style={{
@@ -66,7 +66,7 @@ export function Avatar({ size, colorHex, emoji, surface = 1, disconnected, host 
           overflow: "hidden",
         }}
       >
-        {character ? <AvatarGlyph character={character} /> : bundled ? null : emoji}
+        {character ? <AvatarGlyph character={character} /> : bundled ? null : avatarId}
       </div>
       {host ? (
         <span

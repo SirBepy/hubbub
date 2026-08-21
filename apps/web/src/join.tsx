@@ -21,7 +21,7 @@ export function JoinScreen({
 
   return (
     <main style={page}>
-      <IdentityHeader name={identity.name} emoji={identity.emoji} isHost={false} onOpenMenu={onEditIdentity} />
+      <IdentityHeader name={identity.name} avatarId={identity.avatarId} isHost={false} onOpenMenu={onEditIdentity} />
 
       <div style={main}>
         <p style={label}>On this phone</p>

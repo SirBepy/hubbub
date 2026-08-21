@@ -24,7 +24,7 @@ describe("avatar catalog", () => {
     }
   });
 
-  it("every id fits the protocol's emoji field (max 16 chars)", () => {
+  it("every id fits the protocol's avatarId field (max 16 chars)", () => {
     for (const id of ALL_AVATAR_IDS) expect(id.length).toBeLessThanOrEqual(16);
   });
 

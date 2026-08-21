@@ -10,7 +10,7 @@ export interface DisplayPlayer {
   id: string;
   name: string;
   colorId: number;
-  emoji: string;
+  avatarId: string;
   connected: boolean;
 }
 

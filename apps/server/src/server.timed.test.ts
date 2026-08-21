@@ -41,7 +41,7 @@ const nextOf = (ws: WebSocket, t: string) =>
     ws.on("message", h);
   });
 const join = (ws: WebSocket, name: string) =>
-  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, emoji: "🐱" }));
+  ws.send(JSON.stringify({ t: "joinRoom", name, colorId: 0, avatarId: "🐱" }));
 
 async function setup() {
   handle = createServer(0, registry, {}, noopLogger);

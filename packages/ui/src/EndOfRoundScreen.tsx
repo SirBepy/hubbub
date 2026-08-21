@@ -36,7 +36,7 @@ function Confetti() {
 
 export type EndOfRoundWinner = {
   name: string;
-  emoji: string;
+  avatarId: string;
   /** e.g. "1" + rankSuffix "ST" */
   rankLabel: string;
   rankSuffix: string;
@@ -51,7 +51,7 @@ export type EndOfRoundBreakdownRow = {
 export type EndOfRoundStandingRow = {
   position: number;
   name: string;
-  emoji: string;
+  avatarId: string;
   score: string;
 };
 
@@ -73,7 +73,7 @@ export type EndOfRoundScreenProps = {
 
 /** The medallion is the trophy and the only lit element on the screen. It is deliberately huge:
  * this is read from a couch, and the character IS the identity, so it earns the whole stage. */
-function Medallion({ emoji }: { emoji: string }) {
+function Medallion({ avatarId }: { avatarId: string }) {
   return (
     <div
       className="hb-anim-rank"
@@ -104,7 +104,7 @@ function Medallion({ emoji }: { emoji: string }) {
           boxShadow: "0 0 calc(var(--u)*3.4) rgba(228,179,60,.28)",
         }}
       />
-      <Avatar size="calc(var(--u)*21)" colorHex={NEUTRAL_RING} emoji={emoji} surface={2} />
+      <Avatar size="calc(var(--u)*21)" colorHex={NEUTRAL_RING} avatarId={avatarId} surface={2} />
     </div>
   );
 }
@@ -161,7 +161,7 @@ export function EndOfRoundScreen({
         <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", gap: "calc(var(--u)*3.4)" }}>
           {winner ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(var(--u)*1)" }}>
-              <Medallion emoji={winner.emoji} />
+              <Medallion avatarId={winner.avatarId} />
               <div
                 style={{
                   padding: "calc(var(--u)*.3) calc(var(--u)*1.1)",
@@ -227,7 +227,7 @@ export function EndOfRoundScreen({
                 >
                   <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "var(--text-faint)", width: "calc(var(--u)*1.7)" }}>{row.position}</span>
                   {/* size 32 matches lobby/MiniIdentity's compact-row avatar */}
-                  <Avatar size={32} colorHex={NEUTRAL_RING} emoji={row.emoji} surface={2} />
+                  <Avatar size={32} colorHex={NEUTRAL_RING} avatarId={row.avatarId} surface={2} />
                   <span style={{ flex: 1, fontSize: "calc(var(--u)*1.4)", fontWeight: 500 }}>{row.name}</span>
                   <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "var(--text-secondary)" }}>{row.score}</span>
                 </div>

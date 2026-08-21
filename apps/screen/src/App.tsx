@@ -232,7 +232,7 @@ export function App() {
         !result.isDraw && winnerPlayer
           ? {
               name: winnerPlayer.name,
-              emoji: winnerPlayer.emoji,
+              avatarId: winnerPlayer.avatarId,
               rankLabel: "1",
               rankSuffix: "ST",
             }
@@ -254,7 +254,7 @@ export function App() {
     const topBarPlayers: GameTopBarPlayer[] = players.map((p) => ({
       name: p.name,
       colorHex: colorHex(p.colorId),
-      emoji: p.emoji,
+      avatarId: p.avatarId,
       host: p.id === room.hostId,
       connected: p.connected,
     }));

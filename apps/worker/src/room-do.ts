@@ -20,6 +20,16 @@ const NO_PERSIST_TYPES = new Set(["action", "rtcSignal"]);
 
 interface ConnAttachment { connId: string; }
 
+/** A room stored before the avatarId rename still has each player's old `emoji` key on disk
+ * (DO storage survives a deploy, unlike the wire schema). One-time compat read, not a dual-key
+ * wire format. */
+function migrateEmojiField(snap: RoomSnapshot): RoomSnapshot {
+  for (const p of Object.values(snap.players) as (RoomSnapshot["players"][string] & { emoji?: string })[]) {
+    if (p.avatarId === undefined && typeof p.emoji === "string") p.avatarId = p.emoji;
+  }
+  return snap;
+}
+
 /** One Durable Object instance IS one room, addressed by env.ROOM.idFromName(code). Room state
  * lives in ctx.storage (design constraint 4); `this.room` is only a same-wake memoization,
  * rebuilt from storage on every cold start - hibernation evicts it, never the storage. */
@@ -43,7 +53,7 @@ export class RoomDO extends DurableObject<WorkerEnv> {
     if (this.room) return this.room;
     const snap = await this.ctx.storage.get<RoomSnapshot>("room");
     if (!snap) return null;
-    this.room = Room.fromSnapshot(snap, catalog, tokens, logger);
+    this.room = Room.fromSnapshot(migrateEmojiField(snap), catalog, tokens, logger);
     return this.room;
   }
 

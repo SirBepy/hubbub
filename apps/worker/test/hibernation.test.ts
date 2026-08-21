@@ -13,7 +13,7 @@ describe("Durable Object hibernation", () => {
     await screen.next(); // roomState
 
     const p1 = await attach(code);
-    p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, emoji: "🐱" }));
+    p1.ws.send(JSON.stringify({ t: "joinRoom", name: "Bepy", colorId: 0, avatarId: "🐱" }));
     await p1.next(); // joined
     await p1.next(); // roomState
     await screen.next(); // roomState reflecting Bepy
@@ -24,7 +24,7 @@ describe("Durable Object hibernation", () => {
     await evictDurableObject(stub, { webSockets: "hibernate" });
 
     const p2 = await attach(code);
-    p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, emoji: "🐶" }));
+    p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, avatarId: "🐶" }));
     await p2.next(); // joined
     const stateAfterP2 = await p2.next(); // roomState
 

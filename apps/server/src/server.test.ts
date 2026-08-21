@@ -34,14 +34,14 @@ describe("createServer", () => {
     await nextOf(screen, "roomCreated");
 
     const controller = await openWs(roomSocketUrl(base, code));
-    controller.send(JSON.stringify({ t: "joinRoom", name: "Joe", colorId: 3, emoji: "🦊" }));
+    controller.send(JSON.stringify({ t: "joinRoom", name: "Joe", colorId: 3, avatarId: "🦊" }));
     const joined = await nextOf(controller, "joined");
 
     const room = await nextOf(screen, "roomState");
     expect(room.mode).toBe("lobby");
     expect(room.hostId).toBe(joined.playerId);
     expect(room.players).toEqual([
-      { id: joined.playerId, name: "Joe", colorId: 3, emoji: "🦊", connected: true },
+      { id: joined.playerId, name: "Joe", colorId: 3, avatarId: "🦊", connected: true },
     ]);
 
     screen.close();

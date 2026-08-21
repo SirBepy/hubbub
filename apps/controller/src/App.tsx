@@ -94,7 +94,7 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
       }
     });
     const token = localStorage.getItem(`hubbub:token:${code}`) ?? undefined;
-    t.send({ t: "joinRoom", name: identity.name, colorId: identity.colorId, emoji: identity.emoji, token });
+    t.send({ t: "joinRoom", name: identity.name, colorId: identity.colorId, avatarId: identity.avatarId, token });
   }
 
   // apps/web collects the code on its own join screen and hands it over, so joining
@@ -137,7 +137,7 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
     const applyIdentity = (id: Identity) => {
       saveIdentity(id);
       setIdentityState(id);
-      transportRef.current?.send({ t: "setIdentity", name: id.name, colorId: id.colorId, emoji: id.emoji });
+      transportRef.current?.send({ t: "setIdentity", name: id.name, colorId: id.colorId, avatarId: id.avatarId });
       setSettingsOpen(false);
     };
 
@@ -234,7 +234,7 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
         <main style={gamePage}>
           <IdentityHeader
             name={me.name}
-            emoji={me.emoji}
+            avatarId={me.avatarId}
             isHost={isHost}
             onOpenMenu={() => setPhoneView("menu")}
             connectionTier={tier.tier}

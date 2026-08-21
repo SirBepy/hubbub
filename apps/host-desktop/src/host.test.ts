@@ -77,7 +77,7 @@ describe("startHost", () => {
     await nextOf(screen, "roomCreated");
 
     const phone = await open(roomSocketUrl(host.serverUrl, code));
-    phone.send(JSON.stringify({ t: "joinRoom", name: "Ada", colorId: 3, emoji: "🦊" }));
+    phone.send(JSON.stringify({ t: "joinRoom", name: "Ada", colorId: 3, avatarId: "🦊" }));
     const joined = await nextOf(phone, "joined");
     expect(joined.playerId).toBeTruthy();
 

@@ -34,7 +34,7 @@ export function PassRemoteScreen({
               }}
               style={row}
             >
-              <Avatar size={40} colorHex={NEUTRAL_RING} emoji={p.emoji} surface={1} />
+              <Avatar size={40} colorHex={NEUTRAL_RING} avatarId={p.avatarId} surface={1} />
               <span style={rowName}>{p.name}</span>
               <HandArrowDown size={20} weight="bold" style={{ color: "var(--accent)" }} />
             </button>

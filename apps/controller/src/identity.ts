@@ -9,7 +9,7 @@ export function loadIdentity(): Identity | null {
     if (!raw) return null;
     const v = JSON.parse(raw);
     // Older saved identities carried a hex `color` string, not a numeric colorId - treat as no identity.
-    if (typeof v?.name === "string" && Number.isInteger(v?.colorId) && v.colorId >= 0 && v.colorId <= 5 && typeof v?.emoji === "string") return v;
+    if (typeof v?.name === "string" && Number.isInteger(v?.colorId) && v.colorId >= 0 && v.colorId <= 5 && typeof v?.avatarId === "string") return v;
     return null;
   } catch { return null; }
 }

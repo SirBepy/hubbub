@@ -50,7 +50,7 @@ export function HostLobby({
 
   return (
     <main style={page}>
-      <IdentityHeader name={me.name} emoji={me.emoji} isHost onOpenMenu={onOpenMenu} />
+      <IdentityHeader name={me.name} avatarId={me.avatarId} isHost onOpenMenu={onOpenMenu} />
       <div style={body}>
         {rows.length === 0 ? (
           <p style={emptyHint}>No votes yet - open search to suggest a game.</p>
@@ -115,7 +115,7 @@ export function PlayerLobby({
 
   return (
     <main style={page}>
-      <IdentityHeader name={me.name} emoji={me.emoji} isHost={false} onOpenMenu={onOpenMenu} />
+      <IdentityHeader name={me.name} avatarId={me.avatarId} isHost={false} onOpenMenu={onOpenMenu} />
       <div style={body}>
         {rows.length === 0 ? (
           <p style={emptyHint}>No votes yet - open search to suggest a game.</p>

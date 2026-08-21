@@ -2,11 +2,11 @@ import { Avatar, NEUTRAL_RING } from "./Avatar";
 
 export type PlayerPillProps = {
   colorHex: string;
-  emoji: string;
+  avatarId: string;
 };
 
 /** The in-game top-bar pill (README screen 4, center row). */
-export function PlayerPill({ colorHex, emoji }: PlayerPillProps) {
+export function PlayerPill({ colorHex, avatarId }: PlayerPillProps) {
   return (
     <div
       style={{
@@ -20,7 +20,7 @@ export function PlayerPill({ colorHex, emoji }: PlayerPillProps) {
       }}
     >
       {/* size 40 matches the pill's prior fixed inner-circle diameter */}
-      <Avatar size={40} colorHex={NEUTRAL_RING} emoji={emoji} surface={2} />
+      <Avatar size={40} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={2} />
       <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%", background: colorHex }} />
     </div>
   );

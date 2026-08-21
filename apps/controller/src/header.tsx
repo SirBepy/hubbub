@@ -9,14 +9,14 @@ export { NEUTRAL_RING };
  * undressed (no pill, border or caret) so it doesn't read as a control. */
 export function IdentityHeader({
   name,
-  emoji,
+  avatarId,
   isHost,
   onOpenMenu,
   connectionTier = null,
   connectionRttMs = null,
 }: {
   name: string;
-  emoji: string;
+  avatarId: string;
   isHost: boolean;
   onOpenMenu: () => void;
   connectionTier?: "direct" | "relay" | null;
@@ -25,7 +25,7 @@ export function IdentityHeader({
   return (
     <div style={bar}>
       <button type="button" onClick={onOpenMenu} style={meButton}>
-        <Avatar size={34} colorHex={NEUTRAL_RING} emoji={emoji} surface={1} />
+        <Avatar size={34} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={1} />
         <span style={meName}>{name}</span>
         {isHost ? <span style={hostTag}>HOST</span> : null}
       </button>

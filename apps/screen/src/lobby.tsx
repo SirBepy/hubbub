@@ -271,7 +271,7 @@ export function Lobby({
           {players.map((p) => (
             <div key={p.id} style={{ flex: "none", width: "calc(var(--u)*3)", textAlign: "center", opacity: p.connected ? 1 : 0.32 }}>
               <div style={{ width: "calc(var(--u)*1.9)", margin: "0 auto" }}>
-                <Avatar size={32} colorHex={colorHex(p.colorId)} emoji={p.emoji} surface={2} />
+                <Avatar size={32} colorHex={colorHex(p.colorId)} avatarId={p.avatarId} surface={2} />
               </div>
               <span
                 style={{

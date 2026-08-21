@@ -5,7 +5,7 @@ import { hostLabelFontScale } from "./host-label-scale";
 export type GameTopBarPlayer = {
   name: string;
   colorHex: string;
-  emoji: string;
+  avatarId: string;
   host?: boolean;
   connected?: boolean;
 };
@@ -89,7 +89,7 @@ export function GameTopBar({ title, roomCode, hostLabel, children, players }: Ga
                 }}
               >
                 <div style={{ width: "calc(var(--u)*1.5)", margin: "0 auto" }}>
-                  <Avatar size={28} colorHex={NEUTRAL_RING} emoji={p.emoji} surface={2} />
+                  <Avatar size={28} colorHex={NEUTRAL_RING} avatarId={p.avatarId} surface={2} />
                 </div>
                 <span
                   style={{

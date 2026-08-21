@@ -10,7 +10,7 @@ describe("isHotPathEligible", () => {
   it("everything else, including rtcSignal itself, stays off the channel", () => {
     const nonHot: ClientMessage[] = [
       { t: "attachScreen" },
-      { t: "joinRoom", name: "Ann", colorId: 0, emoji: "🦊" },
+      { t: "joinRoom", name: "Ann", colorId: 0, avatarId: "🦊" },
       { t: "returnToLobby" },
       { t: "gameStatePush", gameId: "g", state: {} },
       { t: "rtcSignal", data: { kind: "offer", sdp: {} } },

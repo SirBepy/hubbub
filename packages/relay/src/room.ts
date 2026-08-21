@@ -25,7 +25,7 @@ interface StoredPlayer {
   id: string;
   name: string;
   colorId: number;
-  emoji: string;
+  avatarId: string;
   connected: boolean;
   token: string;
 }
@@ -182,7 +182,7 @@ export class Room {
       // A socket already holding a player slot cannot mint another one - the actual flood fix,
       // not a rate limit (a limiter only slows an unbounded resource, never bounds it).
       if (conn?.playerId) return [{ to: "conn", connId, msg: { t: "error", code: "already_joined", message: "Connection already joined" } }];
-      const result = this.join({ name: msg.name, colorId: msg.colorId, emoji: msg.emoji }, msg.token);
+      const result = this.join({ name: msg.name, colorId: msg.colorId, avatarId: msg.avatarId }, msg.token);
       if (!result.ok) return [{ to: "conn", connId, msg: { t: "error", code: result.code, message: result.message } }];
       this.info(`${result.via === "reconnect" ? "reconnected" : "joined"} playerId=${result.playerId}`);
       this.data.connections[connId] = { role: "controller", playerId: result.playerId };
@@ -201,7 +201,7 @@ export class Room {
       if (!conn?.playerId) return [];
       if (this.limited("setIdentity", connId, now, UI_ACTION_LIMIT)) return [];
       const p = this.data.players[conn.playerId];
-      if (p) { p.name = msg.name; p.colorId = msg.colorId; p.emoji = msg.emoji; }
+      if (p) { p.name = msg.name; p.colorId = msg.colorId; p.avatarId = msg.avatarId; }
       return this.broadcastRoomState();
     }
 
@@ -394,7 +394,7 @@ export class Room {
     if (token) {
       for (const p of Object.values(this.data.players)) {
         if (timingSafeEqual(p.token, token)) {
-          p.name = identity.name; p.colorId = identity.colorId; p.emoji = identity.emoji;
+          p.name = identity.name; p.colorId = identity.colorId; p.avatarId = identity.avatarId;
           p.connected = true;
           this.ensureHost();
           return { ok: true, playerId: p.id, token: p.token, via: "reconnect" };
@@ -403,7 +403,7 @@ export class Room {
     }
     const id = this.tokens.next();
     const tok = this.tokens.next();
-    this.data.players[id] = { id, name: identity.name, colorId: identity.colorId, emoji: identity.emoji, connected: true, token: tok };
+    this.data.players[id] = { id, name: identity.name, colorId: identity.colorId, avatarId: identity.avatarId, connected: true, token: tok };
     this.ensureHost();
     return { ok: true, playerId: id, token: tok, via: "new" };
   }

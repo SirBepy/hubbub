@@ -20,12 +20,12 @@ export function Settings({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const others = (roomPlayers ?? []).filter((p) => p.connected && p.id !== ownPlayerId);
-  const [emoji, setEmoji] = useState(initial?.emoji ?? (() => randomAvatarId(others.map((p) => p.emoji))));
+  const [avatarId, setAvatarId] = useState(initial?.avatarId ?? (() => randomAvatarId(others.map((p) => p.avatarId))));
   // Colour is no longer player-facing; a fresh identity still needs one on the wire
   // for games that draw pieces by colorId, so it's picked once here and never shown.
   const [colorId] = useState(initial?.colorId ?? Math.floor(Math.random() * 6));
 
-  const emojiTaken = (e: string) => others.some((p) => p.emoji === e);
+  const avatarIdTaken = (e: string) => others.some((p) => p.avatarId === e);
 
   return (
     <main style={page}>
@@ -33,7 +33,7 @@ export function Settings({
 
       <div style={{ padding: "10px 14px 0" }}>
         <div style={preview}>
-          <Avatar size={64} colorHex={NEUTRAL_RING} emoji={emoji} surface={1} />
+          <Avatar size={64} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={1} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={fieldLabel}>Your name</div>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={24} style={nameInput} />
@@ -49,19 +49,19 @@ export function Settings({
               <span style={licenceTag}>{set.licenseName}</span>
             </div>
             <div style={attribLine}>{set.attribution}</div>
-            <div style={emojiGrid}>
+            <div style={avatarIdGrid}>
               {set.characters.map((c) => {
-                const taken = emojiTaken(c.id) && c.id !== emoji;
+                const taken = avatarIdTaken(c.id) && c.id !== avatarId;
                 return (
                   <button
                     key={c.id}
                     type="button"
                     disabled={taken}
-                    onClick={() => setEmoji(c.id)}
+                    onClick={() => setAvatarId(c.id)}
                     title={c.label}
-                    style={{ ...emojiCell, opacity: taken ? 0.26 : 1, cursor: taken ? "default" : "pointer", borderColor: emoji === c.id ? "var(--ink-amber-highlight)" : "transparent" }}
+                    style={{ ...avatarIdCell, opacity: taken ? 0.26 : 1, cursor: taken ? "default" : "pointer", borderColor: avatarId === c.id ? "var(--ink-amber-highlight)" : "transparent" }}
                   >
-                    <Avatar size={40} colorHex={NEUTRAL_RING} emoji={c.id} surface={1} />
+                    <Avatar size={40} colorHex={NEUTRAL_RING} avatarId={c.id} surface={1} />
                   </button>
                 );
               })}
@@ -75,7 +75,7 @@ export function Settings({
         <div style={footerRow}>
           {onCancel ? <NeutralButton height={48} label="Cancel" onClick={onCancel} fullWidth={false} /> : null}
           <div style={{ flex: 1 }}>
-            <GlowButton label="Save" disabled={name.trim() === ""} onClick={() => onSave({ name: name.trim(), colorId, emoji })} />
+            <GlowButton label="Save" disabled={name.trim() === ""} onClick={() => onSave({ name: name.trim(), colorId, avatarId })} />
           </div>
         </div>
       </div>
@@ -116,8 +116,8 @@ const licenceTag: CSSProperties = {
   padding: "2px 6px",
 };
 const attribLine: CSSProperties = { font: "500 10.5px var(--font-ui)", lineHeight: 1.4, color: "var(--text-faint)", marginBottom: 10 };
-const emojiGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 9 };
-const emojiCell: CSSProperties = {
+const avatarIdGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 9 };
+const avatarIdCell: CSSProperties = {
   aspectRatio: "1",
   borderRadius: "var(--radius-lg)",
   background: "rgba(242,234,217,.05)",
