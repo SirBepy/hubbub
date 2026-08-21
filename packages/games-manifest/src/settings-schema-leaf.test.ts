@@ -15,9 +15,26 @@ const gamePackages = [...settingsSrc.matchAll(/from "(@hubbub\/game-[^"]+)\/sett
 
 const ALLOWED_SPECIFIERS = new Set(["@hubbub/sdk"]);
 
+// settings.ts is generated from whichever sibling repos are on disk, so a bare "at least one"
+// canary goes red on a solo checkout. Derive the expected set instead: every declared game
+// package that resolves a "/settings" subpath here must appear in settings.ts.
+const manifestPkg = require("../package.json");
+const declaredGamePackages = [
+  ...Object.keys(manifestPkg.dependencies ?? {}),
+  ...Object.keys(manifestPkg.optionalDependencies ?? {}),
+].filter((name) => name.startsWith("@hubbub/game-"));
+const expectedGamePackages = declaredGamePackages.filter((name) => {
+  try {
+    require.resolve(`${name}/settings`);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
 describe("game settings-schema.ts stays an import leaf", () => {
-  it("found at least one registered game settings schema to check", () => {
-    expect(gamePackages.length).toBeGreaterThan(0);
+  it("settings.ts registers every present game that ships a settings schema", () => {
+    expect([...gamePackages].sort()).toEqual([...expectedGamePackages].sort());
   });
 
   for (const pkg of gamePackages) {
