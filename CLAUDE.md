@@ -29,8 +29,10 @@ Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.
   relay          transport-agnostic room logic shared by server + worker
   games          ONLY tictactoe + ultimate-tictactoe live here
   games-manifest (pkg name @hubbub/games) the REAL roster: tap-race, music-guesser and
-                 split-opinions are SEPARATE sibling repos, wired in via
-                 src/logics.ts - grepping packages/games/* alone misses 3 of 5 games
+                 split-opinions are SEPARATE sibling repos - grepping packages/games/*
+                 alone misses 3 of 5 games. src/{logics,lazy,settings}.ts are GENERATED
+                 by scripts/generate.mjs, which omits any sibling repo absent on disk;
+                 register a game there, never by hand-editing the generated files
 ```
 
 ## Commands
