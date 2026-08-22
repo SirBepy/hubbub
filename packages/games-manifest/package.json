@@ -23,7 +23,8 @@
   "optionalDependencies": {
     "@hubbub/game-tap-race": "link:../../../hubbub-game-tap-race",
     "@hubbub/game-music-guesser": "link:../../../hubbub-game-music-guesser",
-    "@hubbub/game-split-opinions": "link:../../../hubbub-game-split-opinions"
+    "@hubbub/game-split-opinions": "link:../../../hubbub-game-split-opinions",
+    "@hubbub/game-sample": "link:../../../hubbub-game-template"
   },
   "peerDependencies": { "react": "^18.3.0" },
   "peerDependenciesMeta": { "react": { "optional": true } },

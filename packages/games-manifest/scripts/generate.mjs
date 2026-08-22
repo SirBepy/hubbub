@@ -3,7 +3,7 @@
 // sibling repo isn't checked out on disk. Run via `pnpm --filter @hubbub/games-manifest generate`;
 // also wired into postinstall and the turbo build/typecheck/dev/test graph.
 // Registering a game = one entry below + one optionalDependency in package.json.
-import { existsSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,11 +55,35 @@ const EXTERNAL_GAMES = [
   },
 ];
 
+// Teaching artifacts, never in a shipped catalogue. Opt in locally with `pnpm dev:games:on`.
+const DEV_GAMES = [
+  {
+    id: "sample",
+    pkg: "@hubbub/game-sample",
+    dir: "hubbub-game-template",
+    screen: "SampleScreen",
+    controller: "SampleController",
+    logic: "sampleLogic",
+    settings: null,
+  },
+];
+
+// A gitignored marker, not an env var: postinstall re-runs this script, and an env var set for
+// one `pnpm dev` would silently drop the sample again on the next install.
+const devMarker = path.join(packageDir, ".dev-games");
+const toggle = process.argv.find((a) => a.startsWith("--dev-games="))?.split("=")[1];
+if (toggle === "on") writeFileSync(devMarker, "");
+if (toggle === "off") rmSync(devMarker, { force: true });
+const devGamesOn = existsSync(devMarker);
+
 // Siblings live next to the hubbub checkout: packages/games-manifest/../../.. == the parent
 // of hubbub, matching package.json's own "link:../../../hubbub-game-<id>" specifiers.
 const siblingsRoot = path.resolve(packageDir, "..", "..", "..");
-const present = EXTERNAL_GAMES.filter((g) => existsSync(path.join(siblingsRoot, g.dir, "package.json")));
-const games = [...CORE_GAMES, ...present];
+const onDisk = (g) => existsSync(path.join(siblingsRoot, g.dir, "package.json"));
+const present = EXTERNAL_GAMES.filter(onDisk);
+// Appended last so CORE_GAMES keep indices 0 and 1, which server.uttt.test.ts relies on.
+const dev = devGamesOn ? DEV_GAMES.filter(onDisk) : [];
+const games = [...CORE_GAMES, ...present, ...dev];
 
 function logicsSource() {
   const imports = games.map((g) => `import { ${g.logic} } from "${g.pkg}";`).join("\n");
@@ -169,5 +193,6 @@ await Promise.all([
 const missing = EXTERNAL_GAMES.filter((g) => !present.includes(g)).map((g) => g.id);
 console.log(
   `@hubbub/games-manifest: generated for [${games.map((g) => g.id).join(", ")}]` +
-    (missing.length ? ` - sibling repo absent, skipped: ${missing.join(", ")}` : ""),
+    (missing.length ? ` - sibling repo absent, skipped: ${missing.join(", ")}` : "") +
+    (devGamesOn ? " - dev games ON (pnpm dev:games:off to hide them)" : ""),
 );

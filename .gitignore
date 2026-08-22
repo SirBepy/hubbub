@@ -14,3 +14,7 @@ dist/
 packages/games-manifest/src/logics.ts
 packages/games-manifest/src/lazy.ts
 packages/games-manifest/src/settings.ts
+
+# Local opt-in marker for the template's sample game (pnpm dev:games:on). Machine-local by
+# design: the sample is a teaching artifact and must never reach a shipped catalogue.
+packages/games-manifest/.dev-games
