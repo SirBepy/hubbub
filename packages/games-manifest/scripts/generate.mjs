@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Regenerates src/logics.ts, src/lazy.ts and src/settings.ts, omitting any external game whose
-// sibling repo isn't checked out on disk. Run via `pnpm --filter @hubbub/games generate`; also
-// wired into postinstall and the turbo build/typecheck/dev/test graph.
+// sibling repo isn't checked out on disk. Run via `pnpm --filter @hubbub/games-manifest generate`;
+// also wired into postinstall and the turbo build/typecheck/dev/test graph.
 // Registering a game = one entry below + one optionalDependency in package.json.
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -168,6 +168,6 @@ await Promise.all([
 
 const missing = EXTERNAL_GAMES.filter((g) => !present.includes(g)).map((g) => g.id);
 console.log(
-  `@hubbub/games: generated for [${games.map((g) => g.id).join(", ")}]` +
+  `@hubbub/games-manifest: generated for [${games.map((g) => g.id).join(", ")}]` +
     (missing.length ? ` - sibling repo absent, skipped: ${missing.join(", ")}` : ""),
 );

@@ -1,5 +1,5 @@
 import { createServer as createWsServer } from "@hubbub/server";
-import { GAME_LOGICS } from "@hubbub/games";
+import { GAME_LOGICS } from "@hubbub/games-manifest";
 import type { GameRegistry } from "@hubbub/sdk";
 import { getLanIp } from "./lan.js";
 import { startStaticServer } from "./static-server.js";

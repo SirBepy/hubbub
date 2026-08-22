@@ -5,7 +5,7 @@ import { parseClientMessage, type ServerMessage } from "@hubbub/protocol";
 import { newToken } from "@hubbub/protocol/tokens";
 import { hit, type RateLimitConfig } from "@hubbub/protocol/rate-limit";
 import { gameSummaries, type GameRegistry } from "@hubbub/sdk";
-import { getSettingsSchema } from "@hubbub/games/settings";
+import { getSettingsSchema } from "@hubbub/games-manifest/settings";
 import { createLogger, toCatalog, type LogLevel, type RelayLogger } from "@hubbub/relay";
 import { RoomManager } from "./rooms.js";
 

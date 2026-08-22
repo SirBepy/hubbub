@@ -1,5 +1,5 @@
 import { createServer } from "./server.js";
-import { GAME_LOGICS as games } from "@hubbub/games";
+import { GAME_LOGICS as games } from "@hubbub/games-manifest";
 
 const port = Number(process.env.PORT ?? 7787);
 createServer(port, games);

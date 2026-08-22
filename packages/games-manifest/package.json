@@ -1,5 +1,5 @@
 {
-  "name": "@hubbub/games",
+  "name": "@hubbub/games-manifest",
   "version": "0.0.0",
   "type": "module",
   "main": "./src/logics.ts",

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { WebSocket } from "ws";
-import { GAME_LOGICS as registry } from "@hubbub/games"; // index 0 = ttt, 1 = uttt
+import { GAME_LOGICS as registry } from "@hubbub/games-manifest"; // index 0 = ttt, 1 = uttt
 import { createRoomHttp, roomSocketUrl } from "@hubbub/protocol";
 import { noopLogger } from "@hubbub/relay";
 import { createServer } from "./server.js";

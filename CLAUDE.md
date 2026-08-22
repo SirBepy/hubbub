@@ -9,7 +9,7 @@ Deploy: other (cloud = hosted server + screen over wss; local = Electron host ap
 
 ## Status
 
-Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.workers.dev (Cloudflare, free plan). The design specs in `docs/superpowers/specs/` are history/rationale now, not the current source of truth - `packages/games-manifest/src/logics.ts` and this file are.
+Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.workers.dev (Cloudflare, free plan). The design specs in `docs/superpowers/specs/` are history/rationale now, not the current source of truth - `packages/games-manifest/scripts/generate.mjs` and this file are.
 
 ## Structure
 
@@ -28,7 +28,7 @@ Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.
   ui             shared component/token library
   relay          transport-agnostic room logic shared by server + worker
   games          ONLY tictactoe + ultimate-tictactoe live here
-  games-manifest (pkg name @hubbub/games) the REAL roster: tap-race, music-guesser and
+  games-manifest @hubbub/games-manifest, the REAL roster: tap-race, music-guesser and
                  split-opinions are SEPARATE sibling repos - grepping packages/games/*
                  alone misses 3 of 5 games. src/{logics,lazy,settings}.ts are GENERATED
                  by scripts/generate.mjs (and gitignored - they only exist after an

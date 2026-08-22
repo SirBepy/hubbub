@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hubbub/games": "workspace:*",
+    "@hubbub/games-manifest": "workspace:*",
     "@hubbub/protocol": "workspace:*",
     "@hubbub/relay": "workspace:*",
     "@hubbub/sdk": "workspace:*"

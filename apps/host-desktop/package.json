@@ -13,7 +13,7 @@
     "@hubbub/server": "workspace:*",
     "@hubbub/sdk": "workspace:*",
     "@hubbub/protocol": "workspace:*",
-    "@hubbub/games": "workspace:*",
+    "@hubbub/games-manifest": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {

@@ -6,7 +6,7 @@ interface RegistryEntry {
 }
 
 /** Pure mapping from a game registry to the GameCatalog shape Room needs. Summaries and
- * settingsSchema come in pre-computed so relay never has to import @hubbub/sdk or @hubbub/games. */
+ * settingsSchema come in pre-computed so relay imports neither @hubbub/sdk nor the games manifest. */
 export function toCatalog(
   registry: Record<string, RegistryEntry>,
   summaries: GameSummary[],

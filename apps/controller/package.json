@@ -16,7 +16,7 @@
     "@hubbub/protocol": "workspace:*",
     "@hubbub/sdk": "workspace:*",
     "@hubbub/ui": "workspace:*",
-    "@hubbub/games": "workspace:*",
+    "@hubbub/games-manifest": "workspace:*",
     "@phosphor-icons/react": "^2.1.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",

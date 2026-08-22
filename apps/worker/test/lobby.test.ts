@@ -21,7 +21,7 @@ describe("room lobby, through the real Worker + Durable Object", () => {
     let state = await screen.next(); // roomState reaching the screen
     expect(state.players.map((p: any) => p.name)).toEqual(["Bepy"]);
     expect(state.mode).toBe("lobby");
-    expect(state.games.length).toBeGreaterThan(0); // the real @hubbub/games catalog, not a stub
+    expect(state.games.length).toBeGreaterThan(0); // the real @hubbub/games-manifest catalog, not a stub
 
     const p2 = await attach(code);
     p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, avatarId: "🐶" }));

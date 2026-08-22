@@ -195,7 +195,7 @@ The underlying concern (unbounded growth) is valid and gets a retention policy i
 - **CORRECTION, 2026-08-11.** The sentence above originally continued "...and dropping it removes
   tokens from the checks pipeline entirely." That was wrong, and it was wrong because it assumed
   the platform could verify itself alone. Measured on a clean clone with no sibling game repos:
-  `pnpm install` passes, but **`pnpm typecheck` fails at `@hubbub/games`, `pnpm build` fails at
+  `pnpm install` passes, but **`pnpm typecheck` fails at `@hubbub/games-manifest`, `pnpm build` fails at
   `@hubbub/server`, and 8 of 29 test files fail to load** (the 141 tests that do run all pass -
   the failures are import errors, not breakage). `packages/games-manifest` imports every game
   statically, so the platform depends on private repos at build time whether or not it runs their
