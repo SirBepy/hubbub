@@ -1,7 +1,7 @@
 // Platform-internal styleguide (lobby/join/config screens), not a game's design system
 // - see hubbub-game-template/CLAUDE.md's "Design rules" section. Kept live for existing
 // consumers (tap-race, music-guesser, tictactoe, uttt); a new game owns its own look.
-export { PLAYER_COLORS, colorHex, colorName, shadePair, hexToRgba } from "./palette";
+export { PLAYER_COLORS, colorHex, colorName, shadePair, hexToRgba, rgbToHsl, hexToHsl, hslToHex } from "./palette";
 export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";

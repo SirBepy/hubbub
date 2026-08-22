@@ -27,10 +27,9 @@ export function colorName(colorId: number): string {
   return resolve(colorId).name;
 }
 
-function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
+/** Channels are 0-255. Returns hue in degrees, saturation and lightness as 0-1. */
+export function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const l = (max + min) / 2;
   if (max === min) return [0, 0, l];
@@ -43,7 +42,13 @@ function hexToHsl(hex: string): [number, number, number] {
   return [h, s, l];
 }
 
-function hslToHex(h: number, s: number, l: number): string {
+export function hexToHsl(hex: string): [number, number, number] {
+  return rgbToHsl(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16));
+}
+
+/** Hue wraps, so a caller can derive a complement as `h + 165` without normalising first. */
+export function hslToHex(h: number, s: number, l: number): string {
+  h = ((h % 360) + 360) % 360;
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
