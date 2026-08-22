@@ -158,7 +158,9 @@ export function EndOfRoundScreen({
           </div>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", gap: "calc(var(--u)*3.4)" }}>
+        {/* Centred, not stretched: the three columns have fixed widths, so on a wide viewport
+            flex-start would leave the whole trophy row hugging the left edge. */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(var(--u)*3.4)" }}>
           {winner ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(var(--u)*1)" }}>
               <Medallion avatarId={winner.avatarId} />
