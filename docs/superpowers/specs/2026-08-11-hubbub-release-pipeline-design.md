@@ -344,40 +344,40 @@ third-party game authors). Two findings changed this design; the rest confirmed 
    the literal scope-creep pattern it exists to resist, so that route is not a lever to pull as a
    side effect of a budget number.
 
-   Basis (measured 2026-08-21, `pnpm build`, one `dist/bundle.js` per game,
-   `cssCodeSplit: false`):
+   Basis (re-measured 2026-08-22 after todo 60 and 63, `pnpm build`, one `dist/bundle.js` per
+   game, `cssCodeSplit: false`, all four repos now on Vite 7.3.6):
 
-   | game | raw | gzip |
-   |---|---|---|
-   | template (no `@hubbub/ui`) | 158.92 kB | 35.78 kB |
-   | split-opinions (no `@hubbub/ui` import) | 253.57 kB | 76.76 kB |
-   | tap-race | 312.52 kB | 96.51 kB |
-   | music-guesser | 428.27 kB | 170.46 kB |
+   | game | raw | gzip | raw on 2026-08-21 |
+   |---|---|---|---|
+   | template | 311.07 kB | 95.94 kB | 158.92 kB |
+   | tap-race | 312.34 kB | 96.23 kB | 312.52 kB |
+   | split-opinions | 406.30 kB | 136.77 kB | 253.57 kB |
+   | music-guesser | 428.13 kB | 170.21 kB | 428.27 kB |
 
-   `@hubbub/ui`'s avatar art (fluent-emoji + game-icons + twemoji, loaded unconditionally by
-   `packages/ui/src/avatars/resolve.ts:54-56`) is a fixed 147,075 raw bytes, present in tap-race
-   and music-guesser, absent from split-opinions and template. It is a per-game rendering
-   choice, not a platform requirement: a game that does not import `@hubbub/ui`'s `Avatar` pays
-   zero avatar bytes, so the tax is avoidable without touching the bridge or S12.
+   The Vite 5 -> 7 bump is not what moved these. tap-race and music-guesser changed nothing but
+   the toolchain and landed within 0.2 kB of their old figures, which makes them the control:
+   the movement in template and split-opinions is the avatar payload arriving, measured at
+   +152.15 kB and +152.73 kB raw. That is the real cost of the art plus its resolver, above the
+   147,075 bytes of raw art data the 2026-08-21 draft counted on its own.
 
-   Correction, 2026-08-21: an earlier draft of this section cited split-opinions as the live proof
-   of that. Its zero-byte measurement is real, but the reason is a bug, not a pattern worth
-   copying: it renders the raw `avatarId` string (`screen.tsx:88`, `controller.tsx:60`), so a TV
-   shows `gi:bear-head` where an avatar belongs. Todo 60 tracks the fix. Treat the zero-byte
-   figure as a bound, not as a worked example.
+   **Retracted, 2026-08-22: the avatar tax is no longer avoidable in practice, and there is no
+   longer a live example of a game paying zero avatar bytes.** The 2026-08-21 wording called it
+   "a per-game rendering choice, not a platform requirement". The choice is real but nobody makes
+   it: both games that appeared to make it were printing the raw `avatarId` string on screen
+   (todo 60), and the fix put the art into all four bundles, template included. Because
+   `vite.config.ts` sets `inlineDynamicImports: true` so a game ships as exactly one file,
+   `resolve.ts`'s per-set dynamic imports collapse and a game that draws any avatar pays for all
+   three sets. Every game scaffolded from the template now starts at 311 kB.
 
-   512 KiB = today's largest avatar-free footprint (music-guesser, ~281 kB) + the avatar tax
-   (~147 kB) + roughly 20% headroom, rounded to a clean power of two. That leaves ~218 kB of
-   headroom above music-guesser's own game-specific code (~122 kB today) - a game has to add
-   nearly as much bespoke code as music-guesser's entire logic to trip this, not just a few kB
-   over budget.
+   512 KiB against the largest bundle actually shipping (music-guesser, 428.13 kB) leaves
+   96.2 kB of headroom, about 18%. That is thinner than the ~218 kB the 2026-08-21 note claimed,
+   because that figure assumed music-guesser's avatar-free footprint. The budget number itself is
+   unchanged and still holds; what changed is that it is no longer generous.
 
-   Exit condition: drops to 384 KiB (avatar-free footprint + headroom, no tax) once no shipping
-   game bundle carries the avatar art payload - i.e. once every game draws avatars from its own
-   art, or the tax itself leaves `packages/ui`. Todo 45's per-game visual-identity doctrine
-   already points every future game that direction; re-set explicitly when it is true for the
-   games actually shipping, not on the day one game happens to hit zero avatar bytes. Settles
-   todo 52.
+   Exit condition, unchanged in form but further away: drops to 384 KiB once no shipping game
+   bundle carries the avatar art payload - i.e. once every game draws avatars from its own art,
+   or the tax leaves `packages/ui`. As of 2026-08-22 every shipping game carries it, so this is
+   not close; re-set it explicitly against the games actually shipping. Settles todo 52.
 
 2. **The local dev loop must be able to run a game inside the sandbox.** This is the real hole.
    The 2026-08-05 design's "Local dev loop" resolves games as workspace packages and bypasses the
