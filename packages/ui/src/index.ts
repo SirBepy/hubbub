@@ -5,6 +5,7 @@ export { PLAYER_COLORS, colorHex, colorName, shadePair, hexToRgba, rgbToHsl, hex
 export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";
+export { TVMeasure } from "./TVMeasure";
 
 export { Avatar, NEUTRAL_RING } from "./Avatar";
 export type { AvatarProps } from "./Avatar";

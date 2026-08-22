@@ -10,6 +10,10 @@
      to any viewport instead of a fixed canvas. Source: Table Night mockups. */
   --u: clamp(8px, 1.15vh + 0.34vw, 19px);
 
+  /* How wide TV content is allowed to run. ~73% of the viewport wherever --u is
+     unclamped, so a 1080p TV reads a column at ~1400px instead of a 1791px wall. */
+  --tv-measure: calc(var(--u) * 74);
+
   /* Felt ground, darkest to lightest (table-night-a4-lobby.html .screen gradient) */
   --surface-sunken: #0a0d09;
   --surface-0: #0a0d09;
