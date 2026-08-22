@@ -6,8 +6,9 @@ export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";
 
-export { Avatar, NEUTRAL_RING } from "./Avatar";
+export { Avatar, AvatarArt, useAvatarCharacter, NEUTRAL_RING } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
+export type { ResolvedAvatarCharacter } from "./avatars/resolve";
 
 export { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./avatars/catalog";
 export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./avatars/catalog";
