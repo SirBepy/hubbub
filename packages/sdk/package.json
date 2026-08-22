@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./react": "./src/react.tsx"
+    "./react": "./src/react.tsx",
+    "./avatars": "./src/avatars/index.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": { "@hubbub/protocol": "workspace:*", "zod": "^3.23.0" },

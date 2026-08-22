@@ -6,12 +6,21 @@ export type { PlayerColor } from "./palette";
 
 export { TVStage } from "./TVStage";
 
-export { Avatar, AvatarArt, useAvatarCharacter, NEUTRAL_RING } from "./Avatar";
+export { Avatar, NEUTRAL_RING } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
-export type { ResolvedAvatarCharacter } from "./avatars/resolve";
 
-export { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./avatars/catalog";
-export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./avatars/catalog";
+// Avatar art itself moved to @hubbub/sdk/avatars - it is framework-owned player identity, not
+// styleguide. Re-exported so the platform's own screens keep one import, but a GAME should reach
+// for @hubbub/sdk/avatars directly and not take a dependency on this package to draw an avatar.
+export {
+  AvatarArt,
+  useAvatarCharacter,
+  AVATAR_SETS,
+  ALL_AVATAR_IDS,
+  isAvatarCharacterId,
+  randomAvatarId,
+} from "@hubbub/sdk/avatars";
+export type { ResolvedAvatarCharacter, AvatarSet, AvatarSetId, AvatarCharacter } from "@hubbub/sdk/avatars";
 
 export { PlayerPill } from "./PlayerPill";
 export type { PlayerPillProps } from "./PlayerPill";

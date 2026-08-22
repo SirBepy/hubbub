@@ -28,7 +28,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     name: "game-icons.net",
     licenseName: "CC BY 3.0",
     attribution: "Icons made by delapouite and lorc (game-icons.net), licensed under CC BY 3.0.",
-    licenseFile: "packages/ui/licenses/LICENSE-game-icons.txt",
+    licenseFile: "packages/sdk/licenses/LICENSE-game-icons.txt",
     characters: GAME_ICONS_META.map((g) => ({ id: g.id, label: g.label, setId: "gi" as const })),
   },
   {
@@ -36,7 +36,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     name: "Fluent Emoji",
     licenseName: "MIT",
     attribution: "Fluent Emoji by Microsoft, MIT License.",
-    licenseFile: "packages/ui/licenses/LICENSE-fluent-emoji.txt",
+    licenseFile: "packages/sdk/licenses/LICENSE-fluent-emoji.txt",
     characters: FLUENT_EMOJI_META.map((f) => ({ id: f.id, label: f.label, setId: "fe" as const })),
   },
   {
@@ -44,7 +44,7 @@ export const AVATAR_SETS: AvatarSet[] = [
     name: "Twemoji",
     licenseName: "CC BY 4.0",
     attribution: "Graphics titled Twemoji, copyright Twitter Inc and other contributors, licensed under CC BY 4.0.",
-    licenseFile: "packages/ui/licenses/LICENSE-twemoji.txt",
+    licenseFile: "packages/sdk/licenses/LICENSE-twemoji.txt",
     characters: TWEMOJI_META.map((t) => ({ id: t.id, label: t.label, setId: "tw" as const })),
   },
 ];

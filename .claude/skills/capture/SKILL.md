@@ -75,7 +75,7 @@ no longer user-facing anywhere in the product, so the identity plan carries no `
 avatars alone carry identity now. `emoji` must be the character's exact `label` (e.g. "bear head"),
 which is that picker button's accessible name (its `title` attribute, since the button's own
 content is an SVG/emoji glyph with no text); copy it from the running UI or from
-`packages/ui/src/avatars/{game-icons,fluent-emoji,twemoji}.ts`. Omit `emoji` to auto-pick the
+`packages/sdk/src/avatars/{game-icons,fluent-emoji,twemoji}.ts`. Omit `emoji` to auto-pick the
 first enabled avatar when the exact character doesn't matter.
 
 `identity` and `join` already handle `apps/web`'s welcome screen ("Continue as guest") when
