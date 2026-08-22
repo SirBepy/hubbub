@@ -25,8 +25,8 @@ jobs:
           platform-checkout: "false"
           game-path: "."
 
-      # With no sibling game repos on the runner, the install's postinstall regenerates the games
-      # manifest down to the two core games and leaves the tree dirty. Nothing gates on that.
+      # The install's postinstall generates the games manifest; with no sibling game repos on the
+      # runner it narrows to the two core games. Those sources are gitignored, so the tree stays clean.
       - run: pnpm typecheck
 
       - run: pnpm test

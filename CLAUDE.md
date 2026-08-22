@@ -31,8 +31,9 @@ Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.
   games-manifest (pkg name @hubbub/games) the REAL roster: tap-race, music-guesser and
                  split-opinions are SEPARATE sibling repos - grepping packages/games/*
                  alone misses 3 of 5 games. src/{logics,lazy,settings}.ts are GENERATED
-                 by scripts/generate.mjs, which omits any sibling repo absent on disk;
-                 register a game there, never by hand-editing the generated files
+                 by scripts/generate.mjs (and gitignored - they only exist after an
+                 install), which omits any sibling repo absent on disk; register a game
+                 in the generator, never by editing its output
 ```
 
 ## Commands

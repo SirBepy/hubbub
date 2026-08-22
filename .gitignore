@@ -8,3 +8,9 @@ dist/
 .turbo/
 .wrangler/
 .playwright-mcp/
+
+# Rewritten on every install by packages/games-manifest/scripts/generate.mjs, whose output
+# depends on which sibling game repos are checked out. Tracking them only ever produced drift.
+packages/games-manifest/src/logics.ts
+packages/games-manifest/src/lazy.ts
+packages/games-manifest/src/settings.ts
