@@ -4,7 +4,6 @@
 export { AVATAR_SETS, ALL_AVATAR_IDS, isAvatarCharacterId, randomAvatarId } from "./catalog.js";
 export type { AvatarSet, AvatarSetId, AvatarCharacter } from "./catalog.js";
 
-export { resolveAvatarCharacter, resolveAvatarCharacterSync } from "./resolve.js";
 export type { ResolvedAvatarCharacter } from "./resolve.js";
 
 export { useAvatarCharacter, AvatarArt } from "./art.js";
