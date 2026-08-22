@@ -17,25 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # .github/actions/setup is for GAME repos: it unconditionally checks out a second copy of
-      # SirBepy/hubbub beside itself, which is meaningless here since this checkout already IS
-      # hubbub. Reimplementing its pnpm/node steps directly instead (see action.yml for why
-      # pnpm/action-setup must precede setup-node).
-      - uses: pnpm/action-setup@v4
+      # Same action the four game repos use, minus the sibling checkout: this checkout already
+      # IS hubbub, and on a non-main ref a second copy would be the wrong platform under test.
+      # Keeping one action means the pnpm and node versions live in exactly one file.
+      - uses: ./.github/actions/setup
         with:
-          version: 10
+          platform-checkout: "false"
+          game-path: "."
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      # No sibling hubbub-game-* repos exist on this runner, so postinstall's generate.mjs
-      # narrows the games manifest to the two core games and rewrites the git-tracked
-      # src/{logics,lazy,settings}.ts to match. That leaves the tree dirty; nothing here checks
-      # for that, matching local dev where the same postinstall runs unconditionally.
-      - run: pnpm install
-
+      # With no sibling game repos on the runner, the install's postinstall regenerates the games
+      # manifest down to the two core games and leaves the tree dirty. Nothing gates on that.
       - run: pnpm typecheck
 
       - run: pnpm test

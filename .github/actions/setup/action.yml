@@ -1,5 +1,5 @@
-name: Hubbub game setup
-description: Checks the platform out beside a game repo and installs its dependencies with pnpm.
+name: Hubbub setup
+description: Installs a Hubbub repo with pnpm, optionally checking the platform out beside it first.
 
 inputs:
   platform-ref:
@@ -7,9 +7,15 @@ inputs:
     required: false
     default: main
   game-path:
-    description: Directory the calling workflow checked the game out into.
+    description: Directory the calling workflow checked the repo out into.
     required: false
     default: game
+  platform-checkout:
+    description: >
+      Fetch SirBepy/hubbub as a sibling. Leave true for game repos; set false in the platform's
+      own workflow, where the checkout already IS hubbub and a second copy would be the wrong ref.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -18,6 +24,7 @@ runs:
     # repos must sit side by side. actions/checkout refuses paths above the workspace, hence
     # both go UNDER it as siblings of each other rather than the game living at the root.
     - name: Check out the platform beside the game
+      if: inputs.platform-checkout == 'true'
       uses: actions/checkout@v4
       with:
         repository: SirBepy/hubbub
