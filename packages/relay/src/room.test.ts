@@ -131,6 +131,17 @@ describe("Room", () => {
     expect(room.snapshot().mode).toBe("in-game");
   });
 
+  it("advances gameLaunch's now across a slow setup, so a timed game does not start behind", async () => {
+    const slow = fakeCatalog({ setup: async (_id, options) => { await new Promise((r) => setTimeout(r, 60)); return options; } });
+    const room = Room.create("ABCD", slow, fakeTokens());
+    await room.handleMessage("s", { t: "attachScreen" }, 0);
+    await room.handleMessage("c1", join("Ann"), 0);
+
+    const launch = findConn(await room.handleMessage("c1", { t: "lobbyConfirm" }, 1000), "s", "gameLaunch");
+    expect(launch.now).toBeGreaterThanOrEqual(1050);
+    expect(launch.now).toBeLessThan(1500);
+  });
+
   it("gameStatePush is only accepted from the room's own screen connection, for the live game", async () => {
     const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
     await room.handleMessage("s", { t: "attachScreen" }, 0);

@@ -368,6 +368,10 @@ export class Room {
     if (players.length < summary.minPlayers) return [];
     this.info(`setup started gameId=${gameId} players=${players.length}`);
     let setupData: unknown;
+    // setup() may await a network fetch for many seconds. The caller's `now` was stamped before
+    // it, so a game whose init starts a clock would begin its first round already that far
+    // behind. Elapsed, not a wall clock: the room still never reads the time itself.
+    const setupStartedAt = performance.now();
     try {
       setupData = await this.catalog.setup(gameId, options, players);
     } catch (err) {
@@ -385,7 +389,8 @@ export class Room {
     this.data.suggestions = {};
     const out = this.broadcastRoomState();
     if (this.data.screenConnId) {
-      out.push({ to: "conn", connId: this.data.screenConnId, msg: { t: "gameLaunch", gameId, players, setupData, now } });
+      const launchedAt = now + Math.round(performance.now() - setupStartedAt);
+      out.push({ to: "conn", connId: this.data.screenConnId, msg: { t: "gameLaunch", gameId, players, setupData, now: launchedAt } });
     }
     return out;
   }
