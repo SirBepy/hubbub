@@ -40,7 +40,9 @@ runs:
     - name: Set up Node
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        # 22, not 20: the protocol transport tests reach for a global WebSocket, which only
+        # exists from Node 22. Testing on 20 fails on a global the dev's own runtime has.
+        node-version: 22
         cache: pnpm
         cache-dependency-path: ${{ inputs.game-path }}/package.json
 
