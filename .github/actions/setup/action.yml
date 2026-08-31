@@ -32,10 +32,10 @@ runs:
         path: hubbub
 
     # Must precede setup-node: its pnpm cache shells out to `pnpm store path`.
+    # No `version:` here on purpose: package.json's `packageManager` already pins it, and
+    # action-setup treats being told twice as a hard error rather than a preference.
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
-      with:
-        version: 10
 
     - name: Set up Node
       uses: actions/setup-node@v4
