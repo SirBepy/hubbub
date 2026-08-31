@@ -22,45 +22,33 @@ jobs:
         with:
           path: hubbub
 
-      - uses: actions/checkout@v4
-        with:
-          repository: SirBepy/hubbub-game-tap-race
-          token: ${{ secrets.GAMES_PAT }}
-          path: hubbub-game-tap-race
-
-      - uses: actions/checkout@v4
-        with:
-          repository: SirBepy/hubbub-game-music-guesser
-          token: ${{ secrets.GAMES_PAT }}
-          path: hubbub-game-music-guesser
-
-      - uses: actions/checkout@v4
-        with:
-          repository: SirBepy/hubbub-game-split-opinions
-          token: ${{ secrets.GAMES_PAT }}
-          path: hubbub-game-split-opinions
-
-      - uses: actions/checkout@v4
-        with:
-          repository: SirBepy/hubbub-game-template
-          token: ${{ secrets.GAMES_PAT }}
-          path: hubbub-game-template
-
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: hubbub/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: hubbub/pnpm-lock.yaml
 
-      # A link: dependency is symlinked, not installed into the linker's tree, so each game's own
-      # deps (zod, @fontsource/*) resolve from its own node_modules and nowhere else. Without
-      # this loop the platform installs fine and the build then fails on the games' imports.
-      - name: Install game deps
+      # External games sit in optionalDependencies, so the platform still installs on a machine
+      # that has not cloned them - scan every bucket. A link: dep is only symlinked, so a game's
+      # own deps (zod, @fontsource/*) resolve from its own node_modules, hence the per-game
+      # install rather than the root one alone.
+      - name: Check out and install linked games
+        working-directory: hubbub
+        env:
+          GAMES_PAT: ${{ secrets.GAMES_PAT }}
+          OWNER: ${{ github.repository_owner }}
         run: |
-          for game in hubbub-game-tap-race hubbub-game-music-guesser hubbub-game-split-opinions hubbub-game-template; do
-            echo "::group::$game"
-            pnpm --dir "$game" install --frozen-lockfile
+          git config --global url."https://x-access-token:${GAMES_PAT}@github.com/".insteadOf "https://github.com/"
+          games=$(node -e "const p=require('./packages/games-manifest/package.json');const all=Object.assign({},p.dependencies,p.optionalDependencies,p.devDependencies);console.log(Object.values(all).filter(v=>typeof v==='string'&&v.startsWith('link:')).map(v=>v.split('/').pop()).join(' '))")
+          if [ -z "$games" ]; then echo "::error::no link: games found in games-manifest"; exit 1; fi
+          echo "linked games: $games"
+          for g in $games; do
+            echo "::group::$g"
+            git clone --depth 1 "https://github.com/${OWNER}/${g}.git" "${GITHUB_WORKSPACE}/${g}"
+            pnpm --dir "${GITHUB_WORKSPACE}/${g}" install --frozen-lockfile
             echo "::endgroup::"
           done
 
