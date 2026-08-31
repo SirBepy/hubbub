@@ -1,0 +1,81 @@
+name: deploy
+
+# Manual only, and deliberately so: this is the one workflow holding a token that can read the
+# private game repos, and workflow_dispatch cannot be fired by a fork PR.
+on:
+  workflow_dispatch:
+
+# A second deploy landing mid-build would race the first onto the same worker.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # The games are pinned with link: paths that point BOTH ways - games-manifest reaches out
+      # to ../../../hubbub-game-*, and each game reaches back to ../hubbub/packages/*. So every
+      # repo has to sit as a sibling under the workspace root, and the platform's directory has
+      # to be named exactly "hubbub". Checking out to the default path breaks both directions.
+      - uses: actions/checkout@v4
+        with:
+          path: hubbub
+
+      - uses: actions/checkout@v4
+        with:
+          repository: SirBepy/hubbub-game-tap-race
+          token: ${{ secrets.GAMES_PAT }}
+          path: hubbub-game-tap-race
+
+      - uses: actions/checkout@v4
+        with:
+          repository: SirBepy/hubbub-game-music-guesser
+          token: ${{ secrets.GAMES_PAT }}
+          path: hubbub-game-music-guesser
+
+      - uses: actions/checkout@v4
+        with:
+          repository: SirBepy/hubbub-game-split-opinions
+          token: ${{ secrets.GAMES_PAT }}
+          path: hubbub-game-split-opinions
+
+      - uses: actions/checkout@v4
+        with:
+          repository: SirBepy/hubbub-game-template
+          token: ${{ secrets.GAMES_PAT }}
+          path: hubbub-game-template
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: hubbub/pnpm-lock.yaml
+
+      # A link: dependency is symlinked, not installed into the linker's tree, so each game's own
+      # deps (zod, @fontsource/*) resolve from its own node_modules and nowhere else. Without
+      # this loop the platform installs fine and the build then fails on the games' imports.
+      - name: Install game deps
+        run: |
+          for game in hubbub-game-tap-race hubbub-game-music-guesser hubbub-game-split-opinions hubbub-game-template; do
+            echo "::group::$game"
+            pnpm --dir "$game" install --frozen-lockfile
+            echo "::endgroup::"
+          done
+
+      - name: Install platform deps
+        run: pnpm install --frozen-lockfile
+        working-directory: hubbub
+
+      - name: Build web
+        run: pnpm --filter @hubbub/web build
+        working-directory: hubbub
+
+      # wrangler.jsonc serves its assets from ../web/dist, so the build above is what ships.
+      - name: Deploy worker
+        run: pnpm --filter @hubbub/worker exec wrangler deploy
+        working-directory: hubbub
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
