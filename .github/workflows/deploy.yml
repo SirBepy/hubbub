@@ -33,8 +33,8 @@ jobs:
 
       # External games sit in optionalDependencies, so the platform still installs on a machine
       # that has not cloned them - scan every bucket. A link: dep is only symlinked, so a game's
-      # own deps (zod, @fontsource/*) resolve from its own node_modules, hence the per-game
-      # install rather than the root one alone.
+      # own deps resolve from its own node_modules, hence the per-game install. Unfrozen because
+      # game repos gitignore their lockfile (the platform is a live sibling, not a pinned dep).
       - name: Check out and install linked games
         working-directory: hubbub
         env:
@@ -48,7 +48,7 @@ jobs:
           for g in $games; do
             echo "::group::$g"
             git clone --depth 1 "https://github.com/${OWNER}/${g}.git" "${GITHUB_WORKSPACE}/${g}"
-            pnpm --dir "${GITHUB_WORKSPACE}/${g}" install --frozen-lockfile
+            pnpm --dir "${GITHUB_WORKSPACE}/${g}" install --no-frozen-lockfile
             echo "::endgroup::"
           done
 
