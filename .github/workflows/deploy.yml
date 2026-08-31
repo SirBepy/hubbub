@@ -4,6 +4,11 @@ name: deploy
 # private game repos, and workflow_dispatch cannot be fired by a fork PR.
 on:
   workflow_dispatch:
+    inputs:
+      game-ref:
+        description: "Branch to take each game from (main = released, develop = current work)"
+        default: main
+        type: string
 
 # A second deploy landing mid-build would race the first onto the same worker.
 concurrency:
@@ -40,6 +45,7 @@ jobs:
         env:
           GAMES_PAT: ${{ secrets.GAMES_PAT }}
           OWNER: ${{ github.repository_owner }}
+          GAME_REF: ${{ inputs.game-ref }}
         run: |
           git config --global url."https://x-access-token:${GAMES_PAT}@github.com/".insteadOf "https://github.com/"
           games=$(node -e "const p=require('./packages/games-manifest/package.json');const all=Object.assign({},p.dependencies,p.optionalDependencies,p.devDependencies);console.log(Object.values(all).filter(v=>typeof v==='string'&&v.startsWith('link:')).map(v=>v.split('/').pop()).join(' '))")
@@ -47,7 +53,7 @@ jobs:
           echo "linked games: $games"
           for g in $games; do
             echo "::group::$g"
-            git clone --depth 1 "https://github.com/${OWNER}/${g}.git" "${GITHUB_WORKSPACE}/${g}"
+            git clone --depth 1 --branch "${GAME_REF}" "https://github.com/${OWNER}/${g}.git" "${GITHUB_WORKSPACE}/${g}"
             pnpm --dir "${GITHUB_WORKSPACE}/${g}" install --no-frozen-lockfile
             echo "::endgroup::"
           done
