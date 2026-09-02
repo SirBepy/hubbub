@@ -28,9 +28,19 @@ export interface GameMeta {
   aspectRatio?: number;
 }
 
+/** One player's final placing. Tied players share a `position` and consume the places below it,
+ *  so two 2nds means there is no 3rd. */
+export interface GameResultStanding {
+  playerId: string;
+  position: number;
+  score?: number;
+}
+
 export interface GameResult {
   winnerId: string | null;
   isDraw: boolean;
+  /** Ordered best first. Games with no ranking (Tic-Tac-Toe) omit it and show the winner alone. */
+  standings?: GameResultStanding[];
 }
 
 export interface SettingsFieldOption {
