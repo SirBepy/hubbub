@@ -244,6 +244,14 @@ export function App() {
               rankSuffix: "ST",
             }
           : null;
+      // Games that rank their players supply standings; the screen shows the top places and every
+      // phone shows the whole table, so the room shares the outcome and each player reads their own.
+      const standings = result.standings
+        ?.map((s) => {
+          const p = players.find((pp) => pp.id === s.playerId);
+          return p ? { position: s.position, name: p.name, avatarId: p.avatarId, score: s.score == null ? "" : String(s.score) } : null;
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null);
       return (
         <TVStage>
           <EndOfRoundScreen
@@ -252,6 +260,7 @@ export function App() {
             roomCode={code}
             playerCount={players.length}
             winner={winner}
+            standings={standings}
             showActions
           />
         </TVStage>

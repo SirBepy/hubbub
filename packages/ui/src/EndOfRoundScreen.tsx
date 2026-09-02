@@ -71,40 +71,62 @@ export type EndOfRoundScreenProps = {
   onBack?: () => void;
 };
 
-/** The medallion is the trophy and the only lit element on the screen. It is deliberately huge:
- * this is read from a couch, and the character IS the identity, so it earns the whole stage. */
-function Medallion({ avatarId }: { avatarId: string }) {
+/** Tier heights by finishing position. Sized so the shortest still contains its rank numeral:
+ * 3rd at 3.4u clears a 1.7u numeral plus its padding, measured in a browser, not computed. */
+const TIER_HEIGHTS: Record<number, string> = {
+  1: "calc(var(--u)*6.2)",
+  2: "calc(var(--u)*4.4)",
+  3: "calc(var(--u)*3.4)",
+};
+
+/** Best in the centre, the rest alternating outward, so the podium reads 2-1-3 left to right.
+ * Tied players share a position and consume the places below, so two 2nds leaves no 3rd. */
+export function podiumOrder(rows: EndOfRoundStandingRow[]): EndOfRoundStandingRow[] {
+  const top = [...new Set(rows.map((r) => r.position))].sort((a, b) => a - b).slice(0, 3);
+  const kept = rows.filter((r) => top.includes(r.position)).slice(0, 4);
+  const out: EndOfRoundStandingRow[] = [];
+  kept.forEach((row, i) => (i % 2 === 0 ? out.push(row) : out.unshift(row)));
+  return out;
+}
+
+/** The medallion is the trophy and the only lit element on the screen. The winner's is deliberately
+ * huge: this is read from a couch, and the character IS the identity, so it earns the whole stage.
+ * Runners-up render the same shape unlit, keeping one glow per screen. */
+function Medallion({ avatarId, first }: { avatarId: string; first: boolean }) {
+  const size = first ? 13 : 8.4;
   return (
     <div
       className="hb-anim-rank"
       style={{
         position: "relative",
-        width: "calc(var(--u)*26)",
-        height: "calc(var(--u)*26)",
+        width: `calc(var(--u)*${size})`,
+        height: `calc(var(--u)*${size})`,
         flex: "none",
         display: "grid",
         placeItems: "center",
         animation: "hb-rank-in 460ms cubic-bezier(.2,.8,.2,1) 1 both",
       }}
     >
+      {first ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            background: "radial-gradient(circle at 50% 42%, rgba(228,179,60,.20) 0%, rgba(228,179,60,0) 68%)",
+          }}
+        />
+      ) : null}
       <div
         style={{
           position: "absolute",
           inset: 0,
           borderRadius: "50%",
-          background: "radial-gradient(circle at 50% 42%, rgba(228,179,60,.20) 0%, rgba(228,179,60,0) 68%)",
+          border: `calc(var(--u)*.14) solid ${first ? "rgba(228,179,60,.55)" : "rgba(242,234,217,.3)"}`,
+          boxShadow: first ? "0 0 calc(var(--u)*2.6) rgba(228,179,60,.26)" : "none",
         }}
       />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          border: "calc(var(--u)*.14) solid rgba(228,179,60,.55)",
-          boxShadow: "0 0 calc(var(--u)*3.4) rgba(228,179,60,.28)",
-        }}
-      />
-      <Avatar size="calc(var(--u)*21)" colorHex={NEUTRAL_RING} avatarId={avatarId} surface={2} />
+      <Avatar size={`calc(var(--u)*${first ? 10.4 : 6.7})`} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={2} />
     </div>
   );
 }
@@ -121,6 +143,14 @@ export function EndOfRoundScreen({
   onRematch,
   onBack,
 }: EndOfRoundScreenProps) {
+  // A game with no ranking (Tic-Tac-Toe) supplies no standings, so the winner alone becomes a
+  // one-slot podium rather than a second layout the screen has to switch between.
+  const places = standings?.length
+    ? podiumOrder(standings)
+    : winner
+      ? [{ position: 1, name: winner.name, avatarId: winner.avatarId, score: "" }]
+      : [];
+
   return (
     <div
       style={{
@@ -158,85 +188,78 @@ export function EndOfRoundScreen({
           </div>
         </div>
 
-        {/* Centred, not stretched: the three columns have fixed widths, so on a wide viewport
-            flex-start would leave the whole trophy row hugging the left edge. */}
-        <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "calc(var(--u)*3.4)" }}>
-          {winner ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "calc(var(--u)*1)" }}>
-              <Medallion avatarId={winner.avatarId} />
-              <div
-                style={{
-                  padding: "calc(var(--u)*.3) calc(var(--u)*1.1)",
-                  borderRadius: 999,
-                  background: "var(--accent)",
-                  color: "var(--surface-0)",
-                  fontFamily: "var(--font-display)",
-                  fontSize: "calc(var(--u)*1.5)",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {winner.rankLabel}
-                {winner.rankSuffix}
-              </div>
-            </div>
-          ) : null}
-
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "calc(var(--u)*.85)", maxWidth: "calc(var(--u)*40)" }}>
-            <div style={{ fontSize: "calc(var(--u)*4.2)", fontWeight: 600, lineHeight: 1.05 }}>
-              {winner ? winner.name : "It's a tie"}
-            </div>
-            <div style={{ height: 1, background: "var(--divider-heavy)" }} />
-            {breakdown?.map((row) => (
-              <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "calc(var(--u)*.65) 0" }}>
-                <span style={{ fontSize: "calc(var(--u)*1.6)", color: "var(--text-secondary)" }}>{row.label}</span>
-                <span
-                  style={{
-                    fontSize: "calc(var(--u)*1.6)",
-                    fontWeight: 600,
-                    color: row.positive ? "var(--player-lime)" : "var(--text-faint)",
-                  }}
-                >
-                  {row.value}
-                </span>
-              </div>
-            ))}
-            {showActions ? (
-              <div style={{ display: "flex", gap: "calc(var(--u)*.85)", marginTop: "calc(var(--u)*.85)", height: 64 }}>
-                {/* No onRematch/onBack from the TV: disabled visually signals "phones drive this", not a dead click. */}
-                <GlowButton colorHex={colorHex(1)} height={64} label="Rematch" onClick={onRematch} fullWidth={false} disabled={!onRematch} />
-                <NeutralButton height={64} label="Back to lobby" onClick={onBack} fullWidth={false} disabled={!onBack} />
-              </div>
-            ) : null}
-          </div>
-
-          {standings?.length ? (
-            <div style={{ width: "calc(var(--u)*22)", display: "flex", flexDirection: "column", gap: "calc(var(--u)*.45)" }}>
-              <div style={{ fontSize: "calc(var(--u)*1.2)", fontWeight: 600, letterSpacing: "0.14em", color: "var(--text-faint)", marginBottom: "calc(var(--u)*.45)" }}>
-                STANDINGS
-              </div>
-              {standings.map((row) => (
-                <div
-                  key={row.position}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "calc(var(--u)*.65)",
-                    background: "var(--surface-1)",
-                    border: "1px solid var(--divider)",
-                    borderRadius: "var(--radius-md)",
-                    padding: "calc(var(--u)*.65) calc(var(--u)*.85)",
-                  }}
-                >
-                  <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "var(--text-faint)", width: "calc(var(--u)*1.7)" }}>{row.position}</span>
-                  {/* size 32 matches lobby/MiniIdentity's compact-row avatar */}
-                  <Avatar size={32} colorHex={NEUTRAL_RING} avatarId={row.avatarId} surface={2} />
-                  <span style={{ flex: 1, fontSize: "calc(var(--u)*1.4)", fontWeight: 500 }}>{row.name}</span>
-                  <span style={{ fontSize: "calc(var(--u)*1.4)", fontWeight: 600, color: "var(--text-secondary)" }}>{row.score}</span>
+        {/* One subject, centred, owning the stage. The full table lives on each player's phone;
+            this screen only has to say who won and in what order. */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* The ground line is what makes a tier read as standing on something rather than as a
+              clipped box, and it is the only thing that holds up when there is a single place. */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "calc(var(--u)*1.4)" }}>
+            {places.map((place, i) => {
+              const first = place.position === 1;
+              return (
+                <div key={`${place.position}-${place.name}-${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <Medallion avatarId={place.avatarId} first={first} />
+                  <div
+                    style={{
+                      margin: "calc(var(--u)*.5) 0",
+                      fontFamily: first ? "var(--font-display)" : undefined,
+                      fontSize: first ? "calc(var(--u)*2.8)" : "calc(var(--u)*1.3)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {place.name}
+                  </div>
+                  <div
+                    style={{
+                      width: "calc(var(--u)*11.5)",
+                      height: TIER_HEIGHTS[place.position] ?? TIER_HEIGHTS[3],
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "center",
+                      gap: "calc(var(--u)*.7)",
+                      paddingTop: "calc(var(--u)*.75)",
+                      background: first ? "rgba(228,179,60,.10)" : "var(--surface-1)",
+                      border: `1px solid ${first ? "rgba(228,179,60,.34)" : "var(--divider)"}`,
+                      borderBottom: "none",
+                      borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+                    }}
+                  >
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*1.7)", color: first ? "var(--accent)" : "var(--text-faint)" }}>
+                      {place.position}
+                    </span>
+                    {place.score ? (
+                      <span style={{ fontSize: "calc(var(--u)*1.3)", fontWeight: 600, color: first ? "var(--text-secondary)" : "var(--text-muted)" }}>
+                        {place.score}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : null}
+              );
+            })}
+          </div>
+          <div style={{ height: 1, width: "100%", background: "rgba(242,234,217,.22)" }} />
+          </div>
         </div>
+
+        {breakdown?.length ? (
+          <div style={{ flex: "none", display: "flex", justifyContent: "center", gap: "calc(var(--u)*2.4)" }}>
+            {breakdown.map((row) => (
+              <span key={row.label} style={{ fontSize: "calc(var(--u)*1.2)", color: row.positive ? "var(--player-lime)" : "var(--text-muted)" }}>
+                {row.label} <b style={{ color: "var(--text-secondary)" }}>{row.value}</b>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Only when a caller supplies a handler. The TV passes none, so the room sees no dead
+            buttons and no empty strip reserving space for them; the live pair is on the phone. */}
+        {showActions && (onRematch || onBack) ? (
+          <div style={{ flex: "none", display: "flex", justifyContent: "center", gap: "calc(var(--u)*.85)", height: 64 }}>
+            {onRematch ? <GlowButton colorHex={colorHex(1)} height={64} label="Rematch" onClick={onRematch} fullWidth={false} /> : null}
+            {onBack ? <NeutralButton height={64} label="Back to lobby" onClick={onBack} fullWidth={false} /> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
