@@ -1,4 +1,4 @@
-import { colorHex, colorName, IdentityCard, hexToRgba } from "@hubbub/ui";
+import { colorHex, IdentityCard, hexToRgba } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Cell, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
@@ -30,12 +30,16 @@ export function TTTScreen({ state, players }: TTTScreenProps) {
   const winLine = state.winner && state.winner !== "draw" ? winningCells(state.board) : [];
   const winTint = state.winner === "X" ? xColor : state.winner === "O" ? oColor : null;
 
+  // The player's own name, never their hue: colour stopped carrying identity once rooms outgrew
+  // six players. Colouring the X and O pieces is still the game's call; naming a person is not.
+  const sideLabel = (side: "X" | "O") => ((side === "X" ? xPlayer?.name : oPlayer?.name) ?? side).toUpperCase();
+
   const statusText =
     state.winner === "draw"
       ? "DRAW"
       : state.winner
-        ? `${colorName(state.winner === "X" ? X_COLOR_ID : O_COLOR_ID).toUpperCase()} WINS`
-        : `${colorName(state.turn === "X" ? X_COLOR_ID : O_COLOR_ID).toUpperCase()} PLAYS`;
+        ? `${sideLabel(state.winner)} WINS`
+        : `${sideLabel(state.turn)} PLAYS`;
 
   return (
     <div

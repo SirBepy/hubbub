@@ -1,4 +1,4 @@
-import { colorHex, colorName, IdentityCard, hexToRgba } from "@hubbub/ui";
+import { colorHex, IdentityCard, hexToRgba } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { BoardResult, Cell, UTTTState } from "./logic.js";
 import { utttLogic } from "./logic.js";
@@ -89,14 +89,18 @@ export function UTTTScreen({ state, players }: UTTTScreenProps) {
   // glow moves to the turn-holder's bookend card instead; a forced sub-board keeps it locally.
   const anyBoardTurnGlow = !state.winner && state.activeBoard === null;
 
+  // The player's own name, never their hue: colour stopped carrying identity once rooms outgrew
+  // six players. Colouring the X and O pieces is still the game's call; naming a person is not.
+  const sideLabel = (side: "X" | "O") => ((side === "X" ? xPlayer?.name : oPlayer?.name) ?? side).toUpperCase();
+
   const statusText =
     state.winner === "draw"
       ? "DRAW"
       : state.winner
-        ? `${colorName(state.winner === "X" ? X_COLOR_ID : O_COLOR_ID).toUpperCase()} WINS`
+        ? `${sideLabel(state.winner)} WINS`
         : state.activeBoard === null
-          ? `${colorName(state.turn === "X" ? X_COLOR_ID : O_COLOR_ID).toUpperCase()} PLAYS · ANY BOARD`
-          : `${colorName(state.turn === "X" ? X_COLOR_ID : O_COLOR_ID).toUpperCase()} PLAYS · BOARD ${state.activeBoard + 1}`;
+          ? `${sideLabel(state.turn)} PLAYS · ANY BOARD`
+          : `${sideLabel(state.turn)} PLAYS · BOARD ${state.activeBoard + 1}`;
 
   return (
     <div
