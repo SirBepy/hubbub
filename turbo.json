@@ -1,5 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "packages/games-manifest/src/logics.ts",
+    "packages/games-manifest/src/lazy.ts",
+    "packages/games-manifest/src/settings.ts",
+    "packages/games-manifest/.dev-games"
+  ],
   "tasks": {
     "generate": { "cache": false },
     "build": { "dependsOn": ["^build", "^generate", "generate"], "outputs": ["dist/**"] },
