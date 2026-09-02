@@ -32,11 +32,8 @@ runs:
         path: hubbub
 
     # Must precede setup-node: its pnpm cache shells out to `pnpm store path`.
-    # No `version:` here on purpose: package.json's `packageManager` already pins it, and
-    # action-setup treats being told twice as a hard error rather than a preference.
-    # It has to be pointed at the PLATFORM's package.json, which is the only one in the estate
-    # carrying `packageManager`; the default resolves to the workspace root, where a game repo's
-    # checkout leaves nothing at all. One pinned pnpm for every repo, which is the whole point.
+    # Pointed at the PLATFORM's package.json, the only one in the estate carrying
+    # `packageManager`; the default resolves to the workspace root, which a game repo leaves empty.
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
       with:
