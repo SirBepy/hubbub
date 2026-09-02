@@ -15,8 +15,9 @@ export interface ClientTransport {
   close(): void;
 }
 
-// Uses the global WHATWG WebSocket (native in browsers, global in Node 20+),
-// so this module bundles cleanly for the browser with no Node-only deps.
+// Uses the global WHATWG WebSocket, so this module bundles cleanly for the browser with no
+// Node-only deps. Node only exposes it globally from 22, which is why the test polyfills it
+// rather than the repo raising its Node floor for browser-only code.
 export class WebSocketClientTransport implements ClientTransport {
   private ws?: WebSocket;
   private messageHandlers = new Set<(msg: ServerMessage) => void>();

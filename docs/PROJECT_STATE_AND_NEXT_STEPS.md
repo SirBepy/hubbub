@@ -49,7 +49,7 @@ Full rules also in the root `CLAUDE.md` (project section) - read it.
 
 ## 3. Repo layout & commands
 
-pnpm + Turborepo monorepo, TypeScript everywhere, Node 20+, **concurrency capped at 5**.
+pnpm + Turborepo monorepo, TypeScript everywhere, Node 22+, **concurrency capped at 5**.
 
 ```
 /apps

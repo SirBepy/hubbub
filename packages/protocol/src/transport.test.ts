@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { WebSocketServer } from "ws";
+import { WebSocket as WsWebSocket, WebSocketServer } from "ws";
 import { WebSocketClientTransport } from "./transport.js";
+
+// transport.ts is browser code, where WebSocket is always global. Node only gained it globally
+// in 22, so without this the suite would silently raise the repo's real Node floor to 22.
+globalThis.WebSocket ??= WsWebSocket as unknown as typeof globalThis.WebSocket;
 
 let wss: WebSocketServer | undefined;
 afterEach(() => wss?.close());

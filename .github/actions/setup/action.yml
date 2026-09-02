@@ -40,8 +40,9 @@ runs:
     - name: Set up Node
       uses: actions/setup-node@v4
       with:
-        # 22, not 20: the protocol transport tests reach for a global WebSocket, which only
-        # exists from Node 22. Testing on 20 fails on a global the dev's own runtime has.
+        # 22, not 20, and matching the root package.json engines floor: jsdom 30 pulls undici 8,
+        # which calls worker_threads.markAsUncloneable - absent from every Node 20 including
+        # 20.20.2, measured 2026-09-02. Nothing shipped needs a Node 22 global.
         node-version: 22
         cache: pnpm
         cache-dependency-path: ${{ inputs.game-path }}/package.json
