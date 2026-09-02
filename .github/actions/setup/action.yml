@@ -34,8 +34,13 @@ runs:
     # Must precede setup-node: its pnpm cache shells out to `pnpm store path`.
     # No `version:` here on purpose: package.json's `packageManager` already pins it, and
     # action-setup treats being told twice as a hard error rather than a preference.
+    # It has to be pointed at the PLATFORM's package.json, which is the only one in the estate
+    # carrying `packageManager`; the default resolves to the workspace root, where a game repo's
+    # checkout leaves nothing at all. One pinned pnpm for every repo, which is the whole point.
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
+      with:
+        package_json_file: ${{ inputs.platform-checkout == 'true' && 'hubbub/package.json' || format('{0}/package.json', inputs.game-path) }}
 
     - name: Set up Node
       uses: actions/setup-node@v4
