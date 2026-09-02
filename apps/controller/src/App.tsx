@@ -242,6 +242,9 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
             connectionRttMs={tier.rttMs}
           />
           <div style={gameBody}>
+            {/* Before the game's own end view, not after: a game's controller fills the body, so a
+                scoreboard appended below it lands off-screen on a phone nobody scrolls. */}
+            {result?.standings?.length ? <Scoreboard standings={result.standings} players={room.players} meId={playerId} /> : null}
             {Controller && game && transportRef.current ? (
               <Controller
                 state={game.state}
@@ -256,9 +259,6 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
                 category={pendingSummary?.category}
               />
             ) : null}
-            {/* The TV celebrates the podium and drops the table; this is where the table goes. The
-                phone is otherwise idle at this moment, and it is the one screen each player owns. */}
-            {result?.standings?.length ? <Scoreboard standings={result.standings} players={room.players} meId={playerId} /> : null}
           </div>
           <div style={gameFooter}>
             {result ? (
