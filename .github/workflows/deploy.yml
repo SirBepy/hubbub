@@ -36,6 +36,16 @@ jobs:
           cache: pnpm
           cache-dependency-path: hubbub/pnpm-lock.yaml
 
+      # An installation token instead of a PAT: it is minted per run and expires in an hour, and
+      # widening it to a new game repo is an App install setting rather than a token re-scope.
+      # Requires the publishing App to be installed on the game repos with Contents: read.
+      - uses: actions/create-github-app-token@v1
+        id: games-token
+        with:
+          app-id: ${{ secrets.HUBBUB_APP_ID }}
+          private-key: ${{ secrets.HUBBUB_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       # External games sit in optionalDependencies, so the platform still installs on a machine
       # that has not cloned them - scan every bucket. A link: dep is only symlinked, so a game's
       # own deps resolve from its own node_modules, hence the per-game install. Unfrozen because
@@ -43,11 +53,11 @@ jobs:
       - name: Check out and install linked games
         working-directory: hubbub
         env:
-          GAMES_PAT: ${{ secrets.GAMES_PAT }}
+          GAMES_TOKEN: ${{ steps.games-token.outputs.token }}
           OWNER: ${{ github.repository_owner }}
           GAME_REF: ${{ inputs.game-ref }}
         run: |
-          git config --global url."https://x-access-token:${GAMES_PAT}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${GAMES_TOKEN}@github.com/".insteadOf "https://github.com/"
           games=$(node -e "const p=require('./packages/games-manifest/package.json');const all=Object.assign({},p.dependencies,p.optionalDependencies,p.devDependencies);console.log(Object.values(all).filter(v=>typeof v==='string'&&v.startsWith('link:')).map(v=>v.split('/').pop()).join(' '))")
           if [ -z "$games" ]; then echo "::error::no link: games found in games-manifest"; exit 1; fi
           echo "linked games: $games"
