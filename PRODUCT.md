@@ -124,10 +124,14 @@ a friend's laptop over LAN with no account and no internet.
 
 1. **Zero friction to join.** Scan or type four letters and you are in. Any step that adds an
    install, an account, or a decision before play is a defect.
-2. **The room reacts.** Joining, scoring, and winning must be visible to everyone at once.
-   A player appearing on the TV is the single strongest signal that the thing is alive.
-3. **The TV performs; the phone obeys.** All spectacle lives on the screen. The controller
-   stays glanceable and thumb-first, never a small copy of the screen UI.
+2. **The room reacts.** Joining, and **who won**, must be visible to everyone at once. A player
+   appearing on the TV is the single strongest signal that the thing is alive. Exhaustive detail
+   (every player's score, your own placement) may live on the phone instead - the room shares the
+   outcome, each player reads their own.
+3. **The TV performs; the phone reads.** All spectacle lives on the screen. The controller is
+   glanceable and thumb-first, never a shrunken mirror of the TV - but where the TV is celebrating
+   and the phone would otherwise be idle, the phone may carry the reference detail the TV
+   deliberately drops.
 4. **Legible from three metres, drunk.** If a label, state, or affordance cannot be read
    across the room at a glance, it is wrong regardless of how it looks in a screenshot.
 5. **The framework absorbs the complexity.** A game author writes three parts. Anything a
