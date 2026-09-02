@@ -10,6 +10,7 @@ import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
 import { MenuScreen } from "./menu";
 import { SearchScreen } from "./search";
+import { Scoreboard } from "./scoreboard";
 import { ShareScreen } from "./share";
 import { AboutScreen } from "./about";
 import { HowToPlayScreen } from "./how-to-play";
@@ -255,6 +256,9 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
                 category={pendingSummary?.category}
               />
             ) : null}
+            {/* The TV celebrates the podium and drops the table; this is where the table goes. The
+                phone is otherwise idle at this moment, and it is the one screen each player owns. */}
+            {result?.standings?.length ? <Scoreboard standings={result.standings} players={room.players} meId={playerId} /> : null}
           </div>
           <div style={gameFooter}>
             {result ? (
