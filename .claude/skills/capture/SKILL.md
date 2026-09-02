@@ -103,6 +103,10 @@ field needed either way.
 | `wait` | `ms`, `page` (default `tv`) | Plain pause - prefer `pollUntilText` when waiting for a state, not a duration |
 | `evaluate` | `page`, `js` | Runs `page.evaluate(js)` - `js` is a string, must be an IIFE |
 
+**Join two players when you need to observe anything mid-round.** A one-player room resolves the
+instant the only player answers, so a pressed button or a lock-in marker is never on screen long
+enough to shoot. A second joined player who simply does not answer holds the round open.
+
 Board/cell interaction inside a round (which cells to click) is not abstracted further - each
 game's move-by-move logic still needs its own steps or a one-off script importing the exports
 below. `playToEndOfRound` covers games that resolve on their own once started; it does not click
