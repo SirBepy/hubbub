@@ -11,6 +11,7 @@ export function ConfigPanel({
   fields,
   values,
   cursorIndex,
+  setupError,
 }: {
   code: string;
   hostLabel: string;
@@ -18,6 +19,7 @@ export function ConfigPanel({
   fields: SettingsField[];
   values: Record<string, string>;
   cursorIndex: number;
+  setupError?: string;
 }) {
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", color: "var(--text-primary)" }}>
@@ -83,7 +85,27 @@ export function ConfigPanel({
           })}
         </div>
 
-        <span style={{ fontSize: "calc(var(--u)*.72)", color: "var(--text-faint)" }}>Use the host's phone to adjust - START to begin</span>
+        {setupError ? (
+          <div
+            role="alert"
+            style={{
+              width: "calc(var(--u)*38)", maxWidth: "90%", display: "flex", flexDirection: "column",
+              alignItems: "center", gap: "calc(var(--u)*.35)", textAlign: "center",
+              padding: "calc(var(--u)*.9) calc(var(--u)*1.1)", borderRadius: "calc(var(--u)*.35)",
+              background: "rgba(190,60,50,.14)", border: "1px solid rgba(226,110,96,.5)",
+            }}
+          >
+            <span style={{ fontSize: "calc(var(--u)*.72)", letterSpacing: "0.3em", fontWeight: 700, color: "#e26e60", textTransform: "uppercase" }}>
+              Can't start
+            </span>
+            {/* The game authors this string; the platform only carries it. Sized to the field
+                rows above so it is readable from three metres on an uncalibrated TV. */}
+            <span style={{ fontSize: "calc(var(--u)*.92)", fontWeight: 600, lineHeight: 1.3 }}>{setupError}</span>
+            <span style={{ fontSize: "calc(var(--u)*.72)", color: "var(--text-faint)" }}>Fix it and press START again, or back out to pick another game</span>
+          </div>
+        ) : (
+          <span style={{ fontSize: "calc(var(--u)*.72)", color: "var(--text-faint)" }}>Use the host's phone to adjust - START to begin</span>
+        )}
       </div>
     </div>
   );

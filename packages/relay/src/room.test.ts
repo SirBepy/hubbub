@@ -113,7 +113,7 @@ describe("Room", () => {
     expect(room.snapshot().mode).toBe("lobby");
   });
 
-  it("launches to the screen connection and reports a setup failure only to the launching conn", async () => {
+  it("launches to the screen connection and reports a setup failure to both the launching conn and the screen", async () => {
     const failing = fakeCatalog({ setup: async (_id, options: any) => { if (options?.fail) throw new Error("boom"); return options; } });
     const room = Room.create("ABCD", failing, fakeTokens());
     await room.handleMessage("s", { t: "attachScreen" }, 0);
@@ -122,6 +122,11 @@ describe("Room", () => {
     const failOut = await room.handleMessage("c1", { t: "lobbyConfirm", options: { fail: true } }, 0);
     const err = findConn(failOut, "c1", "error");
     expect(err.code).toBe("setup_failed");
+    // The TV is the shared surface, so it carries the game's own message verbatim too.
+    const screenErr = findConn(failOut, "s", "error");
+    expect(screenErr.code).toBe("setup_failed");
+    expect(screenErr.message).toBe("boom");
+    expect(err.message).toBe("boom");
     expect(room.snapshot().mode).toBe("lobby");
 
     const okOut = await room.handleMessage("c1", { t: "lobbyConfirm", options: { seed: 1 } }, 123);

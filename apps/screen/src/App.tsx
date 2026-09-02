@@ -69,6 +69,7 @@ export function App() {
   const [code, setCode] = useState<string>("");
   const [qr, setQr] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebRtcClientTransport>();
@@ -97,6 +98,7 @@ export function App() {
           if (msg.screenToken) saveScreenSession(sessionStorage, { code: msg.code, token: msg.screenToken });
           QRCode.toDataURL(`${CONTROLLER_URL}/?room=${msg.code}`).then(setQr);
         } else if (msg.t === "roomState") {
+          if (msg.mode !== "configuring") setSetupError(null);
           const ids = new Set(msg.players.map((p) => p.id));
           latestPlayers = msg.players.map((p) => ({ id: p.id, name: p.name }));
           if (msg.mode === "in-game" && rosterIdsChanged(prevPlayerIds, ids)) {
@@ -117,6 +119,7 @@ export function App() {
           setGame({ gameId: msg.gameId, state: msg.state });
         } else if (msg.t === "gameLaunch") {
           // setup() already ran server-side; construct the GameInstance here (screen authority).
+          setSetupError(null);
           launchedGameIdRef.current = msg.gameId;
           loadGameScreen(msg.gameId)?.then(({ logic }) => {
             authority.launch(logic, msg.players, msg.setupData, msg.now);
@@ -128,6 +131,10 @@ export function App() {
           });
         } else if (msg.t === "gameAction") {
           authority.action(msg.playerId, msg.payload, msg.now);
+        } else if (msg.t === "error" && msg.code === "setup_failed") {
+          // The relay sends this to the screen as well as the host's phone, so the room can see
+          // why nothing happened. tryReattach's own error handler is scoped to its own promise.
+          setSetupError(msg.message ?? "This game couldn't start.");
         }
       });
     }
@@ -294,6 +301,7 @@ export function App() {
           fields={visibleSettingsFields(schema, room.config.values)}
           values={room.config.values}
           cursorIndex={room.config.cursorIndex}
+          setupError={setupError ?? undefined}
         />
         </div>
       </TVStage>

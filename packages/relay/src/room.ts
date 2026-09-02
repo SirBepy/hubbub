@@ -377,8 +377,15 @@ export class Room {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Game setup failed";
       this.info(`setup_failed gameId=${gameId} reason=${message}`);
-      if (!notifyConnId) return [];
-      return [{ to: "conn", connId: notifyConnId, msg: { t: "error", code: "setup_failed", message } }];
+      // The TV is the surface a room full of people is looking at, so it gets the game's own
+      // message too - the host's phone alone leaves everyone else staring at an unchanged screen.
+      const out: Outbound[] = [];
+      const err_ = { t: "error", code: "setup_failed", message } as const;
+      if (notifyConnId) out.push({ to: "conn", connId: notifyConnId, msg: err_ });
+      if (this.data.screenConnId && this.data.screenConnId !== notifyConnId) {
+        out.push({ to: "conn", connId: this.data.screenConnId, msg: err_ });
+      }
+      return out;
     }
     this.info(`game launched gameId=${gameId}`);
     this.data.lastOptions = options;
