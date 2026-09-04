@@ -6,13 +6,14 @@ import { dirname, resolve } from "node:path";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const marker = resolve(repoRoot, "packages/games-manifest/.dev-games");
 
-/** The generator's three outputs plus the dev-games marker are gitignored, so turbo cannot see
+/** The generator's four outputs plus the dev-games marker are gitignored, so turbo cannot see
  * them from git and hashes every build identically across roster changes unless they are named
  * here. Confirmed against turbo 2.9.18: an explicitly-listed gitignored path IS honoured. */
 const GENERATED = [
   "packages/games-manifest/src/logics.ts",
   "packages/games-manifest/src/lazy.ts",
   "packages/games-manifest/src/settings.ts",
+  "packages/games-manifest/src/sources.ts",
   "packages/games-manifest/.dev-games",
 ];
 

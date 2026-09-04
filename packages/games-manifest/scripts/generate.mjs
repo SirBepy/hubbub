@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Regenerates src/logics.ts, src/lazy.ts and src/settings.ts, omitting any external game whose
-// sibling repo isn't checked out on disk. Run via `pnpm --filter @hubbub/games-manifest generate`;
+// Regenerates src/logics.ts, src/lazy.ts, src/settings.ts and src/sources.ts, omitting any
+// external game whose sibling repo isn't checked out on disk. Run via `pnpm --filter @hubbub/games-manifest generate`;
 // also wired into postinstall and the turbo build/typecheck/dev/test graph.
 // Registering a game = one entry below + one optionalDependency in package.json.
 import { existsSync, rmSync, writeFileSync } from "node:fs";
@@ -14,11 +14,20 @@ const key = (id) => (/^[A-Za-z_$][\w$]*$/.test(id) ? id : JSON.stringify(id));
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = path.join(packageDir, "src");
 
+// `dir` locates a game's built bundle: repo-relative for core games, sibling-relative below.
 const CORE_GAMES = [
-  { id: "ttt", pkg: "@hubbub/game-tictactoe", screen: "TTTScreen", controller: "TTTController", logic: "tttLogic" },
+  {
+    id: "ttt",
+    pkg: "@hubbub/game-tictactoe",
+    dir: "packages/games/tictactoe",
+    screen: "TTTScreen",
+    controller: "TTTController",
+    logic: "tttLogic",
+  },
   {
     id: "uttt",
     pkg: "@hubbub/game-ultimate-tictactoe",
+    dir: "packages/games/ultimate-tictactoe",
     screen: "UTTTScreen",
     controller: "UTTTController",
     logic: "utttLogic",
@@ -161,6 +170,27 @@ export function loadGameController(gameId: string | null): Promise<LoadedGameCon
 `;
 }
 
+/** Absolute paths to each game's built bundle, dev loop only - the cloud path fetches by
+ * content hash from KV. Baking absolute paths keeps it honest about being local-only. */
+function sourcesSource() {
+  const repoRoot = path.resolve(packageDir, "..", "..");
+  const entries = games
+    .map((g) => {
+      const base = CORE_GAMES.includes(g) ? repoRoot : siblingsRoot;
+      const bundle = path.join(base, g.dir, "dist", "bundle.js").replace(/\\/g, "/");
+      return `  ${key(g.id)}: ${JSON.stringify(bundle)},`;
+    })
+    .join("\n");
+  return `// GENERATED and untracked: rewritten on install by scripts/generate.mjs.
+// Dev-loop only. Absolute, machine-specific paths - the sandbox dev server reads a game's
+// dist/bundle.js straight off disk so an author can play their game through the real iframe
+// path with no publish step. Production resolves bundles by content hash from KV instead.
+export const GAME_BUNDLE_PATHS: Record<string, string> = {
+${entries}
+};
+`;
+}
+
 function settingsSource() {
   const withSettings = games.filter((g) => g.settings);
   const imports = withSettings.map((g) => `import { ${g.settings} } from "${g.pkg}/settings";`).join("\n");
@@ -188,6 +218,7 @@ await Promise.all([
   writeFile(path.join(srcDir, "logics.ts"), logicsSource()),
   writeFile(path.join(srcDir, "lazy.ts"), lazySource()),
   writeFile(path.join(srcDir, "settings.ts"), settingsSource()),
+  writeFile(path.join(srcDir, "sources.ts"), sourcesSource()),
 ]);
 
 const missing = EXTERNAL_GAMES.filter((g) => !present.includes(g)).map((g) => g.id);

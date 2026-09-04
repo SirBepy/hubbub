@@ -4,6 +4,7 @@
     "packages/games-manifest/src/logics.ts",
     "packages/games-manifest/src/lazy.ts",
     "packages/games-manifest/src/settings.ts",
+    "packages/games-manifest/src/sources.ts",
     "packages/games-manifest/.dev-games"
   ],
   "tasks": {

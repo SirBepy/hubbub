@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/logics.ts",
     "./lazy": "./src/lazy.ts",
-    "./settings": "./src/settings.ts"
+    "./settings": "./src/settings.ts",
+    "./sources": "./src/sources.ts"
   },
   "scripts": {
     "generate": "node scripts/generate.mjs",
@@ -26,8 +27,14 @@
     "@hubbub/game-split-opinions": "link:../../../hubbub-game-split-opinions",
     "@hubbub/game-sample": "link:../../../hubbub-game-template"
   },
-  "peerDependencies": { "react": "^18.3.0" },
-  "peerDependenciesMeta": { "react": { "optional": true } },
+  "peerDependencies": {
+    "react": "^18.3.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "typescript": "^5.5.0",
     "react": "^18.3.0",
