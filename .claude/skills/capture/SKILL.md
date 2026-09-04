@@ -96,8 +96,10 @@ field needed either way.
 | `waitText` | `page`, `text`, `exact`, `timeout` | `getByText(...).waitFor()` |
 | `waitRole` | `page`, `role`, `name`, `exact`, `timeout` | `getByRole(...).waitFor()` |
 | `pollUntilText` | `page`, `text`, `exact`, `timeout`, `interval`, `shot` | Polls instead of a fixed sleep; screenshots the instant the text appears, not after a guessed delay |
-| `startGame` | `page`, `game` | Lobby search -> vote -> start for a named game row |
-| `playToEndOfRound` | `page` (host, default `host`), `tvPage` (default `tv`), `game`, `endText`, `timeout`, `shot` | `startGame` then polls the TV for a win/draw/rematch marker (default `WINS\|DRAW\|Rematch\|PLAYS`) |
+| `startGame` | `page`, `game`, `pressStart` (default `true`), `timeout` | Lobby search -> vote -> start for a named game row. A settings-carrying game lands on the config screen; this presses its Start and waits for `in-game`. Set `pressStart: false` to hold that screen for a shot |
+| `pressStart` | `page` (default `host`), `timeout` | Presses the config remote's Start and waits for the room to reach `in-game`. Pair with `startGame`'s `pressStart: false` |
+| `answerRound` | `page`, `index` (default 0), `minEnabled` (default 5), `required`, `timeout`, `interval` | Answers one round, but only while the controller is genuinely answerable - see the guard below. `required: false` makes a reveal phase a silent no-op instead of an error |
+| `playToEndOfRound` | `page` (host, default `host`), `tvPage` (default `tv`), `game`, `endText`, `timeout`, `pressStart`, `shot` | `startGame` then polls the TV for a win/draw/rematch marker (default `WINS\|DRAW\|Rematch\|PLAYS`). Covers settings-carrying games too, since `startGame` clears the config screen |
 | `throttle` | `page`, `downloadThroughput`, `uploadThroughput`, `latency`, `offline` | CDP `Network.emulateNetworkConditions`; defaults to a slow-3G-ish profile |
 | `unthrottle` | `page` | Clears any throttle set on that page |
 | `wait` | `ms`, `page` (default `tv`) | Plain pause - prefer `pollUntilText` when waiting for a state, not a duration |
@@ -106,6 +108,13 @@ field needed either way.
 **Join two players when you need to observe anything mid-round.** A one-player room resolves the
 instant the only player answers, so a pressed button or a lock-in marker is never on screen long
 enough to shoot. A second joined player who simply does not answer holds the round open.
+
+**Never click "the first enabled button" to answer a round.** During a reveal phase the only
+enabled controls are the identity header and "Back to lobby", so that improvisation drops the room
+to the lobby and reads as a game crash. `answerRound` guards against it twice: it refuses to click
+until at least `minEnabled` buttons are enabled (5 = header plus a four-choice round), and it skips
+any button named after a platform control or after the player themselves. Repeat the step once per
+round; a game with a between-round reveal needs no extra waiting.
 
 Board/cell interaction inside a round (which cells to click) is not abstracted further - each
 game's move-by-move logic still needs its own steps or a one-off script importing the exports
@@ -117,6 +126,10 @@ game-specific board cells for you.
 ```
 node "C:/Users/tecno/Desktop/Projects/hubbub/.claude/skills/capture/scripts/capture.cjs" --plan "<plan.json>" --session-id "<pid>-<ticks>"
 ```
+
+`plans/music-guesser-podium.json` next to this file is a worked example of the harder shape: a
+settings-carrying game, its config remote driven explicitly, then five rounds answered to a podium.
+Swap `SESSION` for the real session id before running it.
 
 `--out-dir <dir>` also works if you already have the resolved absolute path. One command, one
 browser session, all pages. On failure it dumps `debug-<pageId>.png` + truncated DOM + console

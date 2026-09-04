@@ -114,9 +114,49 @@ async function joinRoom(page, code) {
   await page.getByRole('button', { name: 'Search games' }).waitFor({ timeout: 15000 });
 }
 
+// Neither room mode has a DOM marker, so read the two screens that do: "Start" exists only on
+// the config remote, "Search games" only on the lobby. The lobby unmounts a beat before the
+// config remote mounts, hence the grace window - without it a settings game reads as in-game.
+async function settleAfterStart(page, timeoutMs = 20000, graceMs = 3000) {
+  const deadline = Date.now() + timeoutMs;
+  let lobbyGoneAt = null;
+  while (Date.now() < deadline) {
+    if (await page.getByRole('button', { name: 'Start', exact: true }).count()) return 'configuring';
+    if (!(await page.getByRole('button', { name: 'Search games' }).count())) {
+      if (lobbyGoneAt === null) lobbyGoneAt = Date.now();
+      if (Date.now() - lobbyGoneAt >= graceMs) return 'in-game';
+    } else {
+      lobbyGoneAt = null;
+    }
+    await page.waitForTimeout(200);
+  }
+  throw new Error('Room left the lobby but reached neither the config screen nor in-game');
+}
+
+async function waitForInGame(page, timeoutMs = 20000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const stillConfiguring = await page.getByRole('button', { name: 'Start', exact: true }).count();
+    const stillLobby = await page.getByRole('button', { name: 'Search games' }).count();
+    if (!stillConfiguring && !stillLobby) return;
+    await page.waitForTimeout(200);
+  }
+  throw new Error('Room never reached in-game: config remote or lobby still on the host phone');
+}
+
+async function pressStart(page, opts = {}) {
+  const timeout = opts.timeout || 15000;
+  const start = page.getByRole('button', { name: 'Start', exact: true });
+  await start.waitFor({ timeout });
+  await start.click();
+  await waitForInGame(page, timeout);
+}
+
 // Lobby search -> vote -> start: tapping a game's row once votes it, tapping the same
 // row again once it reappears in the voted list is what actually starts it (configStart).
-async function startGame(page, gameName) {
+// A settings-carrying game then parks on the config screen; press Start unless the caller
+// wants that screen held (`pressStart: false`) to shoot it.
+async function startGame(page, gameName, opts = {}) {
   await page.getByRole('button', { name: 'Search games' }).click();
   await page.getByText('All games', { exact: true }).waitFor({ timeout: 10000 });
   const voteBtn = page.locator('button', { hasText: gameName }).first();
@@ -125,6 +165,60 @@ async function startGame(page, gameName) {
   const startBtn = page.locator('button', { hasText: gameName }).first();
   await startBtn.waitFor({ timeout: 10000 });
   await startBtn.click();
+  const phase = await settleAfterStart(page, opts.timeout || 20000);
+  if (phase === 'configuring' && opts.pressStart !== false) await pressStart(page, opts);
+  return phase;
+}
+
+// Platform controls that a round-answering driver must never touch. Clicking "Back to lobby"
+// during a reveal phase dropped the room twice and both times read as a game crash.
+// Matched as a PREFIX, not a whole name: a menu row's accessible name carries its hint too
+// ("Share the room QR, link, or send it"), which an anchored full-string test walks straight past.
+const NEVER_CLICK = /^(back to lobby|back|rematch|leave the room|close|start|search games|share the room|pass the remote|change my avatar|how to play|about|previous|next|field up|field down)\b/i;
+
+async function buttonName(button) {
+  const aria = await button.getAttribute('aria-label');
+  return ((aria || (await button.textContent()) || '').replace(/\s+/g, ' ')).trim();
+}
+
+// Answers the round only while the controller is genuinely answerable. The count guard is what
+// separates a guessing window (header + the round's choices) from a reveal phase, where the only
+// enabled controls are the header and "Back to lobby" - which is why "click the first enabled
+// button" destroys a run. `required: false` makes a reveal phase a no-op instead of an error.
+async function answerRound(page, opts = {}) {
+  const minEnabled = opts.minEnabled == null ? 5 : opts.minEnabled;
+  const index = opts.index || 0;
+  // The identity header is the player's own name with "HOST" glued on, no separating whitespace.
+  const deny = opts.playerName ? new RegExp(`^${opts.playerName}(\\s*host)?$`, 'i') : null;
+  const deadline = Date.now() + (opts.timeout || 15000);
+  while (Date.now() < deadline) {
+    // Every drill-down sub-screen (menu, share, about, search) carries a "Back" caret and the
+    // game does not, so its presence means the phone is not showing the round at all.
+    if (await page.getByRole('button', { name: 'Back', exact: true }).count()) {
+      await page.waitForTimeout(opts.interval || 300);
+      continue;
+    }
+    const buttons = page.locator('button');
+    const count = await buttons.count();
+    const candidates = [];
+    let enabled = 0;
+    for (let i = 0; i < count; i++) {
+      const b = buttons.nth(i);
+      if (!(await b.isEnabled())) continue;
+      enabled++;
+      const name = await buttonName(b);
+      if (NEVER_CLICK.test(name)) continue;
+      if (deny && deny.test(name)) continue;
+      candidates.push(b);
+    }
+    if (enabled >= minEnabled && candidates.length > index) {
+      await candidates[index].click();
+      return true;
+    }
+    await page.waitForTimeout(opts.interval || 300);
+  }
+  if (opts.required === false) return false;
+  throw new Error(`answerRound: controller never became answerable (needed >= ${minEnabled} enabled buttons)`);
 }
 
 // Polls instead of a fixed sleep: returns the moment the text appears, so a follow-up
@@ -144,8 +238,8 @@ async function pollUntilText(page, text, opts = {}) {
 
 // Composite: start a named game from the host's lobby, then poll the TV for a
 // win/draw/rematch marker instead of guessing how long a round takes.
-async function playToEndOfRound(hostPage, tvPage, gameName, endText, timeoutMs) {
-  await startGame(hostPage, gameName);
+async function playToEndOfRound(hostPage, tvPage, gameName, endText, timeoutMs, opts = {}) {
+  await startGame(hostPage, gameName, opts);
   await pollUntilText(tvPage, endText || 'WINS|DRAW|Rematch|PLAYS', { timeoutMs: timeoutMs || 30000 });
 }
 
@@ -247,6 +341,9 @@ function runFromCli() {
           case 'identity': {
             const page = await getPage(step.page);
             await doIdentity(page, step.name, step.emoji, step.shot);
+            // Remembered so answerRound can deny the identity header, whose accessible name is
+            // the player's own name - it is enabled in every phase and opens the menu.
+            pages.get(step.page).playerName = step.name;
             break;
           }
           case 'join': {
@@ -295,13 +392,33 @@ function runFromCli() {
           }
           case 'startGame': {
             const page = await getPage(step.page);
-            await startGame(page, step.game);
+            const phase = await startGame(page, step.game, { pressStart: step.pressStart, timeout: step.timeout });
+            console.log(`startGame(${step.game}) settled in: ${phase}`);
+            break;
+          }
+          case 'pressStart': {
+            const page = await getPage(step.page || 'host');
+            await pressStart(page, { timeout: step.timeout });
+            break;
+          }
+          case 'answerRound': {
+            const id = step.page;
+            const page = await getPage(id);
+            const answered = await answerRound(page, {
+              minEnabled: step.minEnabled,
+              index: step.index,
+              timeout: step.timeout,
+              interval: step.interval,
+              required: step.required,
+              playerName: pages.get(id).playerName,
+            });
+            console.log(`answerRound(${id}): ${answered ? 'answered' : 'skipped (not answerable)'}`);
             break;
           }
           case 'playToEndOfRound': {
             const hostPage = await getPage(step.page || 'host');
             const tvPage = await getPage(step.tvPage || 'tv');
-            await playToEndOfRound(hostPage, tvPage, step.game, step.endText, step.timeout);
+            await playToEndOfRound(hostPage, tvPage, step.game, step.endText, step.timeout, { pressStart: step.pressStart });
             if (step.shot) await shot(tvPage, step.shot);
             break;
           }
@@ -359,6 +476,10 @@ module.exports = {
   joinRoom,
   doIdentity,
   startGame,
+  settleAfterStart,
+  waitForInGame,
+  pressStart,
+  answerRound,
   pollUntilText,
   playToEndOfRound,
   setThrottle,

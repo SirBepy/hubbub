@@ -1,0 +1,39 @@
+{
+  "_comment": "Worked example: a settings-carrying game driven from lobby to podium. Replace SESSION with the id from rename-session.ps1 -GetId before running.",
+  "baseUrl": "http://localhost:5175",
+  "steps": [
+    { "type": "waitRoomCode" },
+    { "type": "identity", "page": "host", "name": "Bepy" },
+    { "type": "join", "page": "host" },
+    { "type": "identity", "page": "guest", "name": "Mira" },
+    { "type": "join", "page": "guest" },
+    { "type": "waitText", "page": "tv", "text": "Mira" },
+
+    { "type": "startGame", "page": "host", "game": "Music Guesser", "pressStart": false },
+    { "type": "screenshot", "page": "tv", "out": ".for_bepy/screenshots/SESSION/tv-config.png" },
+
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Field down" },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Field down" },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Previous" },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Field down" },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Next" },
+    { "type": "clickRole", "page": "host", "role": "button", "name": "Next" },
+
+    { "type": "pressStart", "page": "host" },
+    { "type": "screenshot", "page": "tv", "out": ".for_bepy/screenshots/SESSION/tv-in-game.png" },
+
+    { "type": "answerRound", "page": "host", "timeout": 45000 },
+    { "type": "answerRound", "page": "guest", "index": 1, "timeout": 45000 },
+    { "type": "answerRound", "page": "host", "timeout": 45000 },
+    { "type": "answerRound", "page": "guest", "index": 1, "timeout": 45000 },
+    { "type": "answerRound", "page": "host", "timeout": 45000 },
+    { "type": "answerRound", "page": "guest", "index": 1, "timeout": 45000 },
+    { "type": "answerRound", "page": "host", "timeout": 45000 },
+    { "type": "answerRound", "page": "guest", "index": 1, "timeout": 45000 },
+    { "type": "answerRound", "page": "host", "timeout": 45000 },
+    { "type": "answerRound", "page": "guest", "index": 1, "timeout": 45000 },
+
+    { "type": "pollUntilText", "page": "host", "text": "Rematch", "timeout": 90000 },
+    { "type": "screenshot", "page": "tv", "out": ".for_bepy/screenshots/SESSION/tv-podium.png" }
+  ]
+}
