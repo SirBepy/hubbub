@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import {
   InputActionProvider,
-  inputLegendFor,
-  useGamepadActions,
-  useInputActions,
   useRegisterInputActions,
   type InputAction,
 } from "@hubbub/sdk/input";
 import { GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
 import { loadGameController, getSettingsSchema } from "./game";
+import { usePublishInputLegend } from "./input-legend";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
@@ -78,19 +76,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
 
   const isHost = room?.hostId === playerId;
 
-  // Whatever is registered right now, bound to the pad and published to the room. Sent only on a
-  // real change: this recomputes every frame the pad is polled.
-  const registeredActions = useInputActions();
-  const gamepadConnected = useGamepadActions(registeredActions);
-  const legend = useMemo(
-    () => inputLegendFor(registeredActions, gamepadConnected),
-    [registeredActions, gamepadConnected],
-  );
-  const legendKey = JSON.stringify(legend);
-  useEffect(() => {
-    if (status !== "in") return;
-    transportRef.current?.send({ t: "inputLegend", entries: JSON.parse(legendKey) });
-  }, [legendKey, status]);
+  usePublishInputLegend(transportRef, status);
 
   // Keyed on currentGameId so the chunk downloads while the host is still configuring.
   const pendingGameId = room?.currentGameId ?? null;
