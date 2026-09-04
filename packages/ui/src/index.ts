@@ -10,18 +10,16 @@ export { TVMeasure } from "./TVMeasure";
 export { Avatar, NEUTRAL_RING } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
 
-// Avatar art itself moved to @hubbub/sdk/avatars - it is framework-owned player identity, not
-// styleguide. Re-exported so the platform's own screens keep one import, but a GAME should reach
-// for @hubbub/sdk/avatars directly and not take a dependency on this package to draw an avatar.
+// Avatar art itself lives in @hubbub/sdk/avatars - it is framework-owned player identity, not
+// styleguide. Only the catalogue names are re-exported, for this repo's own controller screens;
+// anything that DRAWS an avatar imports from @hubbub/sdk/avatars directly, games included.
 export {
-  AvatarArt,
-  useAvatarCharacter,
   AVATAR_SETS,
   ALL_AVATAR_IDS,
   isAvatarCharacterId,
   randomAvatarId,
 } from "@hubbub/sdk/avatars";
-export type { ResolvedAvatarCharacter, AvatarSet, AvatarSetId, AvatarCharacter } from "@hubbub/sdk/avatars";
+export type { AvatarSet, AvatarSetId, AvatarCharacter } from "@hubbub/sdk/avatars";
 
 export { PlayerPill } from "./PlayerPill";
 export type { PlayerPillProps } from "./PlayerPill";
