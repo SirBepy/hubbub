@@ -113,13 +113,27 @@ async function joinRoom(page, code) {
   await page.getByRole('button', { name: 'Search games' }).waitFor({ timeout: 15000 });
 }
 
+// The one deadline loop in this file. The predicate's truthy value is what the caller gets back,
+// so a poll can carry a phase string as easily as a boolean; `required: false` turns a timeout
+// into a quiet null instead of a throw.
+async function pollUntil(page, predicate, opts) {
+  const intervalMs = opts.intervalMs || 250;
+  const deadline = Date.now() + opts.timeoutMs;
+  while (Date.now() < deadline) {
+    const hit = await predicate();
+    if (hit) return hit;
+    await page.waitForTimeout(intervalMs);
+  }
+  if (opts.required === false) return null;
+  throw new Error(opts.errorMsg);
+}
+
 // Neither room mode has a DOM marker, so read the two screens that do: "Start" exists only on
 // the config remote, "Search games" only on the lobby. The lobby unmounts a beat before the
 // config remote mounts, hence the grace window - without it a settings game reads as in-game.
 async function settleAfterStart(page, timeoutMs = 20000, graceMs = 3000) {
-  const deadline = Date.now() + timeoutMs;
   let lobbyGoneAt = null;
-  while (Date.now() < deadline) {
+  return pollUntil(page, async () => {
     if (await page.getByRole('button', { name: 'Start', exact: true }).count()) return 'configuring';
     if (!(await page.getByRole('button', { name: 'Search games' }).count())) {
       if (lobbyGoneAt === null) lobbyGoneAt = Date.now();
@@ -127,20 +141,16 @@ async function settleAfterStart(page, timeoutMs = 20000, graceMs = 3000) {
     } else {
       lobbyGoneAt = null;
     }
-    await page.waitForTimeout(200);
-  }
-  throw new Error('Room left the lobby but reached neither the config screen nor in-game');
+    return null;
+  }, { timeoutMs, intervalMs: 200, errorMsg: 'Room left the lobby but reached neither the config screen nor in-game' });
 }
 
 async function waitForInGame(page, timeoutMs = 20000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  await pollUntil(page, async () => {
     const stillConfiguring = await page.getByRole('button', { name: 'Start', exact: true }).count();
     const stillLobby = await page.getByRole('button', { name: 'Search games' }).count();
-    if (!stillConfiguring && !stillLobby) return;
-    await page.waitForTimeout(200);
-  }
-  throw new Error('Room never reached in-game: config remote or lobby still on the host phone');
+    return !stillConfiguring && !stillLobby;
+  }, { timeoutMs, intervalMs: 200, errorMsg: 'Room never reached in-game: config remote or lobby still on the host phone' });
 }
 
 async function pressStart(page, opts = {}) {
@@ -189,14 +199,10 @@ async function answerRound(page, opts = {}) {
   const index = opts.index || 0;
   // The identity header is the player's own name with "HOST" glued on, no separating whitespace.
   const deny = opts.playerName ? new RegExp(`^${opts.playerName}(\\s*host)?$`, 'i') : null;
-  const deadline = Date.now() + (opts.timeout || 15000);
-  while (Date.now() < deadline) {
+  const clicked = await pollUntil(page, async () => {
     // Every drill-down sub-screen (menu, share, about, search) carries a "Back" caret and the
     // game does not, so its presence means the phone is not showing the round at all.
-    if (await page.getByRole('button', { name: 'Back', exact: true }).count()) {
-      await page.waitForTimeout(opts.interval || 300);
-      continue;
-    }
+    if (await page.getByRole('button', { name: 'Back', exact: true }).count()) return false;
     const buttons = page.locator('button');
     const count = await buttons.count();
     const candidates = [];
@@ -214,25 +220,26 @@ async function answerRound(page, opts = {}) {
       await candidates[index].click();
       return true;
     }
-    await page.waitForTimeout(opts.interval || 300);
-  }
-  if (opts.required === false) return false;
-  throw new Error(`answerRound: controller never became answerable (needed >= ${minEnabled} enabled buttons)`);
+    return false;
+  }, {
+    timeoutMs: opts.timeout || 15000,
+    intervalMs: opts.interval || 300,
+    required: opts.required,
+    errorMsg: `answerRound: controller never became answerable (needed >= ${minEnabled} enabled buttons)`,
+  });
+  return !!clicked;
 }
 
 // Polls instead of a fixed sleep: returns the moment the text appears, so a follow-up
 // screenshot lands on that frame instead of an arbitrary later (or earlier) one.
 async function pollUntilText(page, text, opts = {}) {
   const exact = !!opts.exact;
-  const timeoutMs = opts.timeoutMs || 15000;
-  const intervalMs = opts.intervalMs || 250;
   const matcher = exact ? text : new RegExp(text, 'i');
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (await page.getByText(matcher, { exact }).count()) return;
-    await page.waitForTimeout(intervalMs);
-  }
-  throw new Error(`pollUntilText timed out waiting for: ${text}`);
+  await pollUntil(page, async () => !!(await page.getByText(matcher, { exact }).count()), {
+    timeoutMs: opts.timeoutMs || 15000,
+    intervalMs: opts.intervalMs || 250,
+    errorMsg: `pollUntilText timed out waiting for: ${text}`,
+  });
 }
 
 // Composite: start a named game from the host's lobby, then poll the TV for a
