@@ -4,6 +4,7 @@ import { noopLogger, type RelayLogger } from "./log.js";
 import type {
   ClientMessage,
   GameCatalog,
+  InputLegendEntry,
   Outbound,
   RelaySettingsField,
   ServerMessage,
@@ -58,6 +59,9 @@ export interface RoomSnapshot {
   lastOptions: unknown;
   lastGameState: LastGameState | null;
   connections: Record<string, ConnInfo>;
+  // Legend published by the host's phone when a gamepad is bound to it. Stored with its author so
+  // a host transfer or disconnect drops it rather than leaving the TV advertising a dead pad.
+  inputLegend: { playerId: string; entries: InputLegendEntry[] } | null;
   screenConnId: string | null;
   // Minted on the first attachScreen (mirrors a player's join() token), null until then.
   // A later attachScreen must present it to reattach - see the handler below.
@@ -111,6 +115,7 @@ export class Room {
       lastOptions: undefined,
       lastGameState: null,
       connections: {},
+      inputLegend: null,
       screenConnId: null,
       screenToken: null,
     }, logger);
@@ -120,7 +125,9 @@ export class Room {
 
   /** Reconstructs a room from a previously-taken snapshot() - the DO rehydration path. */
   static fromSnapshot(snapshot: RoomSnapshot, catalog: GameCatalog, tokens: TokenSource, logger: RelayLogger = noopLogger): Room {
-    return new Room(catalog, tokens, snapshot, logger);
+    // A snapshot taken before inputLegend existed has no such key; default it rather than
+    // letting a hibernated DO rehydrate with it undefined.
+    return new Room(catalog, tokens, { ...snapshot, inputLegend: snapshot.inputLegend ?? null }, logger);
   }
 
   /** Plain JSON-safe value; round-tripping it through JSON.stringify/parse and passing the
@@ -206,8 +213,14 @@ export class Room {
     }
 
     // Host-gated types (here, config* below) stay unlimited: threat model is a compromised host.
-    if (msg.t === "lobbyNav" || msg.t === "lobbyFocus" || msg.t === "lobbyConfirm" || msg.t === "returnToLobby" || msg.t === "transferHost" || msg.t === "rematch") {
+    if (msg.t === "lobbyNav" || msg.t === "lobbyFocus" || msg.t === "lobbyConfirm" || msg.t === "returnToLobby" || msg.t === "transferHost" || msg.t === "rematch" || msg.t === "inputLegend") {
       if (!conn?.playerId || this.data.hostId !== conn.playerId) return [];
+      if (msg.t === "inputLegend") {
+        const next = msg.entries.length ? { playerId: conn.playerId, entries: msg.entries } : null;
+        if (JSON.stringify(next) === JSON.stringify(this.data.inputLegend)) return [];
+        this.data.inputLegend = next;
+        return this.broadcastRoomState();
+      }
       const count = this.catalog.summaries.length;
       if (msg.t === "lobbyNav") {
         if (this.data.mode !== "lobby") return [];
@@ -237,6 +250,7 @@ export class Room {
         const target = this.data.players[msg.toPlayerId];
         if (!target?.connected) return [];
         this.data.hostId = msg.toPlayerId;
+        this.data.inputLegend = null;
         return this.broadcastRoomState();
       }
       // rematch
@@ -453,6 +467,14 @@ export class Room {
     this.data.cursorIndex = Math.min(count - 1, Math.max(0, index));
   }
 
+  /** Read through the author check on every broadcast, so a host that drops or hands the room on
+   * takes its legend with it without every mutation site having to remember. */
+  private liveInputLegend(): InputLegendEntry[] | undefined {
+    const legend = this.data.inputLegend;
+    if (!legend || legend.playerId !== this.data.hostId) return undefined;
+    return this.data.players[legend.playerId]?.connected ? legend.entries : undefined;
+  }
+
   private broadcastRoomState(): Outbound[] {
     const msg: ServerMessage = {
       t: "roomState",
@@ -464,6 +486,7 @@ export class Room {
       games: this.catalog.summaries,
       suggestions: Object.entries(this.data.suggestions).map(([playerId, gameId]) => ({ gameId, playerId })),
       config: this.data.config,
+      inputLegend: this.liveInputLegend(),
     };
     return [{ to: "all", msg }];
   }

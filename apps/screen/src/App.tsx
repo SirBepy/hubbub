@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
-import { createRoomHttp, roomSocketUrl, type GameSummary, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { createRoomHttp, roomSocketUrl, type GameSummary, type InputLegendEntry, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
 import { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
 import { createGameAuthority, visibleSettingsFields } from "@hubbub/sdk";
 import {
@@ -32,6 +32,7 @@ interface RoomState {
   games: GameSummary[];
   suggestions: Suggestion[];
   config: RoomConfig | null;
+  inputLegend: InputLegendEntry[];
 }
 
 interface GameState {
@@ -114,6 +115,7 @@ export function App() {
             games: msg.games,
             suggestions: msg.suggestions,
             config: msg.config ?? null,
+            inputLegend: msg.inputLegend ?? [],
           });
         } else if (msg.t === "gameState") {
           setGame({ gameId: msg.gameId, state: msg.state });
@@ -218,7 +220,7 @@ export function App() {
   if (room?.mode === "in-game" && showLoader) {
     const summary = room.games.find((g) => g.id === pendingGameId) ?? null;
     return (
-      <TVStage>
+      <TVStage inputLegend={room?.inputLegend}>
         <GameLoadingScreen
           gameName={summary?.name ?? "Game"}
           identityColors={summary?.identityColors}
@@ -253,7 +255,7 @@ export function App() {
         })
         .filter((s): s is NonNullable<typeof s> => s !== null);
       return (
-        <TVStage>
+        <TVStage inputLegend={room?.inputLegend}>
           <EndOfRoundScreen
             gameName={summary?.name ?? "Game"}
             roundLabel="Results"
@@ -276,7 +278,7 @@ export function App() {
     }));
 
     return (
-      <TVStage>
+      <TVStage inputLegend={room?.inputLegend}>
         <div
           className="hb-anim-enter"
           style={{
@@ -300,7 +302,7 @@ export function App() {
     const schema = getSettingsSchema(room.config.gameId) ?? [];
     const gameName = room.games.find((g) => g.id === room.config!.gameId)?.name ?? "";
     return (
-      <TVStage>
+      <TVStage inputLegend={room?.inputLegend}>
         {/* Plain fade, not a second choreography: the lobby-to-game beat already opened the box. */}
         <div className="hb-anim-enter" style={{ flex: 1, minHeight: 0, display: "flex", animation: "hb-fade-in 200ms ease-out 1 both" }}>
         <ConfigPanel
@@ -320,14 +322,14 @@ export function App() {
   // Zero players: hero screen instead of the lobby. First join flips this for good.
   if ((room?.players.length ?? 0) === 0) {
     return (
-      <TVStage>
+      <TVStage inputLegend={room?.inputLegend}>
         <Hero code={code} qr={qr} error={connectError ?? undefined} />
       </TVStage>
     );
   }
 
   return (
-    <TVStage>
+    <TVStage inputLegend={room?.inputLegend}>
       <Lobby
         code={code}
         qr={qr}

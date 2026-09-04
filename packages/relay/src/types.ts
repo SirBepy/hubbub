@@ -1,6 +1,6 @@
-import type { ClientMessage, GameSummary, ServerMessage } from "@hubbub/protocol";
+import type { ClientMessage, GameSummary, InputLegendEntry, ServerMessage } from "@hubbub/protocol";
 
-export type { ClientMessage, ServerMessage };
+export type { ClientMessage, InputLegendEntry, ServerMessage };
 
 export interface RelayPlayerInfo {
   id: string;

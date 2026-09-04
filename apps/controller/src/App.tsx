@@ -1,8 +1,16 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
 import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
+import {
+  InputActionProvider,
+  inputLegendFor,
+  useGamepadActions,
+  useInputActions,
+  useRegisterInputActions,
+  type InputAction,
+} from "@hubbub/sdk/input";
 import { GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
 import { loadGameController, getSettingsSchema } from "./game";
 import { HostLobby, PlayerLobby } from "./lobby";
@@ -37,7 +45,24 @@ type GameSlot = { gameId: string; state: any };
 // HowToPlay/About all drill down from the menu, so their back caret returns to it.
 type PhoneView = "search" | "menu" | "share" | "howToPlay" | "about" | "passRemote" | null;
 
-export function App({ initialCode }: { initialCode?: string } = {}) {
+/** The phone owns the gamepad: it is already the thing allowed to send rematch/returnToLobby,
+ * so binding a pad here needs no new server authority. The TV only displays the legend. */
+export function App(props: { initialCode?: string } = {}) {
+  return (
+    <InputActionProvider>
+      <ControllerApp {...props} />
+    </InputActionProvider>
+  );
+}
+
+/** Declares its actions for as long as it is mounted, so the legend follows the screen the
+ * player is actually on rather than being hoisted into one big conditional. */
+function BindActions({ actions }: { actions: InputAction[] }) {
+  useRegisterInputActions(actions);
+  return null;
+}
+
+function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
   const [identity, setIdentityState] = useState<Identity | null>(() => loadIdentity());
   const [code, setCode] = useState((initialCode ?? roomFromUrl).toUpperCase());
   const [status, setStatus] = useState<"idle" | "joining" | "in" | "error">("idle");
@@ -52,6 +77,20 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
   const transportRef = useRef<WebRtcClientTransport>();
 
   const isHost = room?.hostId === playerId;
+
+  // Whatever is registered right now, bound to the pad and published to the room. Sent only on a
+  // real change: this recomputes every frame the pad is polled.
+  const registeredActions = useInputActions();
+  const gamepadConnected = useGamepadActions(registeredActions);
+  const legend = useMemo(
+    () => inputLegendFor(registeredActions, gamepadConnected),
+    [registeredActions, gamepadConnected],
+  );
+  const legendKey = JSON.stringify(legend);
+  useEffect(() => {
+    if (status !== "in") return;
+    transportRef.current?.send({ t: "inputLegend", entries: JSON.parse(legendKey) });
+  }, [legendKey, status]);
 
   // Keyed on currentGameId so the chunk downloads while the host is still configuring.
   const pendingGameId = room?.currentGameId ?? null;
@@ -264,6 +303,12 @@ export function App({ initialCode }: { initialCode?: string } = {}) {
             {result ? (
               isHost ? (
                 <div style={{ display: "flex", gap: 8 }}>
+                  <BindActions
+                    actions={[
+                      { id: "rematch", label: "Rematch", run: () => transportRef.current?.send({ t: "rematch" }) },
+                      { id: "back", label: "Back to lobby", run: () => transportRef.current?.send({ t: "returnToLobby" }) },
+                    ]}
+                  />
                   <GlowButton
                     height={56}
                     label="Rematch"

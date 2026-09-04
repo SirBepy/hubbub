@@ -86,6 +86,30 @@ describe("Room", () => {
     expect(room.snapshot().hostId).toBe(b.playerId);
   });
 
+  it("carries the host's input legend and drops it when the host does", async () => {
+    const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+    const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+    const b = findConn(await room.handleMessage("c2", join("Bo"), 0), "c2", "joined");
+    const entries = [{ glyph: "A", label: "Rematch" }];
+
+    // a guest's legend is ignored: the tray describes the host's pad, not everyone's
+    expect(await room.handleMessage("c2", { t: "inputLegend", entries }, 0)).toEqual([]);
+    expect(room.snapshot().inputLegend).toBeNull();
+
+    expect(findAll(await room.handleMessage("c1", { t: "inputLegend", entries }, 0), "roomState").inputLegend).toEqual(entries);
+    // re-sending the same legend broadcasts nothing - the phone republishes on every pad poll
+    expect(await room.handleMessage("c1", { t: "inputLegend", entries }, 0)).toEqual([]);
+
+    // handing the room on drops it, so the TV never advertises a pad the new host does not hold
+    await room.handleMessage("c1", { t: "transferHost", toPlayerId: b.playerId }, 0);
+    expect(room.snapshot().inputLegend).toBeNull();
+
+    // and an unplugged pad clears it back out
+    await room.handleMessage("c2", { t: "inputLegend", entries }, 0);
+    expect(findAll(await room.handleMessage("c2", { t: "inputLegend", entries: [] }, 0), "roomState").inputLegend).toBeUndefined();
+    expect(a.playerId).not.toBe(b.playerId);
+  });
+
   it("lobbyNav/lobbyFocus move and clamp the cursor, host-only", async () => {
     const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
     await room.handleMessage("c1", join("Ann"), 0);

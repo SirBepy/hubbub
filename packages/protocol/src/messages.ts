@@ -47,6 +47,16 @@ export const RoomConfigSchema = z.object({
 });
 export type RoomConfig = z.infer<typeof RoomConfigSchema>;
 
+// What the host's physical controller can do right now, published BY that phone and displayed by
+// the TV. The phone owns the binding, so the TV never needs its own copy of the action list and a
+// game's own actions ride the same channel. Six entries covers the face buttons plus shoulders.
+export const InputLegendEntrySchema = z.object({
+  glyph: z.string().min(1).max(4),
+  label: z.string().min(1).max(24),
+});
+export type InputLegendEntry = z.infer<typeof InputLegendEntrySchema>;
+export const InputLegendSchema = z.array(InputLegendEntrySchema).max(6);
+
 // Client -> Server
 export const ClientMessageSchema = z.discriminatedUnion("t", [
   // The room code comes from the connection URL (/room/:code), not the message - a Durable
@@ -65,6 +75,7 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("transferHost"), toPlayerId: z.string() }),
   z.object({ t: z.literal("suggestGame"), gameId: z.string() }),
   z.object({ t: z.literal("rematch") }),
+  z.object({ t: z.literal("inputLegend"), entries: InputLegendSchema }),
   z.object({ t: z.literal("action"), payload: z.unknown().optional() }),
   // Screen -> Server: the screen-authoritative reducer's resulting state, after gameLaunch or
   // gameAction. Server checks the sender is that room's screen socket before rebroadcasting.
@@ -100,6 +111,7 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
     games: z.array(GameSummarySchema),
     suggestions: z.array(SuggestionSchema),
     config: RoomConfigSchema.nullable().optional(),
+    inputLegend: InputLegendSchema.optional(),
   }),
   z.object({ t: z.literal("gameState"), gameId: z.string(), state: z.unknown() }),
   // Server -> screen only: setup() already ran server-side; the screen calls init() itself

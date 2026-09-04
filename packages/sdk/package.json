@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./react": "./src/react.tsx",
-    "./avatars": "./src/avatars/index.ts"
+    "./avatars": "./src/avatars/index.ts",
+    "./input": "./src/input/index.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": { "@hubbub/protocol": "workspace:*", "zod": "^3.23.0" },
