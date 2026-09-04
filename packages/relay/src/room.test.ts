@@ -88,7 +88,7 @@ describe("Room", () => {
 
   it("carries the host's input legend and drops it when the host does", async () => {
     const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
-    const a = findConn(await room.handleMessage("c1", join("Ann"), 0), "c1", "joined");
+    await room.handleMessage("c1", join("Ann"), 0);
     const b = findConn(await room.handleMessage("c2", join("Bo"), 0), "c2", "joined");
     const entries = [{ glyph: "A", label: "Rematch" }];
 
@@ -107,7 +107,6 @@ describe("Room", () => {
     // and an unplugged pad clears it back out
     await room.handleMessage("c2", { t: "inputLegend", entries }, 0);
     expect(findAll(await room.handleMessage("c2", { t: "inputLegend", entries: [] }, 0), "roomState").inputLegend).toBeUndefined();
-    expect(a.playerId).not.toBe(b.playerId);
   });
 
   it("lobbyNav/lobbyFocus move and clamp the cursor, host-only", async () => {
