@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GameLogic } from "./types.js";
+import type { DisplayPlayer, GameLogic } from "./types.js";
 
 /** Bootstrap tag. The shell's one and only `postMessage(..., "*")` carries this plus the port,
  * so its payload is restricted to `PlayerInfo` - no token, no colorId, no avatarId (S12). */
@@ -31,6 +31,16 @@ export const DisplayPlayerSchema = z
     connected: z.boolean(),
   })
   .strict();
+
+// Ties the schema to `DisplayPlayer` in both directions so an added/removed field fails `tsc`
+// instead of only surfacing as `.strict()` silently dropping roster data at the frame boundary.
+// One direction alone is not enough: a field added to the interface but not the schema is only
+// caught by assigning the schema's inferred type TO the interface (below), while a field added
+// to the schema but not the interface is only caught by the reverse assignment.
+const _displayPlayerFromSchema: DisplayPlayer = {} as z.infer<typeof DisplayPlayerSchema>;
+const _displayPlayerToSchema: z.infer<typeof DisplayPlayerSchema> = {} as DisplayPlayer;
+void _displayPlayerFromSchema;
+void _displayPlayerToSchema;
 
 export const BootstrapSchema = z
   .object({

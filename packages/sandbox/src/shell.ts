@@ -1,4 +1,4 @@
-import { MIN_TIMER_MS } from "@hubbub/sdk";
+import { floorDelay } from "@hubbub/sdk";
 import type { DisplayPlayer, GameResult } from "@hubbub/sdk";
 import {
   BOOTSTRAP_TYPE,
@@ -158,7 +158,7 @@ export function createSandboxAuthority(bridge: SandboxBridge, cb: SandboxAuthori
     timer = setTimeout(() => {
       timer = null;
       bridge.send({ t: "timeout", now: Date.now() });
-    }, Math.max(MIN_TIMER_MS, at - Date.now()));
+    }, floorDelay(at, Date.now()));
   }
 
   // A result naming an unknown player is dropped rather than rendered: the shell's own

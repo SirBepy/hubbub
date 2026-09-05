@@ -21,6 +21,14 @@ export interface GameAuthority {
 // synchronously and pins the host's main thread. One frame at 60fps is the floor.
 export const MIN_TIMER_MS = 16;
 
+/** Shared floor arithmetic for both the in-process authority (below) and the sandbox's
+ * out-of-process authority (`packages/sandbox/src/shell.ts`), which schedules off an untrusted
+ * bundle's deadline instead of a local instance's. `now` is a parameter, not `Date.now()` inside,
+ * so the same call is testable without faking the clock. */
+export function floorDelay(at: number, now: number): number {
+  return Math.max(MIN_TIMER_MS, at - now);
+}
+
 export function createGameAuthority(onState: (state: unknown) => void): GameAuthority {
   let inst: GameInstance<any, any> | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -35,7 +43,7 @@ export function createGameAuthority(onState: (state: unknown) => void): GameAuth
     timer = setTimeout(() => {
       if (inst?.checkTimeout(Date.now())) onState(inst.get());
       scheduleTimer();
-    }, Math.max(MIN_TIMER_MS, deadline - Date.now()));
+    }, floorDelay(deadline, Date.now()));
   }
 
   return {
