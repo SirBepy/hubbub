@@ -1,6 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
-import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
-import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
+import { lazy, Suspense, useState, type CSSProperties } from "react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import {
   InputActionProvider,
@@ -10,8 +8,8 @@ import {
 import { GlowButton, NeutralButton, GameLoadingScreen } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
 import { GameFailed } from "./game-failed";
-import type { GameResult } from "@hubbub/sdk";
 import { usePublishInputLegend } from "./input-legend";
+import { useRoomState } from "./use-room-state";
 import { SandboxController } from "./sandbox-controller";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
@@ -26,7 +24,6 @@ import { PassRemoteScreen } from "./pass-remote";
 import { JoinScreen } from "./join";
 import { IdentityHeader } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
-import { SERVER_URL, STUN_URL } from "./config";
 
 const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
 
@@ -35,17 +32,6 @@ const DEV_LOADER = __HUBBUB_DEV_LOADER__;
 // Null in production, so rollup drops the import and the workspace-game loader with it (S1).
 const LazyDirectControllerView = DEV_LOADER ? lazy(() => import("./direct-controller-view")) : null;
 
-type RoomState = {
-  players: Player[];
-  hostId: string | null;
-  mode: "lobby" | "configuring" | "in-game";
-  currentGameId: string | null;
-  cursorIndex: number;
-  games: GameSummary[];
-  suggestions: Suggestion[];
-  config: RoomConfig | null;
-};
-type GameSlot = { gameId: string; state: any };
 // Sub-screens reached from the lobby footer or the fullscreen menu. Share/PassRemote/
 // HowToPlay/About all drill down from the menu, so their back caret returns to it.
 type PhoneView = "search" | "menu" | "share" | "howToPlay" | "about" | "passRemote" | null;
@@ -70,98 +56,38 @@ function BindActions({ actions }: { actions: InputAction[] }) {
 function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
   const [identity, setIdentityState] = useState<Identity | null>(() => loadIdentity());
   const [code, setCode] = useState((initialCode ?? roomFromUrl).toUpperCase());
-  const [status, setStatus] = useState<"idle" | "joining" | "in" | "error">("idle");
-  const [error, setError] = useState("");
-  const [playerId, setPlayerId] = useState("");
-  const [room, setRoom] = useState<RoomState | null>(null);
-  const [game, setGame] = useState<GameSlot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [configError, setConfigError] = useState("");
   const [phoneView, setPhoneView] = useState<PhoneView>(null);
-  const [tier, setTier] = useState<TierState>({ tier: null, rttMs: null });
-  const transportRef = useRef<WebRtcClientTransport>();
+
+  const {
+    status,
+    error,
+    playerId,
+    room,
+    game,
+    gameResult,
+    setGameResult,
+    failedGameId,
+    setFailedGameId,
+    configError,
+    setConfigError,
+    tier,
+    transportRef,
+    join,
+    leaveRoom: leaveRoomConnection,
+  } = useRoomState(code, identity, initialCode);
 
   const isHost = room?.hostId === playerId;
 
   usePublishInputLegend(transportRef, status);
 
   const pendingGameId = room?.currentGameId ?? null;
-  const [failedGameId, setFailedGameId] = useState<string | null>(null);
-  const [gameResult, setGameResult] = useState<GameResult | null>(null);
-  const gameIdRef = useRef<string | null>(null);
 
-  async function join() {
-    if (!identity) return;
-    setStatus("joining");
-    const t = new WebRtcClientTransport(roomSocketUrl(SERVER_URL, code), "controller", {
-      stunUrl: STUN_URL,
-      onTierChange: setTier,
-    });
-    transportRef.current = t;
-    try {
-      await t.connect();
-    } catch {
-      // An unknown/rate-limited code now fails the WS handshake itself (HTTP layer, before any
-      // wire message) - same user-facing outcome as the old joinRoom "no_room" error reply.
-      setError("Room not found");
-      setStatus("error");
-      return;
-    }
-    t.onMessage((msg) => {
-      if (msg.t === "joined") {
-        localStorage.setItem(`hubbub:token:${code}`, msg.token);
-        setPlayerId(msg.playerId);
-        setStatus("in");
-      } else if (msg.t === "roomState") {
-        setRoom(msg as RoomState);
-        // Only a different, real launch clears it; the failure's own flip to lobby leaves
-        // currentGameId null, which is exactly when the overlay must still be up.
-        if (msg.currentGameId) setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
-      } else if (msg.t === "gameState") {
-        // Compared against a ref, not the `game` state: this handler is registered once inside
-        // join(), so any state it closes over is frozen at its first render.
-        if (gameIdRef.current !== msg.gameId) {
-          gameIdRef.current = msg.gameId;
-          setGameResult(null);
-        }
-        setGame({ gameId: msg.gameId, state: msg.state });
-      } else if (msg.t === "gameFailure") {
-        setFailedGameId(msg.gameId);
-      } else if (msg.t === "error") {
-        // A failed per-game setup (e.g. Music Guesser's Deezer fetch) happens mid-room, after
-        // join - surface it back into the config remote instead of ejecting to the join screen.
-        if (msg.code === "setup_failed") {
-          setConfigError(msg.message);
-        } else {
-          setError(msg.message);
-          setStatus("error");
-        }
-      }
-    });
-    const token = localStorage.getItem(`hubbub:token:${code}`) ?? undefined;
-    t.send({ t: "joinRoom", name: identity.name, colorId: identity.colorId, avatarId: identity.avatarId, token });
-  }
-
-  // apps/web collects the code on its own join screen and hands it over, so joining
-  // again here would make the player type the same code twice.
-  const autoJoined = useRef(false);
-  useEffect(() => {
-    if (!initialCode || autoJoined.current || !identity || status !== "idle") return;
-    autoJoined.current = true;
-    void join();
-  }, [initialCode, identity, status]);
-
-  // Leaving is a deliberate exit, unlike a WiFi-blip reconnect - drop the token so
-  // a future join doesn't try to reclaim this slot.
+  // Leaving is also a phone-menu reset, not just a room disconnect - otherwise a rejoin
+  // would land back on whatever sub-screen the player left from.
   function leaveRoom() {
-    transportRef.current?.close();
-    localStorage.removeItem(`hubbub:token:${code}`);
-    setStatus("idle");
-    setRoom(null);
-    setGame(null);
-    setPlayerId("");
+    leaveRoomConnection();
     setPhoneView(null);
-    setTier({ tier: null, rttMs: null });
   }
 
   // Identity-first: no saved identity means show Settings before anything else.
