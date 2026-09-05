@@ -19,6 +19,7 @@ const {
   setThrottle,
   clearThrottle,
   DEFAULT_BASE_URL,
+  waitIn,
 } = actions;
 const { chromium } = resolvePlaywright();
 
@@ -121,29 +122,28 @@ function runFromCli() {
           }
           case 'click': {
             const page = await getPage(step.page);
-            await page.click(step.selector);
+            await (await waitIn(page, (root) => root.locator(step.selector))).first().click();
             break;
           }
           case 'clickRole': {
             const page = await getPage(step.page);
-            await page.getByRole(step.role, { name: step.name, exact: step.exact !== false }).click();
+            await (await waitIn(page, (root) => root.getByRole(step.role, { name: step.name, exact: step.exact !== false }))).first().click();
             break;
           }
           case 'clickNth': {
             const page = await getPage(step.page);
-            await page.locator(step.selector).nth(step.index).click();
+            await (await waitIn(page, (root) => root.locator(step.selector))).nth(step.index).click();
             break;
           }
           case 'waitText': {
             const page = await getPage(step.page);
             const matcher = step.exact ? step.text : new RegExp(step.text);
-            await page.getByText(matcher, { exact: !!step.exact }).waitFor({ timeout: step.timeout || 15000 });
+            await waitIn(page, (root) => root.getByText(matcher, { exact: !!step.exact }), { timeoutMs: step.timeout || 15000, errorMsg: `waitText timed out waiting for: ${step.text}` });
             break;
           }
           case 'waitRole': {
             const page = await getPage(step.page);
-            await page.getByRole(step.role, { name: step.name, exact: step.exact !== false })
-              .waitFor({ timeout: step.timeout || 15000 });
+            await waitIn(page, (root) => root.getByRole(step.role, { name: step.name, exact: step.exact !== false }), { timeoutMs: step.timeout || 15000, errorMsg: `waitRole timed out waiting for: ${step.name}` });
             break;
           }
           case 'pollUntilText': {

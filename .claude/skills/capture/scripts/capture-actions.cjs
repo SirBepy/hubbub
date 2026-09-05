@@ -113,6 +113,32 @@ async function joinRoom(page, code) {
   await page.getByRole('button', { name: 'Search games' }).waitFor({ timeout: 15000 });
 }
 
+// Sandbox mode mounts a game inside a cross-origin iframe, so a game's own controls and text live
+// in a child frame that page-level locators never see. A "surface" is the page or one of its
+// frames; every lookup that may land inside a game walks all of them, main page first.
+function surfaces(page) {
+  return [page, ...page.frames().filter((f) => f !== page.mainFrame())];
+}
+
+// First surface where `build(root)` matches at least one element, or null when none does.
+async function findIn(page, build) {
+  for (const root of surfaces(page)) {
+    const loc = build(root);
+    if (await loc.count()) return loc;
+  }
+  return null;
+}
+
+// Polls every surface until `build` matches, then hands back that locator.
+async function waitIn(page, build, opts = {}) {
+  return pollUntil(page, () => findIn(page, build), {
+    timeoutMs: opts.timeoutMs || 15000,
+    intervalMs: opts.intervalMs || 250,
+    required: opts.required,
+    errorMsg: opts.errorMsg || 'waitIn: nothing matched in the page or its frames',
+  });
+}
+
 // The one deadline loop in this file. The predicate's truthy value is what the caller gets back,
 // so a poll can carry a phase string as easily as a boolean; `required: false` turns a timeout
 // into a quiet null instead of a throw.
@@ -203,18 +229,21 @@ async function answerRound(page, opts = {}) {
     // Every drill-down sub-screen (menu, share, about, search) carries a "Back" caret and the
     // game does not, so its presence means the phone is not showing the round at all.
     if (await page.getByRole('button', { name: 'Back', exact: true }).count()) return false;
-    const buttons = page.locator('button');
-    const count = await buttons.count();
     const candidates = [];
     let enabled = 0;
-    for (let i = 0; i < count; i++) {
-      const b = buttons.nth(i);
-      if (!(await b.isEnabled())) continue;
-      enabled++;
-      const name = await buttonName(b);
-      if (NEVER_CLICK.test(name)) continue;
-      if (deny && deny.test(name)) continue;
-      candidates.push(b);
+    // The identity header sits in the page while the round's choices may sit in the game frame.
+    for (const root of surfaces(page)) {
+      const buttons = root.locator('button');
+      const count = await buttons.count();
+      for (let i = 0; i < count; i++) {
+        const b = buttons.nth(i);
+        if (!(await b.isEnabled())) continue;
+        enabled++;
+        const name = await buttonName(b);
+        if (NEVER_CLICK.test(name)) continue;
+        if (deny && deny.test(name)) continue;
+        candidates.push(b);
+      }
     }
     if (enabled >= minEnabled && candidates.length > index) {
       await candidates[index].click();
@@ -235,7 +264,7 @@ async function answerRound(page, opts = {}) {
 async function pollUntilText(page, text, opts = {}) {
   const exact = !!opts.exact;
   const matcher = exact ? text : new RegExp(text, 'i');
-  await pollUntil(page, async () => !!(await page.getByText(matcher, { exact }).count()), {
+  await pollUntil(page, async () => !!(await findIn(page, (root) => root.getByText(matcher, { exact }))), {
     timeoutMs: opts.timeoutMs || 15000,
     intervalMs: opts.intervalMs || 250,
     errorMsg: `pollUntilText timed out waiting for: ${text}`,
@@ -268,6 +297,9 @@ async function clearThrottle(page) {
 
 module.exports = {
   resolvePlaywright,
+  surfaces,
+  findIn,
+  waitIn,
   getRoomCode,
   joinRoom,
   doIdentity,
