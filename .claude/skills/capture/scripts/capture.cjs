@@ -20,6 +20,7 @@ const {
   clearThrottle,
   DEFAULT_BASE_URL,
   waitIn,
+  surfaces,
 } = actions;
 const { chromium } = resolvePlaywright();
 
@@ -201,7 +202,9 @@ function runFromCli() {
           }
           case 'evaluate': {
             const page = await getPage(step.page);
-            await page.evaluate(step.js);
+            // Runs in the page and in every game frame: a plan's board-driving JS finds its
+            // controls in whichever document holds them and is a no-op in the others.
+            for (const root of surfaces(page)) await root.evaluate(step.js).catch(() => {});
             break;
           }
           default:
