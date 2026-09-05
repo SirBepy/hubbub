@@ -379,6 +379,38 @@ third-party game authors). Two findings changed this design; the rest confirmed 
    or the tax leaves `packages/ui`. As of 2026-08-22 every shipping game carries it, so this is
    not close; re-set it explicitly against the games actually shipping. Settles todo 52.
 
+   **Raised to 768 KiB on 2026-09-04 (Joe). The 512 KiB number above is superseded; everything
+   else in this item still stands.** Two independent things broke it, and only one is Phase G's.
+
+   - **A game bundle must inline `react-dom`, not only `react`.** A React component can only be
+     rendered by the React copy it was compiled against, so the sandbox frame cannot supply the
+     renderer for it. That makes §2.6's rejection of React-external load-bearing rather than a
+     preference: there is no self-contained bundle without its own renderer. Measured cost is a
+     flat ~142 kB per game.
+   - **music-guesser was already over 512 KiB before any Phase G change**, at 531.33 kB against
+     the 428.13 kB this table recorded on 2026-08-22. Nothing enforced the number, so 103 kB of
+     growth in 13 days went unnoticed. This is the argument for shipping the enforcement, not
+     against the number.
+
+   Measured 2026-09-04, stash-controlled so before and after are the same source, Vite kB:
+
+   | game | before | with the sandbox runtime |
+   |---|---|---|
+   | template | 311.08 | 453.54 |
+   | tap-race | 312.34 | 454.80 |
+   | split-opinions | 406.39 | 546.49 |
+   | music-guesser | 531.33 | 683.27 |
+
+   768 KiB is 786.4 kB, leaving music-guesser 103 kB of headroom, about 13% - near the 18% this
+   section was comfortable with at 512. The exit condition above keeps its shape: the number
+   drops again once the avatar payload leaves the shipping bundles, re-measured against the
+   games actually shipping rather than assumed.
+
+   Separately, and not a budget decision: Vite lib mode leaves `process.env.NODE_ENV` for the
+   consumer to define, but a game bundle has no consumer. Every game was shipping BOTH React
+   branches until a `define` fixed it on 2026-09-04, which took the template from 987.39 kB to
+   453.54 kB. Every figure in the table above is post-fix.
+
 2. **The local dev loop must be able to run a game inside the sandbox.** This is the real hole.
    The 2026-08-05 design's "Local dev loop" resolves games as workspace packages and bypasses the
    sandbox entirely, so an author develops against something structurally different from what
