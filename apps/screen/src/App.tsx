@@ -17,8 +17,7 @@ import {
   type GameTopBarPlayer,
 } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
-import { createSandboxScreenAuthority, type SandboxScreenAuthority } from "./sandbox-authority";
-import type { ScreenAuthority } from "./authority";
+import { useScreenAuthority } from "./use-screen-authority";
 import { rosterIdsChanged } from "./roster-diff";
 import { Lobby } from "./lobby";
 import { Hero } from "./hero";
@@ -43,9 +42,6 @@ const SANDBOX_ORIGIN_ERROR = (() => {
     return err instanceof Error ? err.message : "Sandbox origin is misconfigured.";
   }
 })();
-
-// Long enough to read two lines from a sofa, short enough that nobody starts troubleshooting.
-const FAILURE_DWELL_MS = 4_000;
 
 // Null in production, so rollup drops the import and the whole workspace-game loader with it (S1).
 const LazyDirectGameView = DEV_LOADER ? lazy(() => import("./direct-game-view")) : null;
@@ -101,11 +97,6 @@ export function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebRtcClientTransport>();
-  const authorityRef = useRef<ScreenAuthority | null>(null);
-  const sandboxRef = useRef<SandboxScreenAuthority | null>(null);
-  // The frame reports two ways - over the port, and through its own mount/bootstrap errors. Both
-  // must reach the same two-beat handler, so it lives in a ref the render path can call too.
-  const reportFailureRef = useRef<() => void>(() => {});
   const [result, setResult] = useState<GameResult | null>(null);
   // Set the instant this screen's own driver reports a failure, and cleared only by a later,
   // different launch - the return-to-lobby beat must NOT clear it, since that is the moment the
@@ -113,53 +104,12 @@ export function App() {
   const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const launchedGameIdRef = useRef<string | null>(null);
 
+  const { authority, sandboxRef, reportFailure } = useScreenAuthority(transportRef, { onResult: setResult, getFallbackGameId: () => launchedGameIdRef.current, setFailedGameId });
+
   useEffect(() => {
     let cancelled = false;
     let transport: WebRtcClientTransport | undefined;
     let off = () => {};
-    let failureTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const callbacks = {
-      onState: (gameId: string, state: unknown) => transport?.send({ t: "gameStatePush", gameId, state }),
-      onResult: setResult,
-      // Two beats, deliberately. The first only announces, so the room's mode stays "in-game" and
-      // the host cannot relaunch into the overlay everyone is still reading; the second returns
-      // the room to the lobby once it has been read.
-      onFailure: () => {
-        const gameId = sandboxRef.current?.currentGameId() ?? launchedGameIdRef.current;
-        if (!gameId || failureTimer) return;
-        setFailedGameId(gameId);
-        transport?.send({ t: "reportGameFailure", gameId });
-        failureTimer = setTimeout(() => {
-          failureTimer = null;
-          transport?.send({ t: "returnFromFailure", gameId });
-        }, FAILURE_DWELL_MS);
-      },
-    };
-
-    // Calls made before the driver exists are replayed once it does: the direct driver arrives
-    // through a dynamic import, which is what lets it be eliminated from a production build.
-    let real: ScreenAuthority | null = null;
-    const queued: ((a: ScreenAuthority) => void)[] = [];
-    const authority: ScreenAuthority = {
-      launch: (...a) => (real ? real.launch(...a) : queued.push((r) => r.launch(...a))),
-      action: (...a) => (real ? real.action(...a) : queued.push((r) => r.action(...a))),
-      playersChanged: (...a) => (real ? real.playersChanged(...a) : queued.push((r) => r.playersChanged(...a))),
-      reset: () => real?.reset(),
-    };
-    function adopt(next: ScreenAuthority) {
-      real = next;
-      for (const fn of queued.splice(0)) fn(next);
-    }
-    if (DEV_LOADER) {
-      import("./direct-authority").then((m) => { if (!cancelled) adopt(m.createDirectAuthority(callbacks)); });
-    } else {
-      const sandbox = createSandboxScreenAuthority(callbacks);
-      sandboxRef.current = sandbox;
-      adopt(sandbox);
-    }
-    authorityRef.current = authority;
-    reportFailureRef.current = callbacks.onFailure;
     let prevPlayerIds: Set<string> | null = null;
     let latestPlayers: Player[] = [];
 
@@ -275,9 +225,6 @@ export function App() {
     return () => {
       cancelled = true;
       off();
-      if (failureTimer) clearTimeout(failureTimer);
-      authority.reset();
-      sandboxRef.current = null;
       transport?.close();
     };
   }, []);
@@ -285,8 +232,8 @@ export function App() {
   // A returnToLobby (no follow-up gameLaunch) leaves the old instance/timer running otherwise -
   // a rematch's fresh gameLaunch already clears it via authority.launch, so only handle this exit.
   useEffect(() => {
-    if (room?.mode !== "in-game") authorityRef.current?.reset();
-  }, [room?.mode]);
+    if (room?.mode !== "in-game") authority.reset();
+  }, [room?.mode, authority]);
 
   const pendingGameId = room?.currentGameId ?? null;
   const pendingSummary = room?.games.find((g) => g.id === pendingGameId) ?? null;
@@ -396,7 +343,7 @@ export function App() {
                 players={players.map((p) => ({ id: p.id, name: p.name }))}
                 onConnect={(bridge) => sandboxRef.current?.attach(bridge)}
                 onMessage={(msg) => sandboxRef.current?.handle(msg)}
-                onError={() => reportFailureRef.current()}
+                onError={() => reportFailure()}
               />
             )}
           </GameSlot>
