@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
-import { createRoomHttp, roomSocketUrl, type GameSummary, type InputLegendEntry, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
+import { createRoomHttp, roomSocketUrl, type Player } from "@hubbub/protocol";
 import { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import type { GameResult } from "@hubbub/sdk";
 import { SandboxFrame } from "@hubbub/sandbox/react";
 import { assertDistinctOrigin } from "@hubbub/sandbox";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
 import { useScreenAuthority } from "./use-screen-authority";
+import { useScreenTransitions } from "./use-screen-transitions";
 import { rosterIdsChanged } from "./roster-diff";
 import { Lobby } from "./lobby";
 import { Hero } from "./hero";
@@ -45,18 +45,6 @@ const SANDBOX_ORIGIN_ERROR = (() => {
 
 // Null in production, so rollup drops the import and the whole workspace-game loader with it (S1).
 const LazyDirectGameView = DEV_LOADER ? lazy(() => import("./direct-game-view")) : null;
-
-interface RoomState {
-  players: Player[];
-  hostId: string | null;
-  mode: "lobby" | "configuring" | "in-game";
-  currentGameId: string | null;
-  cursorIndex: number;
-  games: GameSummary[];
-  suggestions: Suggestion[];
-  config: RoomConfig | null;
-  inputLegend: InputLegendEntry[];
-}
 
 interface GameState {
   gameId: string;
@@ -94,17 +82,13 @@ export function App() {
   const [qr, setQr] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
-  const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebRtcClientTransport>();
-  const [result, setResult] = useState<GameResult | null>(null);
-  // Set the instant this screen's own driver reports a failure, and cleared only by a later,
-  // different launch - the return-to-lobby beat must NOT clear it, since that is the moment the
-  // overlay still needs to be up.
-  const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const launchedGameIdRef = useRef<string | null>(null);
 
-  const { authority, sandboxRef, reportFailure } = useScreenAuthority(transportRef, { onResult: setResult, getFallbackGameId: () => launchedGameIdRef.current, setFailedGameId });
+  const { room, applyRoom, result, applyResult, failedGameId, applyFailedGameId, getFailedGameId } = useScreenTransitions();
+
+  const { authority, sandboxRef, reportFailure } = useScreenAuthority(transportRef, { onResult: applyResult, getFallbackGameId: () => launchedGameIdRef.current, setFailedGameId: applyFailedGameId });
 
   useEffect(() => {
     let cancelled = false;
@@ -131,8 +115,9 @@ export function App() {
           prevPlayerIds = ids;
           // Only a different, real launch clears the overlay. The failure's own flip to lobby
           // leaves currentGameId null, and that is exactly when it must still be showing.
-          if (msg.currentGameId) setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
-          setRoom({
+          const currentFailed = getFailedGameId();
+          if (msg.currentGameId && currentFailed && currentFailed !== msg.currentGameId) applyFailedGameId(null);
+          applyRoom({
             players: msg.players,
             hostId: msg.hostId,
             mode: msg.mode,
@@ -149,15 +134,15 @@ export function App() {
           // setup() already ran server-side; the reducer starts here (screen authority) or, under
           // the sandbox, inside the frame - either way this screen drives it.
           setSetupError(null);
-          setResult(null);
-          setFailedGameId(null);
+          applyResult(null);
+          applyFailedGameId(null);
           launchedGameIdRef.current = msg.gameId;
           // gameLaunch carries {id,name} only; the views want the full roster, and roomState's
           // copy is the one that has it.
           const launchRoster = latestPlayers.length ? latestPlayers : msg.players.map((p) => ({ ...p, colorId: 0, avatarId: "", connected: true }));
           authority.launch(msg.gameId, launchRoster, msg.setupData, msg.now);
         } else if (msg.t === "gameFailure") {
-          setFailedGameId(msg.gameId);
+          applyFailedGameId(msg.gameId);
         } else if (msg.t === "gameAction") {
           authority.action(msg.playerId, msg.payload, msg.now);
         } else if (msg.t === "error" && msg.code === "setup_failed") {

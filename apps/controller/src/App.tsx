@@ -5,7 +5,7 @@ import {
   useRegisterInputActions,
   type InputAction,
 } from "@hubbub/sdk/input";
-import { GlowButton, NeutralButton, GameLoadingScreen } from "@hubbub/ui";
+import { GlowButton, NeutralButton, GameLoadingScreen, transitionView } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
 import { GameFailed } from "./game-failed";
 import { usePublishInputLegend } from "./input-legend";
@@ -59,6 +59,11 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [phoneView, setPhoneView] = useState<PhoneView>(null);
 
+  // Every sub-screen swap is a real page change on a phone, so both go through transitionView
+  // rather than the raw setters - a bare setState here would hard-cut instead of cross-fading.
+  const openView = (v: PhoneView) => transitionView(() => setPhoneView(v));
+  const openSettings = (v: boolean) => transitionView(() => setSettingsOpen(v));
+
   const {
     status,
     error,
@@ -87,7 +92,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
   // would land back on whatever sub-screen the player left from.
   function leaveRoom() {
     leaveRoomConnection();
-    setPhoneView(null);
+    openView(null);
   }
 
   // Identity-first: no saved identity means show Settings before anything else.
@@ -96,7 +101,9 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
       <Settings
         onSave={(id) => {
           saveIdentity(id);
-          setIdentityState(id);
+          // The first identity save is a real page swap (Settings -> join/lobby), unlike the
+          // in-room identity edit below which stays on the same page.
+          transitionView(() => setIdentityState(id));
         }}
       />
     );
@@ -109,7 +116,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
       saveIdentity(id);
       setIdentityState(id);
       transportRef.current?.send({ t: "setIdentity", name: id.name, colorId: id.colorId, avatarId: id.avatarId });
-      setSettingsOpen(false);
+      openSettings(false);
     };
 
     if (settingsOpen) {
@@ -117,7 +124,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         <Settings
           initial={identity}
           onSave={applyIdentity}
-          onCancel={() => setSettingsOpen(false)}
+          onCancel={() => openSettings(false)}
           roomPlayers={room.players}
           ownPlayerId={playerId}
         />
@@ -133,24 +140,24 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         <MenuScreen
           me={me}
           isHost={isHost}
-          onClose={() => setPhoneView(null)}
-          onShare={() => setPhoneView("share")}
-          onPassRemote={() => setPhoneView("passRemote")}
-          onChangeAvatar={() => setSettingsOpen(true)}
-          onHowToPlay={() => setPhoneView("howToPlay")}
-          onAbout={() => setPhoneView("about")}
+          onClose={() => openView(null)}
+          onShare={() => openView("share")}
+          onPassRemote={() => openView("passRemote")}
+          onChangeAvatar={() => openSettings(true)}
+          onHowToPlay={() => openView("howToPlay")}
+          onAbout={() => openView("about")}
           onLeave={leaveRoom}
         />
       );
     }
     if (phoneView === "share") {
-      return <ShareScreen code={code} onBack={() => setPhoneView("menu")} />;
+      return <ShareScreen code={code} onBack={() => openView("menu")} />;
     }
     if (phoneView === "howToPlay") {
-      return <HowToPlayScreen onBack={() => setPhoneView("menu")} />;
+      return <HowToPlayScreen onBack={() => openView("menu")} />;
     }
     if (phoneView === "about") {
-      return <AboutScreen onBack={() => setPhoneView("menu")} />;
+      return <AboutScreen onBack={() => openView("menu")} />;
     }
     if (phoneView === "passRemote") {
       return (
@@ -158,7 +165,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
           players={room.players}
           playerId={playerId}
           onTransfer={(toPlayerId) => transportRef.current?.send({ t: "transferHost", toPlayerId })}
-          onBack={() => setPhoneView("menu")}
+          onBack={() => openView("menu")}
         />
       );
     }
@@ -169,7 +176,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
           suggestions={room.suggestions}
           playerId={playerId}
           onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
-          onBack={() => setPhoneView(null)}
+          onBack={() => openView(null)}
         />
       );
     }
@@ -205,7 +212,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
             name={me.name}
             avatarId={me.avatarId}
             isHost={isHost}
-            onOpenMenu={() => setPhoneView("menu")}
+            onOpenMenu={() => openView("menu")}
             connectionTier={tier.tier}
             connectionRttMs={tier.rttMs}
           />
@@ -296,8 +303,8 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         suggestions={room.suggestions}
         onFocus={(index) => transportRef.current?.send({ t: "lobbyFocus", index })}
         onStart={() => transportRef.current?.send({ t: "configStart" })}
-        onOpenMenu={() => setPhoneView("menu")}
-        onOpenSearch={() => setPhoneView("search")}
+        onOpenMenu={() => openView("menu")}
+        onOpenSearch={() => openView("search")}
       />
     ) : (
       <PlayerLobby
@@ -308,8 +315,8 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         games={room.games}
         suggestions={room.suggestions}
         onSuggest={(gameId) => transportRef.current?.send({ t: "suggestGame", gameId })}
-        onOpenMenu={() => setPhoneView("menu")}
-        onOpenSearch={() => setPhoneView("search")}
+        onOpenMenu={() => openView("menu")}
+        onOpenSearch={() => openView("search")}
       />
     );
   }
@@ -323,13 +330,13 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
       error={error}
       onJoin={join}
       settingsOpen={settingsOpen}
-      onOpenSettings={() => setSettingsOpen(true)}
+      onOpenSettings={() => openSettings(true)}
       onSaveIdentity={(id) => {
         saveIdentity(id);
         setIdentityState(id);
-        setSettingsOpen(false);
+        openSettings(false);
       }}
-      onCancelSettings={() => setSettingsOpen(false)}
+      onCancelSettings={() => openSettings(false)}
     />
   );
 }
