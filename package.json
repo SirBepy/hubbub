@@ -9,7 +9,7 @@
   "scripts": {
     "build": "turbo run build --concurrency=5",
     "dev": "turbo run dev --concurrency=5",
-    "dev:all": "turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/screen --filter=@hubbub/controller --filter=@hubbub/sandbox-app",
+    "dev:all": "turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/screen --filter=@hubbub/controller",
     "dev:games:on": "node packages/games-manifest/scripts/generate.mjs --dev-games=on",
     "dev:games:off": "node packages/games-manifest/scripts/generate.mjs --dev-games=off",
     "typecheck": "turbo run typecheck --concurrency=5",
@@ -19,7 +19,8 @@
     "host:dev": "turbo run build --concurrency=5 --filter=@hubbub/screen --filter=@hubbub/controller && pnpm --filter @hubbub/host-desktop build && pnpm --filter @hubbub/host-desktop dev",
     "host:package": "pnpm host:build && pnpm --filter @hubbub/host-desktop package",
     "dev:sandbox:on": "node packages/games-manifest/scripts/sandbox-mode.mjs on",
-    "dev:sandbox:off": "node packages/games-manifest/scripts/sandbox-mode.mjs off"
+    "dev:sandbox:off": "node packages/games-manifest/scripts/sandbox-mode.mjs off",
+    "dev:sandbox": "turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/sandbox-app"
   },
   "devDependencies": {
     "turbo": "^2.1.0",
