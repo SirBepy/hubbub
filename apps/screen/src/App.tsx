@@ -257,25 +257,17 @@ export function App() {
     );
   }
 
-  // No state yet means the game has not produced its first frame, whichever side it runs on.
-  if (room?.mode === "in-game" && (!game || game.gameId !== pendingGameId)) {
-    return (
-      <TVStage inputLegend={room?.inputLegend}>
-        <GameLoadingScreen
-          gameName={pendingSummary?.name ?? "Game"}
-          identityColors={pendingSummary?.identityColors}
-          category={pendingSummary?.category}
-        />
-      </TVStage>
-    );
-  }
+  // The sandboxed driver needs its frame mounted to make ANY progress at all: the bridge only
+  // attaches from the frame's own onConnect, and nothing produces a first gameState until that
+  // bridge exists. Gating the mount on `game` (matching pendingGameId) was a deadlock - the frame
+  // never mounted because there was no state, and there was no state because the frame never
+  // mounted. So the game view mounts as soon as a game is pending, and the loading screen is an
+  // overlay on top of it rather than a replacement for it (todo 85).
+  if (room?.mode === "in-game" && pendingGameId) {
+    const readyGame = game && game.gameId === pendingGameId ? game : null;
 
-  if (room?.mode === "in-game" && game) {
-    const players = room.players;
-    const summary = room.games.find((g) => g.id === game.gameId) ?? null;
-
-    if (result) {
-      const winnerPlayer = result.winnerId ? players.find((p) => p.id === result.winnerId) ?? null : null;
+    if (readyGame && result) {
+      const winnerPlayer = result.winnerId ? room.players.find((p) => p.id === result.winnerId) ?? null : null;
       const winner =
         !result.isDraw && winnerPlayer
           ? {
@@ -289,17 +281,17 @@ export function App() {
       // phone shows the whole table, so the room shares the outcome and each player reads their own.
       const standings = result.standings
         ?.map((s) => {
-          const p = players.find((pp) => pp.id === s.playerId);
+          const p = room.players.find((pp) => pp.id === s.playerId);
           return p ? { position: s.position, name: p.name, avatarId: p.avatarId, score: s.score == null ? "" : String(s.score) } : null;
         })
         .filter((s): s is NonNullable<typeof s> => s !== null);
       return (
         <TVStage inputLegend={room?.inputLegend}>
           <EndOfRoundScreen
-            gameName={summary?.name ?? "Game"}
+            gameName={pendingSummary?.name ?? "Game"}
             roundLabel="Results"
             roomCode={code}
-            playerCount={players.length}
+            playerCount={room.players.length}
             winner={winner}
             standings={standings}
             showActions
@@ -308,7 +300,7 @@ export function App() {
       );
     }
 
-    const topBarPlayers: GameTopBarPlayer[] = players.map((p) => ({
+    const topBarPlayers: GameTopBarPlayer[] = room.players.map((p) => ({
       name: p.name,
       colorHex: colorHex(p.colorId),
       avatarId: p.avatarId,
@@ -318,35 +310,48 @@ export function App() {
 
     return (
       <TVStage inputLegend={room?.inputLegend}>
-        <div
-          className="hb-anim-enter"
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: "flex",
-            flexDirection: "column",
-            animation: "hb-game-in 260ms cubic-bezier(.2,.8,.2,1) 1 both",
-          }}
-        >
-          <GameTopBar title={summary?.name ?? ""} roomCode={code} hostLabel={HOST_LABEL} players={topBarPlayers} />
-          <GameSlot aspectRatio={summary?.aspectRatio}>
-            {LazyDirectGameView ? (
-              <Suspense fallback={null}>
-                <LazyDirectGameView gameId={game.gameId} state={game.state} players={players} />
-              </Suspense>
-            ) : (
-              <SandboxFrame
-                base={SANDBOX_URL}
-                gameId={game.gameId}
-                version="dev"
-                role="screen"
-                players={players.map((p) => ({ id: p.id, name: p.name }))}
-                onConnect={(bridge) => sandboxRef.current?.attach(bridge)}
-                onMessage={(msg) => sandboxRef.current?.handle(msg)}
-                onError={() => reportFailure()}
+        <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div
+            className="hb-anim-enter"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              animation: "hb-game-in 260ms cubic-bezier(.2,.8,.2,1) 1 both",
+            }}
+          >
+            <GameTopBar title={pendingSummary?.name ?? ""} roomCode={code} hostLabel={HOST_LABEL} players={topBarPlayers} />
+            <GameSlot aspectRatio={pendingSummary?.aspectRatio}>
+              {LazyDirectGameView ? (
+                readyGame ? (
+                  <Suspense fallback={null}>
+                    <LazyDirectGameView gameId={readyGame.gameId} state={readyGame.state} players={room.players} />
+                  </Suspense>
+                ) : null
+              ) : (
+                <SandboxFrame
+                  base={SANDBOX_URL}
+                  gameId={pendingGameId}
+                  version="dev"
+                  role="screen"
+                  players={room.players.map((p) => ({ id: p.id, name: p.name }))}
+                  onConnect={(bridge) => sandboxRef.current?.attach(bridge)}
+                  onMessage={(msg) => sandboxRef.current?.handle(msg)}
+                  onError={() => reportFailure()}
+                />
+              )}
+            </GameSlot>
+          </div>
+          {readyGame ? null : (
+            <div style={{ position: "absolute", inset: 0 }}>
+              <GameLoadingScreen
+                gameName={pendingSummary?.name ?? "Game"}
+                identityColors={pendingSummary?.identityColors}
+                category={pendingSummary?.category}
               />
-            )}
-          </GameSlot>
+            </div>
+          )}
         </div>
       </TVStage>
     );

@@ -30,6 +30,15 @@ export function SandboxController({
     bridgeRef.current?.send({ t: "state", state, playerId });
   }, [state, playerId]);
 
+  // The bootstrap postMessage only carries {id,name} (S12) and the bundle's controller branch
+  // never gets a `launch` (only the screen role's reducer does), so without this the roster the
+  // Controller view renders against never leaves `[]` - every player reads as a stranger and the
+  // view can never find "you". `playersChanged` is the one message type the bundle's controller
+  // branch already handles for exactly this roster.
+  useEffect(() => {
+    bridgeRef.current?.send({ t: "playersChanged", players });
+  }, [players]);
+
   return (
     <SandboxFrame
       base={SANDBOX_URL}
@@ -39,6 +48,7 @@ export function SandboxController({
       players={players.map((p) => ({ id: p.id, name: p.name }))}
       onConnect={(bridge: SandboxBridge) => {
         bridgeRef.current = bridge;
+        bridge.send({ t: "playersChanged", players });
         bridge.send({ t: "state", state, playerId });
       }}
       onMessage={(msg) => {
