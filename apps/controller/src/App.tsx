@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
-import { createActionSender } from "@hubbub/sdk/react";
 import { visibleSettingsFields } from "@hubbub/sdk";
 import {
   InputActionProvider,
   useRegisterInputActions,
   type InputAction,
 } from "@hubbub/sdk/input";
-import { GlowButton, NeutralButton, GameLoadingScreen, useLoadingGate } from "@hubbub/ui";
-import { loadGameController, getSettingsSchema } from "./game";
+import { GlowButton, NeutralButton, GameLoadingScreen } from "@hubbub/ui";
+import { getSettingsSchema } from "./game";
+import { GameFailed } from "./game-failed";
+import { SandboxFrame } from "@hubbub/sandbox/react";
+import type { SandboxBridge } from "@hubbub/sandbox";
+import type { GameResult } from "@hubbub/sdk";
 import { usePublishInputLegend } from "./input-legend";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
@@ -24,9 +27,14 @@ import { PassRemoteScreen } from "./pass-remote";
 import { JoinScreen } from "./join";
 import { IdentityHeader } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
-import { SERVER_URL, STUN_URL } from "./config";
+import { SERVER_URL, STUN_URL, SANDBOX_URL } from "./config";
 
 const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
+
+declare const __HUBBUB_DEV_LOADER__: boolean;
+const DEV_LOADER = __HUBBUB_DEV_LOADER__;
+// Null in production, so rollup drops the import and the workspace-game loader with it (S1).
+const LazyDirectControllerView = DEV_LOADER ? lazy(() => import("./direct-controller-view")) : null;
 
 type RoomState = {
   players: Player[];
@@ -78,9 +86,16 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
 
   usePublishInputLegend(transportRef, status);
 
-  // Keyed on currentGameId so the chunk downloads while the host is still configuring.
+  // The frame holds the view, so a new state has to be handed across rather than re-rendered.
+  useEffect(() => {
+    if (!game || !playerId) return;
+    bridgeRef.current?.send({ t: "state", state: game.state, playerId });
+  }, [game, playerId]);
+
   const pendingGameId = room?.currentGameId ?? null;
-  const { value: loadedGame, showLoader } = useLoadingGate(pendingGameId, loadGameController);
+  const [failedGameId, setFailedGameId] = useState<string | null>(null);
+  const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const bridgeRef = useRef<SandboxBridge | null>(null);
 
   async function join() {
     if (!identity) return;
@@ -106,8 +121,16 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         setStatus("in");
       } else if (msg.t === "roomState") {
         setRoom(msg as RoomState);
+        // Only a different, real launch clears it; the failure's own flip to lobby leaves
+        // currentGameId null, which is exactly when the overlay must still be up.
+        if (msg.currentGameId) {
+          setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
+          setGameResult((r) => (msg.currentGameId === game?.gameId ? r : null));
+        }
       } else if (msg.t === "gameState") {
         setGame({ gameId: msg.gameId, state: msg.state });
+      } else if (msg.t === "gameFailure") {
+        setFailedGameId(msg.gameId);
       } else if (msg.t === "error") {
         // A failed per-game setup (e.g. Music Guesser's Deezer fetch) happens mid-room, after
         // join - surface it back into the config remote instead of ejecting to the join screen.
@@ -250,10 +273,8 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
     }
 
     if (room.mode === "in-game") {
-      const ready = loadedGame && game && pendingGameId === game.gameId ? loadedGame : null;
-      const Controller = ready?.Controller ?? null;
-      const logic = ready?.logic ?? null;
-      const result = game && logic?.result ? logic.result(game.state) : null;
+      const live = game && pendingGameId === game.gameId ? game : null;
+      const result = gameResult;
       const pendingSummary = room.games.find((g) => g.id === pendingGameId) ?? null;
 
       return (
@@ -270,20 +291,48 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
             {/* Before the game's own end view, not after: a game's controller fills the body, so a
                 scoreboard appended below it lands off-screen on a phone nobody scrolls. */}
             {result?.standings?.length ? <Scoreboard standings={result.standings} players={room.players} meId={playerId} /> : null}
-            {Controller && game && transportRef.current ? (
-              <Controller
-                state={game.state}
-                playerId={playerId}
-                players={room.players}
-                send={createActionSender<any>(transportRef.current)}
-              />
-            ) : showLoader ? (
+            {failedGameId ? (
+              <GameFailed isHost={isHost} />
+            ) : live && transportRef.current ? (
+              LazyDirectControllerView ? (
+                <Suspense fallback={null}>
+                  <LazyDirectControllerView
+                    gameId={live.gameId}
+                    state={live.state}
+                    playerId={playerId}
+                    players={room.players}
+                    transport={transportRef.current}
+                    onResult={setGameResult}
+                  />
+                </Suspense>
+              ) : (
+                <SandboxFrame
+                  base={SANDBOX_URL}
+                  gameId={live.gameId}
+                  version="dev"
+                  role="controller"
+                  players={room.players.map((p) => ({ id: p.id, name: p.name }))}
+                  onConnect={(bridge: SandboxBridge) => {
+                    bridgeRef.current = bridge;
+                    bridge.send({ t: "state", state: live.state, playerId });
+                  }}
+                  onMessage={(msg) => {
+                    // The phone is a dumb controller: the only things it sends upward are an
+                    // action, which the relay revalidates against the game's own schema, and the
+                    // result its own copy of the logic derived from the state it was given.
+                    if (msg.t === "action") transportRef.current?.send({ t: "action", payload: msg.action });
+                    else if (msg.t === "result") setGameResult(msg.result);
+                  }}
+                  onError={() => setFailedGameId(live.gameId)}
+                />
+              )
+            ) : (
               <GameLoadingScreen
                 gameName={pendingSummary?.name ?? "Game"}
                 identityColors={pendingSummary?.identityColors}
                 category={pendingSummary?.category}
               />
-            ) : null}
+            )}
           </div>
           <div style={gameFooter}>
             {result ? (

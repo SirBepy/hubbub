@@ -70,6 +70,7 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
           if (msg.t === "state") {
             state = msg.state as State;
             playerId = msg.playerId;
+            post({ t: "result", result: parts.logic.result?.(state) ?? null });
             renderController();
           } else if (msg.t === "playersChanged" || msg.t === "launch") {
             players = msg.players;
