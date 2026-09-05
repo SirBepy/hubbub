@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { colorHex, hexToRgba, MiniIdentity } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { BoardResult, Cell, Mark, UTTTAction, UTTTState } from "./logic.js";
@@ -12,6 +13,18 @@ export type UTTTControllerProps = {
 
 const [X_COLOR_ID, O_COLOR_ID] = utttLogic.meta.identityColors ?? [3, 5];
 
+// 46px keeps every cell button above the 44px phone-target floor no matter how narrow the
+// 3-across sub-board grid gets on a 390px phone; the sub-board's own width still shrinks to
+// fit its column, only its height is pinned.
+const MINI_CELL_PX = 46;
+
+/** Feature-detected: desktop test browsers and iOS Safari have no Vibration API. */
+function vibrate(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+  }
+}
+
 function MiniSubBoard({
   cells,
   result,
@@ -20,6 +33,9 @@ function MiniSubBoard({
   forcedColor,
   xColor,
   oColor,
+  pressedCell,
+  onPress,
+  onRelease,
   onCell,
 }: {
   cells: Cell[];
@@ -29,6 +45,9 @@ function MiniSubBoard({
   forcedColor: string;
   xColor: string;
   oColor: string;
+  pressedCell: number | null;
+  onPress: (cell: number) => void;
+  onRelease: () => void;
   onCell: (cell: number) => void;
 }) {
   const dim = !result && !tappable;
@@ -36,50 +55,63 @@ function MiniSubBoard({
     <div
       style={{
         position: "relative",
-        aspectRatio: "1",
+        height: MINI_CELL_PX * 3 + 2,
         borderRadius: "var(--radius-sm)",
         border: forced ? `2px solid ${forcedColor}` : "1px solid var(--divider)",
         background: forced ? hexToRgba(forcedColor, 0.13) : "var(--surface-1)",
         boxShadow: forced ? `0 0 16px ${hexToRgba(forcedColor, 0.28)}` : "none",
         opacity: dim ? 0.45 : 1,
         overflow: "hidden",
-        transition: "opacity 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out",
+        transition: "opacity 150ms ease-out, border-color 240ms ease-out, box-shadow 240ms ease-out",
       }}
     >
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
-          gridTemplateRows: "repeat(3, 1fr)",
+          gridTemplateRows: `repeat(3, ${MINI_CELL_PX}px)`,
           gap: 1,
           background: "var(--divider)",
           width: "100%",
           height: "100%",
         }}
       >
-        {cells.map((cell, c) => (
-          <button
-            key={c}
-            type="button"
-            disabled={!tappable || cell !== null}
-            onClick={() => onCell(c)}
-            style={{
-              background: "var(--surface-1)",
-              border: "none",
-              padding: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: tappable && !cell ? "pointer" : "default",
-            }}
-          >
-            {cell ? (
-              <span style={{ font: `700 ${forced ? 18 : 14}px/1 var(--font-display)`, color: cell === "X" ? xColor : oColor }}>
-                {cell}
-              </span>
-            ) : null}
-          </button>
-        ))}
+        {cells.map((cell, c) => {
+          const cellTappable = tappable && cell === null;
+          const pressed = pressedCell === c;
+          return (
+            <button
+              key={c}
+              type="button"
+              disabled={!cellTappable}
+              onPointerDown={() => cellTappable && onPress(c)}
+              onPointerUp={onRelease}
+              onPointerLeave={onRelease}
+              onPointerCancel={onRelease}
+              onClick={() => {
+                onCell(c);
+                vibrate(15);
+              }}
+              style={{
+                background: "var(--surface-1)",
+                border: "none",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: cellTappable ? "pointer" : "default",
+                transform: pressed ? "scale(0.94)" : "scale(1)",
+                transition: "transform 100ms ease-out",
+              }}
+            >
+              {cell ? (
+                <span style={{ font: `700 ${forced ? 18 : 14}px/1 var(--font-display)`, color: cell === "X" ? xColor : oColor }}>
+                  {cell}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
       {result ? (
         <div
@@ -120,6 +152,9 @@ export function UTTTController({ state, playerId, players, send }: UTTTControlle
   );
   const opponent = players.find((p) => p.id === opponentId) ?? null;
 
+  // (board, cell) under a live pointer press, for the scale-down tap feedback.
+  const [pressed, setPressed] = useState<{ board: number; cell: number } | null>(null);
+
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
       <div
@@ -154,6 +189,9 @@ export function UTTTController({ state, playerId, players, send }: UTTTControlle
               forcedColor={yourColor}
               xColor={colorHex(X_COLOR_ID)}
               oColor={colorHex(O_COLOR_ID)}
+              pressedCell={pressed?.board === b ? pressed.cell : null}
+              onPress={(cell) => setPressed({ board: b, cell })}
+              onRelease={() => setPressed(null)}
               onCell={(cell) => send({ board: b, cell })}
             />
           );

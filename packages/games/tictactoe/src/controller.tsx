@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { colorHex, hexToRgba, MiniIdentity } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Mark, TTTAction, TTTState } from "./logic.js";
@@ -11,6 +12,13 @@ export type TTTControllerProps = {
 };
 
 const [X_COLOR_ID, O_COLOR_ID] = tttLogic.meta.identityColors ?? [1, 0];
+
+/** Feature-detected: desktop test browsers and iOS Safari have no Vibration API. */
+function vibrate(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+  }
+}
 
 export function TTTController({ state, playerId, players, send }: TTTControllerProps) {
   const mark = state.assignments[playerId];
@@ -26,6 +34,9 @@ export function TTTController({ state, playerId, players, send }: TTTControllerP
     (id) => id !== playerId && state.assignments[id] === opponentMark,
   );
   const opponent = players.find((p) => p.id === opponentId) ?? null;
+
+  // Which cell is under a live pointer press, for the scale-down tap feedback.
+  const [pressedCell, setPressedCell] = useState<number | null>(null);
 
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
@@ -54,12 +65,20 @@ export function TTTController({ state, playerId, players, send }: TTTControllerP
       >
         {state.board.map((cell, i) => {
           const tappable = yourTurn && cell === null;
+          const pressed = pressedCell === i;
           return (
             <button
               key={i}
               type="button"
               disabled={!tappable}
-              onClick={() => send({ cell: i })}
+              onPointerDown={() => tappable && setPressedCell(i)}
+              onPointerUp={() => setPressedCell(null)}
+              onPointerLeave={() => setPressedCell(null)}
+              onPointerCancel={() => setPressedCell(null)}
+              onClick={() => {
+                send({ cell: i });
+                vibrate(15);
+              }}
               style={{
                 aspectRatio: "1",
                 minWidth: 88,
@@ -71,7 +90,8 @@ export function TTTController({ state, playerId, players, send }: TTTControllerP
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: tappable ? "pointer" : "default",
-                transition: "border-color 150ms ease-out",
+                transform: pressed ? "scale(0.94)" : "scale(1)",
+                transition: "border-color 150ms ease-out, transform 100ms ease-out",
               }}
             >
               {cell ? (
