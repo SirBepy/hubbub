@@ -1,15 +1,25 @@
+import { useEffect, useState, type CSSProperties } from "react";
+import { sfx } from "@hubbub/sdk/sfx";
 import { colorHex } from "./palette";
 import { GlowButton, NeutralButton } from "./GlowButton";
 import { Avatar, NEUTRAL_RING } from "./Avatar";
+
+function reducedMotion(): boolean {
+  return typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 /** One-shot confetti in the ink/kraft ramp, never the retired player palette: a win is a
  * platform moment, not a player-coloured one. Winner-only, so a draw never reads as a party. */
 const CONFETTI_TONES = ["#e4b33c", "#d9ba88", "#f2ead9", "#b8683c"];
 
-function Confetti() {
+/** startDelayMs pushes every piece's existing per-piece stagger out by the same amount, so
+ * confetti starts falling at the winner's medallion beat instead of at screen mount - pieces
+ * simply sit at their base opacity:0 until their (now later) animation-delay arrives. */
+function Confetti({ startDelayMs }: { startDelayMs: number }) {
   const pieces = Array.from({ length: 44 }, (_, i) => {
     const x = (i * 37 + (i % 5) * 11) % 100;
     const wide = i % 3 === 0;
+    const delayS = (i % 11) * 0.07 + startDelayMs / 1000;
     return (
       <span
         key={i}
@@ -22,7 +32,7 @@ function Confetti() {
           background: CONFETTI_TONES[i % CONFETTI_TONES.length],
           borderRadius: 2,
           opacity: 0,
-          animation: `hb-confetti-fall ${1.6 + (i % 7) * 0.18}s cubic-bezier(.3,.6,.5,1) ${(i % 11) * 0.07}s 1 forwards`,
+          animation: `hb-confetti-fall ${1.6 + (i % 7) * 0.18}s cubic-bezier(.3,.6,.5,1) ${delayS}s 1 forwards`,
         }}
       />
     );
@@ -32,6 +42,36 @@ function Confetti() {
       {pieces}
     </div>
   );
+}
+
+/** rAF-driven ease-out count, held at 0 until startDelayMs so a tier's score visibly climbs
+ * only once its own medallion has landed, not all at once with the rest of the screen. */
+function useCountUp(target: number, startDelayMs: number, durationMs = 600): number {
+  const [value, setValue] = useState(() => (reducedMotion() ? target : 0));
+
+  useEffect(() => {
+    if (reducedMotion() || !Number.isFinite(target)) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const startedAt = performance.now() + startDelayMs;
+    const tick = (now: number) => {
+      const elapsed = now - startedAt;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const t = Math.min(1, elapsed / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, startDelayMs, durationMs]);
+
+  return value;
 }
 
 export type EndOfRoundWinner = {
@@ -89,24 +129,33 @@ export function podiumOrder(rows: EndOfRoundStandingRow[]): EndOfRoundStandingRo
   return out;
 }
 
+/** Gap between each medallion's pop in the 3rd -> 2nd -> 1st reveal sequence. Expressed through
+ * .hb-anim-pop's own --i * 90ms formula (see styles.css) rather than an inline override, so the
+ * timing stays declared in one place. */
+const POP_STEP_MS = 350;
+const POP_DURATION_MS = 320;
+
 /** The medallion is the trophy and the only lit element on the screen. The winner's is deliberately
  * huge: this is read from a couch, and the character IS the identity, so it earns the whole stage.
- * Runners-up render the same shape unlit, keeping one glow per screen. */
-function Medallion({ avatarId, first }: { avatarId: string; first: boolean }) {
+ * Runners-up render the same shape unlit, keeping one glow per screen.
+ *
+ * popIndex is the position in the 3rd -> 2nd -> 1st reveal order, not DOM order, so the podium's
+ * centred layout (2-1-3) doesn't dictate which medallion pops first. pulseDelayMs is set only on
+ * the winner, for the extra emphasis once its own pop has landed. */
+function Medallion({
+  avatarId,
+  first,
+  popIndex,
+  pulseDelayMs,
+}: {
+  avatarId: string;
+  first: boolean;
+  popIndex: number;
+  pulseDelayMs?: number;
+}) {
   const size = first ? 13 : 8.4;
-  return (
-    <div
-      className="hb-anim-rank"
-      style={{
-        position: "relative",
-        width: `calc(var(--u)*${size})`,
-        height: `calc(var(--u)*${size})`,
-        flex: "none",
-        display: "grid",
-        placeItems: "center",
-        animation: "hb-rank-in 460ms cubic-bezier(.2,.8,.2,1) 1 both",
-      }}
-    >
+  const content = (
+    <>
       {first ? (
         <div
           style={{
@@ -127,7 +176,50 @@ function Medallion({ avatarId, first }: { avatarId: string; first: boolean }) {
         }}
       />
       <Avatar size={`calc(var(--u)*${first ? 10.4 : 6.7})`} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={2} />
+    </>
+  );
+  return (
+    <div
+      className="hb-anim-pop"
+      style={
+        {
+          position: "relative",
+          width: `calc(var(--u)*${size})`,
+          height: `calc(var(--u)*${size})`,
+          flex: "none",
+          display: "grid",
+          placeItems: "center",
+          // .hb-anim-pop reads --i in units of 90ms; scaling popIndex keeps the sequence's real
+          // 350ms gap while still going through that single declared step size.
+          "--i": (popIndex * POP_STEP_MS) / 90,
+        } as CSSProperties
+      }
+    >
+      {pulseDelayMs != null ? (
+        <div
+          className="hb-anim-pulse"
+          style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", animationDelay: `${pulseDelayMs}ms` }}
+        >
+          {content}
+        </div>
+      ) : (
+        content
+      )}
     </div>
+  );
+}
+
+/** Podium score, counting up once its own medallion lands rather than all together with the
+ * rest of the screen - a non-numeric or empty score (games with no ranking) renders as-is. */
+function TierScore({ score, first, landAtMs }: { score: string; first: boolean; landAtMs: number }) {
+  const target = Number(score);
+  const animated = score !== "" && Number.isFinite(target);
+  const value = useCountUp(animated ? target : 0, landAtMs + 100);
+  if (!score) return null;
+  return (
+    <span style={{ fontSize: "calc(var(--u)*1.3)", fontWeight: 600, color: first ? "var(--text-secondary)" : "var(--text-muted)" }}>
+      {animated ? value : score}
+    </span>
   );
 }
 
@@ -151,6 +243,33 @@ export function EndOfRoundScreen({
       ? [{ position: 1, name: winner.name, avatarId: winner.avatarId, score: "" }]
       : [];
 
+  // Reveal order is worst-to-best (3rd -> 2nd -> 1st), independent of the podium's 2-1-3 layout
+  // order above. Array.prototype.sort is stable, so tied positions keep their podiumOrder spot.
+  const popOrder = [...places].sort((a, b) => b.position - a.position);
+  const winnerOrderIndex = winner ? popOrder.length - 1 : -1;
+  const winnerLandAt = winnerOrderIndex >= 0 ? winnerOrderIndex * POP_STEP_MS + POP_DURATION_MS : 0;
+
+  // Choreography plays once at mount - a new result is always a fresh mount (the parent branches
+  // between the game view and this screen), so an empty dep array is the whole lifecycle, not a
+  // stale closure risk.
+  useEffect(() => {
+    const instant = reducedMotion();
+    sfx.play("reveal");
+    popOrder.forEach((place, orderIndex) => {
+      sfx.play("pop", { index: orderIndex, delayMs: instant ? 0 : orderIndex * POP_STEP_MS });
+    });
+    if (popOrder.length) {
+      const lastOrderIndex = popOrder.length - 1;
+      const landAt = lastOrderIndex * POP_STEP_MS + POP_DURATION_MS;
+      if (winner) {
+        sfx.play("fanfare", { delayMs: instant ? 0 : landAt + 200 });
+      } else {
+        // A draw still builds the same podium (a tie can fill every place) but earns no fanfare.
+        sfx.play("wrong", { gain: 0.3, delayMs: instant ? 0 : landAt + 200 });
+      }
+    }
+  }, []);
+
   return (
     <div
       style={{
@@ -163,8 +282,9 @@ export function EndOfRoundScreen({
         color: "var(--text-primary)",
       }}
     >
-      {winner ? <Confetti /> : null}
+      {winner ? <Confetti startDelayMs={winnerLandAt + 200} /> : null}
       <div
+        className="hb-anim-deal"
         style={{
           position: "relative",
           height: "100%",
@@ -197,9 +317,12 @@ export function EndOfRoundScreen({
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "calc(var(--u)*1.4)" }}>
             {places.map((place, i) => {
               const first = place.position === 1;
+              const orderIndex = popOrder.indexOf(place);
+              const landAtMs = orderIndex * POP_STEP_MS + POP_DURATION_MS;
+              const pulseDelayMs = winner && first ? winnerLandAt + 200 : undefined;
               return (
                 <div key={`${place.position}-${place.name}-${i}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <Medallion avatarId={place.avatarId} first={first} />
+                  <Medallion avatarId={place.avatarId} first={first} popIndex={orderIndex} pulseDelayMs={pulseDelayMs} />
                   <div
                     style={{
                       margin: "calc(var(--u)*.5) 0",
@@ -228,11 +351,7 @@ export function EndOfRoundScreen({
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "calc(var(--u)*1.7)", color: first ? "var(--accent)" : "var(--text-faint)" }}>
                       {place.position}
                     </span>
-                    {place.score ? (
-                      <span style={{ fontSize: "calc(var(--u)*1.3)", fontWeight: 600, color: first ? "var(--text-secondary)" : "var(--text-muted)" }}>
-                        {place.score}
-                      </span>
-                    ) : null}
+                    <TierScore score={place.score} first={first} landAtMs={landAtMs} />
                   </div>
                 </div>
               );
@@ -244,8 +363,20 @@ export function EndOfRoundScreen({
 
         {breakdown?.length ? (
           <div style={{ flex: "none", display: "flex", justifyContent: "center", gap: "calc(var(--u)*2.4)" }}>
-            {breakdown.map((row) => (
-              <span key={row.label} style={{ fontSize: "calc(var(--u)*1.2)", color: row.positive ? "var(--player-lime)" : "var(--text-muted)" }}>
+            {/* The non-podium detail row: staggered in reverse index so it reads as filling in
+                from its last item first, distinct from the podium's own reveal order above it. */}
+            {breakdown.map((row, i) => (
+              <span
+                key={row.label}
+                className="hb-anim-deal"
+                style={
+                  {
+                    fontSize: "calc(var(--u)*1.2)",
+                    color: row.positive ? "var(--player-lime)" : "var(--text-muted)",
+                    "--i": breakdown.length - 1 - i,
+                  } as CSSProperties
+                }
+              >
                 {row.label} <b style={{ color: "var(--text-secondary)" }}>{row.value}</b>
               </span>
             ))}

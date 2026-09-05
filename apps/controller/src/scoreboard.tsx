@@ -1,5 +1,12 @@
+import type { CSSProperties } from "react";
 import type { DisplayPlayer, GameResultStanding } from "@hubbub/sdk";
 import { Avatar, NEUTRAL_RING } from "@hubbub/ui";
+
+/** Matches .hb-anim-deal's own 60ms-per-index step and 300ms duration (styles.css) - kept as a
+ * literal here rather than reading the CSS, since the pulse below has to land exactly when the
+ * row's own deal-in finishes rather than merely "soon after". */
+const DEAL_STEP_MS = 60;
+const DEAL_DURATION_MS = 300;
 
 /** The full table the TV deliberately drops. Held rather than glanced, so it can be dense and
  * small in a way the three-metre screen never can. Your own row is the one thing emphasised. */
@@ -24,19 +31,8 @@ export function Scoreboard({
       </h2>
       {rows.map((row, i) => {
         const mine = row.playerId === meId;
-        return (
-          <div
-            key={`${row.playerId}-${i}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 10px",
-              borderRadius: "var(--radius-md)",
-              background: mine ? "rgba(228,179,60,.12)" : "var(--surface-1)",
-              border: `1px solid ${mine ? "rgba(228,179,60,.4)" : "var(--divider)"}`,
-            }}
-          >
+        const rowContent = (
+          <>
             <span style={{ width: 20, fontSize: 15, fontWeight: 700, color: mine ? "var(--accent)" : "var(--text-faint)" }}>
               {row.position}
             </span>
@@ -44,6 +40,35 @@ export function Scoreboard({
             <span style={{ flex: 1, fontSize: 15, fontWeight: mine ? 700 : 500 }}>{row.player!.name}</span>
             {row.score == null ? null : (
               <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-secondary)" }}>{row.score}</span>
+            )}
+          </>
+        );
+        return (
+          <div
+            key={`${row.playerId}-${i}`}
+            className="hb-anim-deal"
+            style={
+              {
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 10px",
+                borderRadius: "var(--radius-md)",
+                background: mine ? "rgba(228,179,60,.12)" : "var(--surface-1)",
+                border: `1px solid ${mine ? "rgba(228,179,60,.4)" : "var(--divider)"}`,
+                "--i": i,
+              } as CSSProperties
+            }
+          >
+            {mine ? (
+              <div
+                className="hb-anim-pulse"
+                style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, animationDelay: `${i * DEAL_STEP_MS + DEAL_DURATION_MS}ms` }}
+              >
+                {rowContent}
+              </div>
+            ) : (
+              rowContent
             )}
           </div>
         );

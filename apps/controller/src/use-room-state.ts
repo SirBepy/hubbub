@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { roomSocketUrl, type Suggestion, type Player, type GameSummary, type RoomConfig } from "@hubbub/protocol";
 import { WebRtcClientTransport, type TierState } from "@hubbub/protocol/webrtc";
 import type { GameResult } from "@hubbub/sdk";
+import { transitionView } from "@hubbub/ui";
 import type { Identity } from "./identity";
 import { SERVER_URL, STUN_URL } from "./config";
 
@@ -32,6 +33,9 @@ export function useRoomState(code: string, identity: Identity | null, initialCod
   const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const gameIdRef = useRef<string | null>(null);
+  // Read instead of `room.mode` because the onMessage handler below is registered once inside
+  // join() and closes over state frozen at that first render - same reason gameIdRef exists.
+  const roomModeRef = useRef<RoomState["mode"] | null>(null);
 
   async function join() {
     if (!identity) return;
@@ -54,9 +58,19 @@ export function useRoomState(code: string, identity: Identity | null, initialCod
       if (msg.t === "joined") {
         localStorage.setItem(`hubbub:token:${code}`, msg.token);
         setPlayerId(msg.playerId);
-        setStatus("in");
+        // Join succeeding is a real page swap (join screen -> lobby), not a roster tick.
+        transitionView(() => setStatus("in"));
       } else if (msg.t === "roomState") {
-        setRoom(msg as RoomState);
+        const nextRoom = msg as RoomState;
+        // A transition is earned by an actual phase change (lobby/configuring/in-game), never by
+        // the roster ticking inside the same phase - otherwise every join/leave would replay it.
+        const modeChanged = roomModeRef.current !== null && roomModeRef.current !== nextRoom.mode;
+        roomModeRef.current = nextRoom.mode;
+        if (modeChanged) {
+          transitionView(() => setRoom(nextRoom));
+        } else {
+          setRoom(nextRoom);
+        }
         // Only a different, real launch clears it; the failure's own flip to lobby leaves
         // currentGameId null, which is exactly when the overlay must still be up.
         if (msg.currentGameId) setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));

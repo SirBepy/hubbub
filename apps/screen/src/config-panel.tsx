@@ -1,4 +1,6 @@
+import { useEffect, useRef } from "react";
 import type { SettingsField } from "@hubbub/sdk";
+import { sfx } from "@hubbub/sdk/sfx";
 import { hostLabelFontScale } from "@hubbub/ui";
 
 // Platform-owned pre-game config panel (mode "configuring"). No dedicated mockup exists for
@@ -21,8 +23,22 @@ export function ConfigPanel({
   cursorIndex: number;
   setupError?: string;
 }) {
+  // Read-time diff against the last committed values (the ref is only written in the effect
+  // below, after render), the same pattern lobby.tsx uses to tell a genuine cycle apart from
+  // the panel's own first paint - a fresh mount must never pulse every field at once.
+  const prevValuesRef = useRef<Record<string, string> | null>(null);
+  const changedKeys = new Set<string>();
+  if (prevValuesRef.current) {
+    for (const f of fields) if (prevValuesRef.current[f.key] !== values[f.key]) changedKeys.add(f.key);
+  }
+
+  useEffect(() => {
+    if (changedKeys.size) sfx.play("tick", { gain: 0.5 });
+    prevValuesRef.current = values;
+  }, [values]);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", color: "var(--text-primary)" }}>
+    <div className="hb-anim-deal" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", color: "var(--text-primary)" }}>
       <div
         style={{
           flex: "none", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -76,10 +92,16 @@ export function ConfigPanel({
                   background: focused ? "rgba(247,207,99,.1)" : "rgba(242,234,217,.05)",
                   border: focused ? "1px solid var(--ink-amber-highlight)" : "1px solid rgba(242,234,217,.12)",
                   boxShadow: focused ? "0 0 calc(var(--u)*1.2) rgba(247,207,99,.22)" : "none",
+                  transition: "border-color 200ms ease-out, box-shadow 200ms ease-out",
                 }}
               >
                 <span style={{ fontSize: "calc(var(--u)*.92)", fontWeight: 600 }}>{f.label}</span>
-                <span style={{ fontSize: "calc(var(--u)*.92)", fontWeight: 500, color: focused ? "var(--text-primary)" : "var(--text-muted)" }}>{display}</span>
+                <span
+                  className={changedKeys.has(f.key) ? "hb-anim-pulse" : undefined}
+                  style={{ fontSize: "calc(var(--u)*.92)", fontWeight: 500, color: focused ? "var(--text-primary)" : "var(--text-muted)" }}
+                >
+                  {display}
+                </span>
               </div>
             );
           })}

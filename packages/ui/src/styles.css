@@ -174,7 +174,10 @@ body {
    pop drop to instant, falling confetti goes entirely, the spinner pulses instead. */
 @media (prefers-reduced-motion: reduce) {
   .hb-anim-enter,
-  .hb-anim-rank {
+  .hb-anim-rank,
+  .hb-anim-deal,
+  .hb-anim-pop,
+  .hb-anim-pulse {
     animation: none !important;
   }
   .hb-anim-confetti {
@@ -182,6 +185,10 @@ body {
   }
   .hb-anim-spin {
     animation: hb-pulse 1.4s ease-in-out infinite !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
 
@@ -194,4 +201,83 @@ body {
   12% {
     transform: scale(1.06);
   }
+}
+
+/* Platform motion thesis: everything arrives by being placed on the felt, a short rise-and-
+   settle from just below rather than a snap-in. Used for whole-screen entrances and list rows. */
+@keyframes hb-deal-in {
+  from {
+    transform: translateY(calc(var(--u) * 0.8)) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* A firmer arrival for one focal chip/medallion: overshoots slightly past rest before settling,
+   distinct from the deal so a podium reads differently from a roster list. */
+@keyframes hb-pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Exits are always faster than entrances: a dropped element reads as gone, not as the
+   entrance played backwards. */
+@keyframes hb-drop-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateY(calc(var(--u) * 0.6));
+    opacity: 0;
+  }
+}
+
+/* One-shot emphasis for a value that just changed (a cycled setting, a landed medallion) -
+   scale only, so it never gets confused with a fresh arrival. */
+@keyframes hb-pulse-once {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+/* Stagger index is set per-element via style={{ "--i": i }}; each utility picks its own step so
+   a long roster and a short medallion sequence read at different paces. */
+.hb-anim-deal {
+  animation: hb-deal-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+.hb-anim-pop {
+  animation: hb-pop-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+.hb-anim-pulse {
+  animation: hb-pulse-once 320ms cubic-bezier(0.16, 1, 0.3, 1) 1;
+}
+
+/* Page swap as a dealt card: the outgoing view drops away fast, the incoming one lands with the
+   same rise-and-settle every other arrival uses, so a phase change reads like the rest of the
+   platform's motion instead of a one-off browser transition. */
+::view-transition-old(root) {
+  animation: hb-drop-out 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+::view-transition-new(root) {
+  animation: hb-deal-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }

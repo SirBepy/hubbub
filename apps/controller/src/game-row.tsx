@@ -36,10 +36,12 @@ export function GameRow({
   );
 }
 
-/** Count + label pill. Caller decides count/label/active per its own vote rules. */
+/** Count + label pill. Caller decides count/label/active per its own vote rules. Keyed on its
+ * own count so a fresh vote arriving re-mounts the pill and replays the pop rather than only
+ * doing so the first time this row's badge ever appears. */
 export function VoteBadge({ count, active, label }: { count: number | string; active: boolean; label: string }) {
   return (
-    <span style={{ ...badge, ...(active ? badgeOn : null) }}>
+    <span key={count} className="hb-anim-pop" style={{ ...badge, ...(active ? badgeOn : null) }}>
       <b style={badgeCount}>{count}</b>
       {label}
     </span>

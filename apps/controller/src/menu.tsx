@@ -29,7 +29,7 @@ export function MenuScreen({
   onLeave: () => void;
 }) {
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <div style={header}>
         <Avatar size={52} colorHex={NEUTRAL_RING} avatarId={me.avatarId} surface={1} />
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -32,7 +32,7 @@ export function ConfigRemote({
 }) {
   if (!isHost) {
     return (
-      <main style={page}>
+      <main className="hb-anim-deal" style={page}>
         <div style={waiting}>
           <div style={waitingTitle}>Configuring {gameName}</div>
           <div style={waitingSub}>Watch the TV - the host is setting things up</div>
@@ -44,7 +44,7 @@ export function ConfigRemote({
   const field = fields[cursorIndex] ?? null;
 
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <div style={header}>
         <span style={headerTitle}>{gameName} settings</span>
       </div>

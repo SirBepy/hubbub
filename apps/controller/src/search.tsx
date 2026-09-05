@@ -4,6 +4,9 @@ import type { GameSummary, Suggestion } from "@hubbub/protocol";
 import { BackHeader } from "./header";
 import { GameRow, VoteBadge } from "./game-row";
 
+/** Rows past this index still render, just without their own stagger delay - see lobby.tsx. */
+const ROW_STAGGER_CAP = 8;
+
 function playersLabel(g: GameSummary): string {
   if (g.maxPlayers === undefined) return `${g.minPlayers}+ players`;
   if (g.maxPlayers === g.minPlayers) return `${g.minPlayers} players`;
@@ -31,7 +34,7 @@ export function SearchScreen({
   const results = games.filter((g) => (!category || g.category === category) && (!q || g.name.toLowerCase().includes(q)));
 
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <BackHeader title="All games" onBack={onBack} />
       <div style={sbox}>
         <div style={{ ...searchField, ...(query ? searchFieldLive : null) }}>
@@ -50,21 +53,22 @@ export function SearchScreen({
         </div>
       </div>
       <div style={body}>
-        {results.map((g) => {
+        {results.map((g, i) => {
           const voters = suggestions.filter((s) => s.gameId === g.id);
           const mine = voters.some((s) => s.playerId === playerId);
           return (
-            <GameRow
-              key={g.id}
-              game={g}
-              meta={`${g.category ?? "Party"} · ${playersLabel(g)}`}
-              badge={<VoteBadge count={mine ? voters.length : voters.length || "·"} active={mine} label={mine ? "VOTED" : "VOTE"} />}
-              highlight={mine ? "mine" : undefined}
-              onClick={() => {
-                onSuggest(g.id);
-                onBack();
-              }}
-            />
+            <div key={g.id} className="hb-anim-deal" style={{ "--i": Math.min(i, ROW_STAGGER_CAP) } as CSSProperties}>
+              <GameRow
+                game={g}
+                meta={`${g.category ?? "Party"} · ${playersLabel(g)}`}
+                badge={<VoteBadge count={mine ? voters.length : voters.length || "·"} active={mine} label={mine ? "VOTED" : "VOTE"} />}
+                highlight={mine ? "mine" : undefined}
+                onClick={() => {
+                  onSuggest(g.id);
+                  onBack();
+                }}
+              />
+            </div>
           );
         })}
       </div>

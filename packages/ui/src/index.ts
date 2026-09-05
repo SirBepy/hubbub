@@ -61,3 +61,7 @@ export { ConnectionBadge } from "./ConnectionBadge";
 export type { ConnectionBadgeProps } from "./ConnectionBadge";
 
 export { hostLabelFontScale } from "./host-label-scale";
+
+export { transitionView } from "./transition";
+
+export { SoundToggle } from "./SoundToggle";

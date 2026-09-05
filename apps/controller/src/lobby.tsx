@@ -4,6 +4,10 @@ import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 import { IdentityHeader } from "./header";
 import { GameRow, VoteBadge } from "./game-row";
 
+/** Rows past this index still render, just without a stagger delay of their own - an unbounded
+ * stagger on a long vote list would make the bottom rows land visibly late. */
+const ROW_STAGGER_CAP = 8;
+
 function votedGames(games: GameSummary[], suggestions: Suggestion[], players: Player[]) {
   return games
     .map((game) => ({
@@ -49,21 +53,22 @@ export function HostLobby({
   }
 
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <IdentityHeader name={me.name} avatarId={me.avatarId} isHost onOpenMenu={onOpenMenu} />
       <div style={body}>
         {rows.length === 0 ? (
           <p style={emptyHint}>No votes yet - open search to suggest a game.</p>
         ) : (
-          rows.map(({ game, voters }) => (
-            <GameRow
-              key={game.id}
-              game={game}
-              meta={voters.map((v) => v.name).join(", ")}
-              badge={<VoteBadge count={voters.length} active={game.id === focused?.id} label={voters.length === 1 ? "VOTE" : "VOTES"} />}
-              highlight={game.id === focused?.id ? "tv" : undefined}
-              onClick={() => play(game.id)}
-            />
+          rows.map(({ game, voters }, i) => (
+            <div key={game.id} className="hb-anim-deal" style={{ "--i": Math.min(i, ROW_STAGGER_CAP) } as CSSProperties}>
+              <GameRow
+                game={game}
+                meta={voters.map((v) => v.name).join(", ")}
+                badge={<VoteBadge count={voters.length} active={game.id === focused?.id} label={voters.length === 1 ? "VOTE" : "VOTES"} />}
+                highlight={game.id === focused?.id ? "tv" : undefined}
+                onClick={() => play(game.id)}
+              />
+            </div>
           ))
         )}
       </div>
@@ -114,23 +119,24 @@ export function PlayerLobby({
   const hostName = players.find((p) => p.id === hostId)?.name ?? "The host";
 
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <IdentityHeader name={me.name} avatarId={me.avatarId} isHost={false} onOpenMenu={onOpenMenu} />
       <div style={body}>
         {rows.length === 0 ? (
           <p style={emptyHint}>No votes yet - open search to suggest a game.</p>
         ) : (
-          rows.map(({ game, voters }) => {
+          rows.map(({ game, voters }, i) => {
             const mine = voters.some((v) => v.id === playerId);
             return (
-              <GameRow
-                key={game.id}
-                game={game}
-                meta={<VoterNames voters={voters} playerId={playerId} />}
-                badge={<VoteBadge count={voters.length} active={mine} label={mine ? "VOTED" : "VOTE"} />}
-                highlight={mine ? "mine" : undefined}
-                onClick={() => onSuggest(game.id)}
-              />
+              <div key={game.id} className="hb-anim-deal" style={{ "--i": Math.min(i, ROW_STAGGER_CAP) } as CSSProperties}>
+                <GameRow
+                  game={game}
+                  meta={<VoterNames voters={voters} playerId={playerId} />}
+                  badge={<VoteBadge count={voters.length} active={mine} label={mine ? "VOTED" : "VOTE"} />}
+                  highlight={mine ? "mine" : undefined}
+                  onClick={() => onSuggest(game.id)}
+                />
+              </div>
             );
           })
         )}

@@ -29,7 +29,7 @@ export function JoinScreen({
   onCancelSettings: () => void;
 }) {
   return (
-    <main style={page}>
+    <main className="hb-anim-deal" style={page}>
       <div style={wordmark}>HUBBUB</div>
       <div style={identityRow}>
         <Avatar size={52} colorHex={NEUTRAL_RING} avatarId={identity.avatarId} surface={1} />

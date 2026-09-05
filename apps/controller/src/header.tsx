@@ -23,7 +23,7 @@ export function IdentityHeader({
   connectionRttMs?: number | null;
 }) {
   return (
-    <div style={bar}>
+    <div className="hb-anim-deal" style={bar}>
       <button type="button" onClick={onOpenMenu} style={meButton}>
         <Avatar size={34} colorHex={NEUTRAL_RING} avatarId={avatarId} surface={1} />
         <span style={meName}>{name}</span>
@@ -37,7 +37,7 @@ export function IdentityHeader({
 /** Back-caret + centered title, used by every drill-down sub-screen. */
 export function BackHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
-    <div style={bar}>
+    <div className="hb-anim-deal" style={bar}>
       <button type="button" onClick={onBack} aria-label="Back" style={iconButton}>
         <CaretLeft size={18} weight="bold" />
       </button>

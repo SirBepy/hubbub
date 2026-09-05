@@ -7,7 +7,7 @@ export function Hero({ code, qr, error }: { code: string; qr: string; error?: st
   const [slogan] = useState(randomSlogan);
 
   return (
-    <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
+    <div className="hb-anim-deal" style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
       <div style={heroGlow} />
       <div style={cluster}>
         <p style={wordmark}>

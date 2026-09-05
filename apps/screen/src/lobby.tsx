@@ -1,6 +1,13 @@
+import { useEffect, useRef, type CSSProperties } from "react";
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 import { Avatar, KeyArt, colorHex, gameKeyArtHexes } from "@hubbub/ui";
+import { sfx } from "@hubbub/sdk/sfx";
 import { User } from "@phosphor-icons/react";
+
+/** Sounds for a whole first-mount roster are capped, so a room that reconnects with twelve
+ * people already seated doesn't fire twelve overlapping join chimes at once. */
+const FIRST_MOUNT_JOIN_SOUND_CAP = 8;
+const FIRST_MOUNT_JOIN_STEP_MS = 70;
 
 function playerCountLabel(g: GameSummary): string {
   if (g.maxPlayers === undefined) return `${g.minPlayers}+ players`;
@@ -39,8 +46,47 @@ export function Lobby({
     .filter((row) => row.voters.length > 0)
     .sort((a, b) => b.voters.length - a.voters.length);
 
+  // null until the first roster-diff effect runs, which is exactly "have we painted once yet" -
+  // read here (render) rather than only in the effect below so this same render can decide each
+  // pill's stagger index; the effect then commits the new snapshot for the NEXT render to diff
+  // against, so a pill already on screen never gets re-classified as a newcomer.
+  const seenIdsRef = useRef<Set<string> | null>(null);
+  const isFirstPaint = seenIdsRef.current === null;
+  const prevIds = seenIdsRef.current;
+  // id -> its stagger index this render, present only for a pill that should play the deal-in:
+  // every pill on first paint (staggered), or a lone arrival since (no stagger, --i defaults 0).
+  const dealIndexById = new Map<string, number>();
+  if (isFirstPaint) {
+    players.forEach((p, i) => dealIndexById.set(p.id, i));
+  } else {
+    for (const p of players) if (!prevIds!.has(p.id)) dealIndexById.set(p.id, 0);
+  }
+
+  useEffect(() => {
+    // The Hero -> Lobby moment itself: once, regardless of how the roster changes afterward.
+    sfx.play("whoosh", { gain: 0.4 });
+  }, []);
+
+  useEffect(() => {
+    const currentIds = new Set(players.map((p) => p.id));
+    if (seenIdsRef.current === null) {
+      const capped = Math.min(players.length, FIRST_MOUNT_JOIN_SOUND_CAP);
+      for (let i = 0; i < capped; i++) sfx.play("join", { index: i, delayMs: i * FIRST_MOUNT_JOIN_STEP_MS });
+    } else {
+      const prev = seenIdsRef.current;
+      for (const p of players) {
+        if (!prev.has(p.id)) sfx.play("join", { index: Math.min(players.length - 1, 11) });
+      }
+      for (const id of prev) {
+        if (!currentIds.has(id)) sfx.play("leave");
+      }
+    }
+    seenIdsRef.current = currentIds;
+  }, [players]);
+
   return (
     <div
+      className="hb-anim-deal"
       style={{
         flex: 1,
         minHeight: 0,
@@ -268,8 +314,19 @@ export function Lobby({
           </span>
         ) : (
         <div style={{ display: "flex", gap: "calc(var(--u)*.85)", overflow: "hidden", flex: 1, minWidth: 0 }}>
-          {players.map((p) => (
-            <div key={p.id} style={{ flex: "none", width: "calc(var(--u)*3)", textAlign: "center", opacity: p.connected ? 1 : 0.32 }}>
+          {players.map((p) => {
+            const dealIndex = dealIndexById.get(p.id);
+            return (
+            <div
+              key={p.id}
+              className={dealIndex !== undefined ? "hb-anim-deal" : undefined}
+              style={
+                {
+                  flex: "none", width: "calc(var(--u)*3)", textAlign: "center", opacity: p.connected ? 1 : 0.32,
+                  "--i": dealIndex ?? 0,
+                } as CSSProperties
+              }
+            >
               <div style={{ width: "calc(var(--u)*1.9)", margin: "0 auto" }}>
                 <Avatar size={32} colorHex={colorHex(p.colorId)} avatarId={p.avatarId} surface={2} />
               </div>
@@ -287,7 +344,8 @@ export function Lobby({
                 </span>
               ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
         )}
       </div>

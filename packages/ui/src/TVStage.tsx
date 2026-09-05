@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { InputLegendEntry } from "@hubbub/sdk/input";
+import { sfx } from "@hubbub/sdk/sfx";
 import { InputLegendTray } from "./InputLegendTray";
+import { SoundToggle } from "./SoundToggle";
 
 /**
  * Fluid full-viewport TV container: felt ground gradient + dot texture, sets
@@ -11,6 +13,10 @@ import { InputLegendTray } from "./InputLegendTray";
  * once and none of them hardcodes a per-screen string.
  */
 export function TVStage({ children, inputLegend }: { children: ReactNode; inputLegend?: InputLegendEntry[] }) {
+  // Any click or key on the TV page counts as the user gesture Chrome's autoplay policy wants -
+  // wiring it once here means no individual screen has to remember to unlock sound itself.
+  useEffect(() => sfx.installAutoUnlock(), []);
+
   return (
     <div
       style={{
@@ -37,6 +43,7 @@ export function TVStage({ children, inputLegend }: { children: ReactNode; inputL
       >
         {children}
         <InputLegendTray entries={inputLegend ?? []} />
+        <SoundToggle />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { App as ControllerApp } from "@hubbub/controller";
+import { transitionView } from "@hubbub/ui";
 import { Settings } from "../../controller/src/settings";
 import { loadIdentity, saveIdentity, type Identity } from "../../controller/src/identity";
 import { WelcomeScreen } from "./welcome";
@@ -19,18 +20,18 @@ export function ControllerEntry({ onHostInstead }: { onHostInstead: () => void }
   }
 
   if (phase === "welcome") {
-    return <WelcomeScreen onContinue={() => setPhase("avatar")} />;
+    return <WelcomeScreen onContinue={() => transitionView(() => setPhase("avatar"))} />;
   }
 
   if (phase === "avatar") {
     return (
       <Settings
         initial={identity ?? undefined}
-        onCancel={identity ? () => setPhase("join") : undefined}
+        onCancel={identity ? () => transitionView(() => setPhase("join")) : undefined}
         onSave={(id) => {
           saveIdentity(id);
           setIdentity(id);
-          setPhase("join");
+          transitionView(() => setPhase("join"));
         }}
       />
     );
@@ -39,10 +40,10 @@ export function ControllerEntry({ onHostInstead }: { onHostInstead: () => void }
   return (
     <JoinScreen
       identity={identity!}
-      onEditIdentity={() => setPhase("avatar")}
+      onEditIdentity={() => transitionView(() => setPhase("avatar"))}
       onJoin={(code) => {
         setJoinCode(code);
-        setPhase("live");
+        transitionView(() => setPhase("live"));
       }}
       onHostInstead={onHostInstead}
     />
