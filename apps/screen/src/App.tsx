@@ -77,7 +77,10 @@ function GameSlot({ aspectRatio, children }: { aspectRatio?: number; children: R
   );
 }
 
-export function App() {
+/** `preplayCorner` is the shell's escape hatch (the web app's "Join instead"), shown only where
+ * the role decision still matters: the hero and the lobby. Once a game is up the corner belongs to
+ * the game and TVStage's sound pill. */
+export function App({ preplayCorner }: { preplayCorner?: ReactNode } = {}) {
   const [code, setCode] = useState<string>("");
   const [qr, setQr] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -368,6 +371,7 @@ export function App() {
     return (
       <TVStage inputLegend={room?.inputLegend}>
         <Hero code={code} qr={qr} error={connectError ?? undefined} />
+        {preplayCorner}
       </TVStage>
     );
   }
@@ -384,6 +388,7 @@ export function App() {
         cursorIndex={room?.cursorIndex ?? 0}
         suggestions={room?.suggestions ?? []}
       />
+      {preplayCorner}
     </TVStage>
   );
 }
