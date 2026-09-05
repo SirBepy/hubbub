@@ -58,6 +58,10 @@ export interface RoomSnapshot {
   config: RoomConfig | null;
   lastOptions: unknown;
   lastGameState: LastGameState | null;
+  // Set when the screen announces a sandboxed game died, cleared by the return beat or by any
+  // fresh launch. Makes the two-beat failure exchange a handshake: a gameId alone cannot say
+  // whether a delayed return belongs to the dead game or to a relaunch of that same game.
+  failedGameId: string | null;
   connections: Record<string, ConnInfo>;
   // Legend published by the host's phone when a gamepad is bound to it. Stored with its author so
   // a host transfer or disconnect drops it rather than leaving the TV advertising a dead pad.
@@ -114,6 +118,7 @@ export class Room {
       config: null,
       lastOptions: undefined,
       lastGameState: null,
+      failedGameId: null,
       connections: {},
       inputLegend: null,
       screenConnId: null,
@@ -127,7 +132,11 @@ export class Room {
   static fromSnapshot(snapshot: RoomSnapshot, catalog: GameCatalog, tokens: TokenSource, logger: RelayLogger = noopLogger): Room {
     // A snapshot taken before inputLegend existed has no such key; default it rather than
     // letting a hibernated DO rehydrate with it undefined.
-    return new Room(catalog, tokens, { ...snapshot, inputLegend: snapshot.inputLegend ?? null }, logger);
+    return new Room(catalog, tokens, {
+      ...snapshot,
+      inputLegend: snapshot.inputLegend ?? null,
+      failedGameId: snapshot.failedGameId ?? null,
+    }, logger);
   }
 
   /** Plain JSON-safe value; round-tripping it through JSON.stringify/parse and passing the
@@ -241,6 +250,7 @@ export class Room {
       if (msg.t === "returnToLobby") {
         this.info(`game finished gameId=${this.data.currentGameId}`);
         this.data.lastGameState = null;
+        this.data.failedGameId = null;
         this.data.mode = "lobby";
         this.data.currentGameId = null;
         this.data.suggestions = {};
@@ -353,6 +363,26 @@ export class Room {
       return [{ to: "all", msg: { t: "gameState", gameId: msg.gameId, state: msg.state } }];
     }
 
+    // Same trust boundary as gameStatePush: only the room's own screen, only for the game in play.
+    // The staleness half matters more here than there - these arrive on a 4s delay, so without it
+    // a timer from a dead game can yank the room out of the next one.
+    if (msg.t === "reportGameFailure" || msg.t === "returnFromFailure") {
+      if (conn?.role !== "screen" || this.data.screenConnId !== connId) return [];
+      if (this.data.mode !== "in-game" || this.data.currentGameId !== msg.gameId) return [];
+      if (msg.t === "reportGameFailure") {
+        this.info(`game failed gameId=${msg.gameId}`);
+        this.data.failedGameId = msg.gameId;
+        return [{ to: "all", msg: { t: "gameFailure", gameId: msg.gameId } }];
+      }
+      if (this.data.failedGameId !== msg.gameId) return [];
+      this.data.failedGameId = null;
+      this.data.lastGameState = null;
+      this.data.mode = "lobby";
+      this.data.currentGameId = null;
+      this.data.suggestions = {};
+      return this.broadcastRoomState();
+    }
+
     return [];
   }
 
@@ -404,6 +434,7 @@ export class Room {
     this.info(`game launched gameId=${gameId}`);
     this.data.lastOptions = options;
     this.data.lastGameState = null;
+    this.data.failedGameId = null;
     this.data.mode = "in-game";
     this.data.currentGameId = gameId;
     this.data.config = null;

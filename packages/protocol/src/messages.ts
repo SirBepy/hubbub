@@ -80,6 +80,11 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   // Screen -> Server: the screen-authoritative reducer's resulting state, after gameLaunch or
   // gameAction. Server checks the sender is that room's screen socket before rebroadcasting.
   z.object({ t: z.literal("gameStatePush"), gameId: z.string(), state: z.unknown() }),
+  // Screen -> Server, two beats. `reportGameFailure` only announces, leaving mode "in-game" so the
+  // host cannot relaunch into the room's own error overlay; `returnFromFailure` follows once the
+  // overlay has been read and is the beat that actually returns the room to the lobby.
+  z.object({ t: z.literal("reportGameFailure"), gameId: z.string() }),
+  z.object({ t: z.literal("returnFromFailure"), gameId: z.string() }),
   // Pre-game config phase (host-only, server-enforced) - the TV renders the panel, the phone is
   // the remote. Schema-less games never see these; their lobbyConfirm path is untouched above.
   z.object({ t: z.literal("configStart") }),
@@ -128,6 +133,9 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
   // Relayed rtcSignal: fromPlayerId is set only when delivered to the screen (which peer this
   // came from); a controller only ever hears from the one screen, so it's absent there.
   z.object({ t: z.literal("rtcSignal"), fromPlayerId: z.string().optional(), data: z.unknown() }),
+  // Broadcast: this game is over and not coming back. Carries no reason - the room does not need
+  // a diagnosis, and a message authored inside an untrusted bundle must never reach every phone.
+  z.object({ t: z.literal("gameFailure"), gameId: z.string() }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),
 ]);
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;

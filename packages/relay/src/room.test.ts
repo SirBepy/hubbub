@@ -185,6 +185,48 @@ describe("Room", () => {
     expect(room.snapshot().lastGameState).toEqual({ gameId: "counter", state: { x: 2 } });
   });
 
+  describe("sandboxed game failure", () => {
+    async function inGame() {
+      const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      await room.handleMessage("c1", join("Ann"), 0);
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      return room;
+    }
+
+    it("is only reported by the room's own screen connection", async () => {
+      const room = await inGame();
+      expect(await room.handleMessage("c1", { t: "reportGameFailure", gameId: "counter" }, 0)).toEqual([]);
+
+      const ok = await room.handleMessage("s", { t: "reportGameFailure", gameId: "counter" }, 0);
+      expect(findAll(ok, "gameFailure").gameId).toBe("counter");
+    });
+
+    it("announces without moving the room, so the host cannot relaunch into the overlay", async () => {
+      const room = await inGame();
+      await room.handleMessage("s", { t: "reportGameFailure", gameId: "counter" }, 0);
+      expect(room.snapshot().mode).toBe("in-game");
+
+      // lobbyConfirm is gated on mode === "lobby", so it stays rejected for the whole window.
+      expect(await room.handleMessage("c1", { t: "lobbyConfirm" }, 0)).toEqual([]);
+
+      await room.handleMessage("s", { t: "returnFromFailure", gameId: "counter" }, 0);
+      expect(room.snapshot().mode).toBe("lobby");
+      expect(room.snapshot().currentGameId).toBeNull();
+    });
+
+    it("drops a stale return naming a game the room already left", async () => {
+      const room = await inGame();
+      await room.handleMessage("s", { t: "reportGameFailure", gameId: "counter" }, 0);
+      await room.handleMessage("s", { t: "returnFromFailure", gameId: "counter" }, 0);
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0); // a fresh, unrelated launch
+
+      // The 4s timer from the dead game fires late; it must not yank the room out of this one.
+      expect(await room.handleMessage("s", { t: "returnFromFailure", gameId: "counter" }, 0)).toEqual([]);
+      expect(room.snapshot().mode).toBe("in-game");
+    });
+  });
+
   it("survives a JSON round trip through snapshot()/fromSnapshot() with identical behaviour", async () => {
     const catalog = fakeCatalog();
     const tokens = fakeTokens();
