@@ -45,9 +45,10 @@ export function App() {
 
 // Mirrors join.tsx's "Host instead": plain muted text, no fill/border/glow.
 // Corner-anchored, not centred, since nothing on the hero anchors it like the phone's CTA does.
+// Sits one 44px control above the corner: TVStage's sound pill owns the corner itself.
 const switcherStyle: CSSProperties = {
   position: "fixed",
-  bottom: "calc(var(--u) * 1)",
+  bottom: "calc(var(--u) * 1.6 + 44px)",
   right: "calc(var(--u) * 1)",
   zIndex: 9999,
   background: "none",
