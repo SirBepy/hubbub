@@ -57,6 +57,8 @@ export function SoundToggle() {
         border: "1px solid var(--divider-heavy)",
         background: "rgba(20,14,6,.72)",
         color: "var(--text-secondary)",
+        // A button never inherits the page face; without this the label sets in Arial.
+        font: "inherit",
         cursor: "pointer",
       }}
     >
