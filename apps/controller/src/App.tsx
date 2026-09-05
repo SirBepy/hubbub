@@ -10,10 +10,9 @@ import {
 import { GlowButton, NeutralButton, GameLoadingScreen } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
 import { GameFailed } from "./game-failed";
-import { SandboxFrame } from "@hubbub/sandbox/react";
-import type { SandboxBridge } from "@hubbub/sandbox";
 import type { GameResult } from "@hubbub/sdk";
 import { usePublishInputLegend } from "./input-legend";
+import { SandboxController } from "./sandbox-controller";
 import { HostLobby, PlayerLobby } from "./lobby";
 import { ConfigRemote } from "./config-remote";
 import { Settings } from "./settings";
@@ -27,7 +26,7 @@ import { PassRemoteScreen } from "./pass-remote";
 import { JoinScreen } from "./join";
 import { IdentityHeader } from "./header";
 import { loadIdentity, saveIdentity, type Identity } from "./identity";
-import { SERVER_URL, STUN_URL, SANDBOX_URL } from "./config";
+import { SERVER_URL, STUN_URL } from "./config";
 
 const roomFromUrl = new URLSearchParams(location.search).get("room") ?? "";
 
@@ -86,17 +85,10 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
 
   usePublishInputLegend(transportRef, status);
 
-  // The frame holds the view, so a new state has to be handed across rather than re-rendered.
-  useEffect(() => {
-    if (!game || !playerId) return;
-    bridgeRef.current?.send({ t: "state", state: game.state, playerId });
-  }, [game, playerId]);
-
   const pendingGameId = room?.currentGameId ?? null;
   const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const gameIdRef = useRef<string | null>(null);
-  const bridgeRef = useRef<SandboxBridge | null>(null);
 
   async function join() {
     if (!identity) return;
@@ -310,24 +302,14 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
                   />
                 </Suspense>
               ) : (
-                <SandboxFrame
-                  base={SANDBOX_URL}
+                <SandboxController
                   gameId={live.gameId}
-                  version="dev"
-                  role="controller"
-                  players={room.players.map((p) => ({ id: p.id, name: p.name }))}
-                  onConnect={(bridge: SandboxBridge) => {
-                    bridgeRef.current = bridge;
-                    bridge.send({ t: "state", state: live.state, playerId });
-                  }}
-                  onMessage={(msg) => {
-                    // The phone is a dumb controller: the only things it sends upward are an
-                    // action, which the relay revalidates against the game's own schema, and the
-                    // result its own copy of the logic derived from the state it was given.
-                    if (msg.t === "action") transportRef.current?.send({ t: "action", payload: msg.action });
-                    else if (msg.t === "result") setGameResult(msg.result);
-                  }}
-                  onError={() => setFailedGameId(live.gameId)}
+                  state={live.state}
+                  playerId={playerId}
+                  players={room.players}
+                  transport={transportRef.current}
+                  onResult={setGameResult}
+                  onFailure={() => setFailedGameId(live.gameId)}
                 />
               )
             ) : (
