@@ -1,27 +1,54 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import { createRoomHttp, roomSocketUrl, type GameSummary, type InputLegendEntry, type Player, type RoomConfig, type Suggestion } from "@hubbub/protocol";
 import { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
-import { createGameAuthority, visibleSettingsFields } from "@hubbub/sdk";
+import { visibleSettingsFields } from "@hubbub/sdk";
+import type { GameResult } from "@hubbub/sdk";
+import { SandboxFrame } from "@hubbub/sandbox/react";
+import { assertDistinctOrigin } from "@hubbub/sandbox";
 import {
   TVStage,
   GameTopBar,
   EndOfRoundScreen,
+  GameFailedScreen,
   GameLoadingScreen,
-  useLoadingGate,
+  SandboxUnavailableScreen,
   colorHex,
   type GameTopBarPlayer,
 } from "@hubbub/ui";
-import { loadGameScreen, getSettingsSchema } from "./game";
+import { getSettingsSchema } from "./game";
+import { createSandboxScreenAuthority, type SandboxScreenAuthority } from "./sandbox-authority";
+import type { ScreenAuthority } from "./authority";
 import { rosterIdsChanged } from "./roster-diff";
 import { Lobby } from "./lobby";
 import { Hero } from "./hero";
 import { ConfigPanel } from "./config-panel";
-import { SERVER_URL, CONTROLLER_URL, STUN_URL } from "./config";
+import { SERVER_URL, CONTROLLER_URL, STUN_URL, SANDBOX_URL } from "./config";
 import { formatHostLabel } from "./format-host-label";
 import { loadScreenSession, saveScreenSession, clearScreenSession } from "./screen-session";
 
 const HOST_LABEL = formatHostLabel(CONTROLLER_URL);
+
+declare const __HUBBUB_DEV_LOADER__: boolean;
+const DEV_LOADER = __HUBBUB_DEV_LOADER__;
+
+// Checked once at module load rather than per mount: a collapsed origin is a deployment fact, so
+// there is no point discovering it again for every game the room tries. See S5.
+const SANDBOX_ORIGIN_ERROR = (() => {
+  if (DEV_LOADER) return null;
+  try {
+    assertDistinctOrigin(SANDBOX_URL, window.location.origin);
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : "Sandbox origin is misconfigured.";
+  }
+})();
+
+// Long enough to read two lines from a sofa, short enough that nobody starts troubleshooting.
+const FAILURE_DWELL_MS = 4_000;
+
+// Null in production, so rollup drops the import and the whole workspace-game loader with it (S1).
+const LazyDirectGameView = DEV_LOADER ? lazy(() => import("./direct-game-view")) : null;
 
 interface RoomState {
   players: Player[];
@@ -74,21 +101,67 @@ export function App() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const transportRef = useRef<WebRtcClientTransport>();
-  const authorityRef = useRef<ReturnType<typeof createGameAuthority>>();
-  // Set by gameLaunch so the authority's onState callback (gameId-less) knows what to push.
+  const authorityRef = useRef<ScreenAuthority | null>(null);
+  const sandboxRef = useRef<SandboxScreenAuthority | null>(null);
+  // The frame reports two ways - over the port, and through its own mount/bootstrap errors. Both
+  // must reach the same two-beat handler, so it lives in a ref the render path can call too.
+  const reportFailureRef = useRef<() => void>(() => {});
+  const [result, setResult] = useState<GameResult | null>(null);
+  // Set the instant this screen's own driver reports a failure, and cleared only by a later,
+  // different launch - the return-to-lobby beat must NOT clear it, since that is the moment the
+  // overlay still needs to be up.
+  const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const launchedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let transport: WebRtcClientTransport | undefined;
     let off = () => {};
-    const authority = createGameAuthority((gameState) => {
-      const gameId = launchedGameIdRef.current;
-      if (gameId) transport?.send({ t: "gameStatePush", gameId, state: gameState });
-    });
+    let failureTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const callbacks = {
+      onState: (gameId: string, state: unknown) => transport?.send({ t: "gameStatePush", gameId, state }),
+      onResult: setResult,
+      // Two beats, deliberately. The first only announces, so the room's mode stays "in-game" and
+      // the host cannot relaunch into the overlay everyone is still reading; the second returns
+      // the room to the lobby once it has been read.
+      onFailure: () => {
+        const gameId = sandboxRef.current?.currentGameId() ?? launchedGameIdRef.current;
+        if (!gameId || failureTimer) return;
+        setFailedGameId(gameId);
+        transport?.send({ t: "reportGameFailure", gameId });
+        failureTimer = setTimeout(() => {
+          failureTimer = null;
+          transport?.send({ t: "returnFromFailure", gameId });
+        }, FAILURE_DWELL_MS);
+      },
+    };
+
+    // Calls made before the driver exists are replayed once it does: the direct driver arrives
+    // through a dynamic import, which is what lets it be eliminated from a production build.
+    let real: ScreenAuthority | null = null;
+    const queued: ((a: ScreenAuthority) => void)[] = [];
+    const authority: ScreenAuthority = {
+      launch: (...a) => (real ? real.launch(...a) : queued.push((r) => r.launch(...a))),
+      action: (...a) => (real ? real.action(...a) : queued.push((r) => r.action(...a))),
+      playersChanged: (...a) => (real ? real.playersChanged(...a) : queued.push((r) => r.playersChanged(...a))),
+      reset: () => real?.reset(),
+    };
+    function adopt(next: ScreenAuthority) {
+      real = next;
+      for (const fn of queued.splice(0)) fn(next);
+    }
+    if (DEV_LOADER) {
+      import("./direct-authority").then((m) => { if (!cancelled) adopt(m.createDirectAuthority(callbacks)); });
+    } else {
+      const sandbox = createSandboxScreenAuthority(callbacks);
+      sandboxRef.current = sandbox;
+      adopt(sandbox);
+    }
     authorityRef.current = authority;
+    reportFailureRef.current = callbacks.onFailure;
     let prevPlayerIds: Set<string> | null = null;
-    let latestPlayers: { id: string; name: string }[] = [];
+    let latestPlayers: Player[] = [];
 
     // Registers the steady-state handlers a screen needs for the room's entire lifetime,
     // whether this connection was a fresh createRoomHttp or a resumed reattach.
@@ -101,11 +174,14 @@ export function App() {
         } else if (msg.t === "roomState") {
           if (msg.mode !== "configuring") setSetupError(null);
           const ids = new Set(msg.players.map((p) => p.id));
-          latestPlayers = msg.players.map((p) => ({ id: p.id, name: p.name }));
+          latestPlayers = msg.players;
           if (msg.mode === "in-game" && rosterIdsChanged(prevPlayerIds, ids)) {
             authority.playersChanged(latestPlayers);
           }
           prevPlayerIds = ids;
+          // Only a different, real launch clears the overlay. The failure's own flip to lobby
+          // leaves currentGameId null, and that is exactly when it must still be showing.
+          if (msg.currentGameId) setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
           setRoom({
             players: msg.players,
             hostId: msg.hostId,
@@ -120,17 +196,18 @@ export function App() {
         } else if (msg.t === "gameState") {
           setGame({ gameId: msg.gameId, state: msg.state });
         } else if (msg.t === "gameLaunch") {
-          // setup() already ran server-side; construct the GameInstance here (screen authority).
+          // setup() already ran server-side; the reducer starts here (screen authority) or, under
+          // the sandbox, inside the frame - either way this screen drives it.
           setSetupError(null);
+          setResult(null);
+          setFailedGameId(null);
           launchedGameIdRef.current = msg.gameId;
-          loadGameScreen(msg.gameId)?.then(({ logic }) => {
-            authority.launch(logic, msg.players, msg.setupData, msg.now);
-            // The chunk import above is async, so a roster change landing mid-load hits a null
-            // instance and no-ops. It never re-fires, so reconcile once the instance exists.
-            if (rosterIdsChanged(new Set(msg.players.map((p) => p.id)), new Set(latestPlayers.map((p) => p.id)))) {
-              authority.playersChanged(latestPlayers);
-            }
-          });
+          // gameLaunch carries {id,name} only; the views want the full roster, and roomState's
+          // copy is the one that has it.
+          const launchRoster = latestPlayers.length ? latestPlayers : msg.players.map((p) => ({ ...p, colorId: 0, avatarId: "", connected: true }));
+          authority.launch(msg.gameId, launchRoster, msg.setupData, msg.now);
+        } else if (msg.t === "gameFailure") {
+          setFailedGameId(msg.gameId);
         } else if (msg.t === "gameAction") {
           authority.action(msg.playerId, msg.payload, msg.now);
         } else if (msg.t === "error" && msg.code === "setup_failed") {
@@ -198,7 +275,9 @@ export function App() {
     return () => {
       cancelled = true;
       off();
+      if (failureTimer) clearTimeout(failureTimer);
       authority.reset();
+      sandboxRef.current = null;
       transport?.close();
     };
   }, []);
@@ -209,32 +288,45 @@ export function App() {
     if (room?.mode !== "in-game") authorityRef.current?.reset();
   }, [room?.mode]);
 
-  // Keyed on currentGameId, not the in-game state, so the chunk downloads during the config
-  // phase and is usually warm by the time the room actually flips to in-game.
   const pendingGameId = room?.currentGameId ?? null;
-  const { value: loaded, showLoader } = useLoadingGate(pendingGameId, loadGameScreen);
-  const ready = loaded && game && pendingGameId === game.gameId ? loaded : null;
-  const Screen = ready?.Screen ?? null;
-  const logic = ready?.logic ?? null;
+  const pendingSummary = room?.games.find((g) => g.id === pendingGameId) ?? null;
 
-  if (room?.mode === "in-game" && showLoader) {
-    const summary = room.games.find((g) => g.id === pendingGameId) ?? null;
+  // Outranks every other in-game branch: once a game has died, nothing about it should keep
+  // rendering, least of all its own last frame looking merely paused.
+  if (failedGameId) {
+    const failedSummary = room?.games.find((g) => g.id === failedGameId) ?? null;
+    return (
+      <TVStage inputLegend={room?.inputLegend}>
+        <GameFailedScreen gameName={failedSummary?.name ?? "Game"} identityColors={failedSummary?.identityColors} />
+      </TVStage>
+    );
+  }
+
+  if (room?.mode === "in-game" && SANDBOX_ORIGIN_ERROR) {
+    return (
+      <TVStage inputLegend={room?.inputLegend}>
+        <SandboxUnavailableScreen />
+      </TVStage>
+    );
+  }
+
+  // No state yet means the game has not produced its first frame, whichever side it runs on.
+  if (room?.mode === "in-game" && (!game || game.gameId !== pendingGameId)) {
     return (
       <TVStage inputLegend={room?.inputLegend}>
         <GameLoadingScreen
-          gameName={summary?.name ?? "Game"}
-          identityColors={summary?.identityColors}
-          category={summary?.category}
+          gameName={pendingSummary?.name ?? "Game"}
+          identityColors={pendingSummary?.identityColors}
+          category={pendingSummary?.category}
         />
       </TVStage>
     );
   }
 
-  if (room?.mode === "in-game" && Screen && game) {
+  if (room?.mode === "in-game" && game) {
     const players = room.players;
     const summary = room.games.find((g) => g.id === game.gameId) ?? null;
 
-    const result = logic?.result?.(game.state) ?? null;
     if (result) {
       const winnerPlayer = result.winnerId ? players.find((p) => p.id === result.winnerId) ?? null : null;
       const winner =
@@ -291,7 +383,22 @@ export function App() {
         >
           <GameTopBar title={summary?.name ?? ""} roomCode={code} hostLabel={HOST_LABEL} players={topBarPlayers} />
           <GameSlot aspectRatio={summary?.aspectRatio}>
-            <Screen state={game.state} players={players} />
+            {LazyDirectGameView ? (
+              <Suspense fallback={null}>
+                <LazyDirectGameView gameId={game.gameId} state={game.state} players={players} />
+              </Suspense>
+            ) : (
+              <SandboxFrame
+                base={SANDBOX_URL}
+                gameId={game.gameId}
+                version="dev"
+                role="screen"
+                players={players.map((p) => ({ id: p.id, name: p.name }))}
+                onConnect={(bridge) => sandboxRef.current?.attach(bridge)}
+                onMessage={(msg) => sandboxRef.current?.handle(msg)}
+                onError={() => reportFailureRef.current()}
+              />
+            )}
           </GameSlot>
         </div>
       </TVStage>
