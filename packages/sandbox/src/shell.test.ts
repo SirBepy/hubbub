@@ -10,6 +10,16 @@ import {
 } from "./shell.js";
 import type { DisplayPlayer } from "@hubbub/sdk";
 
+/** Ports deliver asynchronously, so a single macrotask tick is not a reliable barrier under a
+ * loaded suite. Polls for the expected call count instead. */
+async function until(check: () => boolean, timeoutMs = 2_000): Promise<void> {
+  const started = Date.now();
+  while (!check()) {
+    if (Date.now() - started > timeoutMs) throw new Error("timed out waiting for port delivery");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
 const PLAYERS: DisplayPlayer[] = [
   { id: "p1", name: "Ana", colorId: 0, avatarId: "fox", connected: true },
   { id: "p2", name: "Bo", colorId: 1, avatarId: "owl", connected: true },
@@ -241,7 +251,7 @@ describe("connectSandbox", () => {
     framePort.postMessage({ t: "gimme-token" });
     framePort.postMessage("not an object at all");
     framePort.postMessage({ t: "state", state: { ok: true } });
-    await new Promise((r) => setTimeout(r, 0));
+    await until(() => onMessage.mock.calls.length >= 1 && onError.mock.calls.length >= 2);
 
     expect(onError).toHaveBeenCalledTimes(2);
     expect(onMessage).toHaveBeenCalledExactlyOnceWith({ t: "state", state: { ok: true } });
@@ -256,7 +266,9 @@ describe("connectSandbox", () => {
     const framePort = posted[0]!.ports[0]!;
     bridge.close();
     framePort.postMessage({ t: "ready" });
-    await new Promise((r) => setTimeout(r, 0));
+    // Nothing to poll for here - the assertion is that nothing arrives - so a fixed settle is
+    // the honest shape; it only ever produces a false PASS, never a false failure.
+    await new Promise((r) => setTimeout(r, 50));
     expect(onMessage).not.toHaveBeenCalled();
   });
 });

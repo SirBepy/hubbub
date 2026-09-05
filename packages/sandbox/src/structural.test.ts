@@ -9,7 +9,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const BOOTSTRAP_MODULE = "packages/sandbox/src/shell.ts";
 const THIS_FILE = "packages/sandbox/src/structural.test.ts";
 
-const SKIP_DIRS = new Set(["node_modules", "dist", ".git", ".turbo", "coverage"]);
+const SKIP_DIRS = new Set(["node_modules", "dist", "static", ".git", ".turbo", "coverage"]);
 const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 const COMMENT_LINE = /^\s*(\/\/|\*|\/\*)/;
 
