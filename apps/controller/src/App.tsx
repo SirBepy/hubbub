@@ -95,6 +95,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
   const pendingGameId = room?.currentGameId ?? null;
   const [failedGameId, setFailedGameId] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const gameIdRef = useRef<string | null>(null);
   const bridgeRef = useRef<SandboxBridge | null>(null);
 
   async function join() {
@@ -123,11 +124,14 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
         setRoom(msg as RoomState);
         // Only a different, real launch clears it; the failure's own flip to lobby leaves
         // currentGameId null, which is exactly when the overlay must still be up.
-        if (msg.currentGameId) {
-          setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
-          setGameResult((r) => (msg.currentGameId === game?.gameId ? r : null));
-        }
+        if (msg.currentGameId) setFailedGameId((f) => (f && f !== msg.currentGameId ? null : f));
       } else if (msg.t === "gameState") {
+        // Compared against a ref, not the `game` state: this handler is registered once inside
+        // join(), so any state it closes over is frozen at its first render.
+        if (gameIdRef.current !== msg.gameId) {
+          gameIdRef.current = msg.gameId;
+          setGameResult(null);
+        }
         setGame({ gameId: msg.gameId, state: msg.state });
       } else if (msg.t === "gameFailure") {
         setFailedGameId(msg.gameId);

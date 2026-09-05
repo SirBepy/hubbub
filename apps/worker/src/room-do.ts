@@ -16,7 +16,7 @@ const logger = createLogger("info", (line) => console.log(line));
 // costing a write per message. Membership, host, mode, config and cursor still flush immediately.
 const GAME_STATE_COALESCE_MS = 1_000;
 // Pure forwards: handleMessage never touches this.data for these.
-const NO_PERSIST_TYPES = new Set(["action", "rtcSignal", "reportGameFailure"]);
+const NO_PERSIST_TYPES = new Set(["action", "rtcSignal"]);
 
 interface ConnAttachment { connId: string; }
 
