@@ -5,7 +5,8 @@
     "packages/games-manifest/src/lazy.ts",
     "packages/games-manifest/src/settings.ts",
     "packages/games-manifest/src/sources.ts",
-    "packages/games-manifest/.dev-games"
+    "packages/games-manifest/.dev-games",
+    "packages/games-manifest/.sandbox"
   ],
   "tasks": {
     "generate": { "cache": false },

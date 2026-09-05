@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // The apps set this through their own bundler `define`; vitest has no bundler in front of it,
+  // so the dev-loop value is declared here. See vite.sandbox-mode.ts.
+  define: { __HUBBUB_DEV_LOADER__: "true" },
   test: {
     globals: true,
     passWithNoTests: true,
