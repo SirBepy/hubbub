@@ -51,6 +51,9 @@ export type { KeyArtProps } from "./KeyArt";
 export { GameLoadingScreen } from "./GameLoadingScreen";
 export type { GameLoadingScreenProps } from "./GameLoadingScreen";
 
+export { GameFailedScreen, SandboxUnavailableScreen } from "./GameFailedScreen";
+export type { GameFailedScreenProps } from "./GameFailedScreen";
+
 export { useLoadingGate, LOADER_SHOW_AFTER_MS, LOADER_MIN_VISIBLE_MS } from "./useLoadingGate";
 export type { LoadingGate } from "./useLoadingGate";
 
