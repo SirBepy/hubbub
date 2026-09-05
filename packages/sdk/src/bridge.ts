@@ -74,6 +74,9 @@ export const ShellToFrameSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("playersChanged"), players: z.array(DisplayPlayerSchema) }),
   z.object({ t: z.literal("timeout"), now: z.number() }),
   z.object({ t: z.literal("state"), state: z.unknown(), playerId: z.string() }),
+  // TV-only mute state, forwarded to both roles: a controller-role frame never plays a sound but
+  // still needs to track it so a later screen-role remount (or a shared bundle) reads it correctly.
+  z.object({ t: z.literal("audio"), muted: z.boolean() }),
 ]);
 export type ShellToFrame = z.infer<typeof ShellToFrameSchema>;
 

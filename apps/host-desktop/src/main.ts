@@ -20,6 +20,8 @@ async function createWindow() {
       preload: join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
+      // This window IS the TV: nobody clicks it before the game's sound effects need to play.
+      autoplayPolicy: "no-user-gesture-required",
       additionalArguments: [
         `--hubbub-config=${JSON.stringify({
           serverUrl: host.serverUrl,

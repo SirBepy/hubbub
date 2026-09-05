@@ -9,6 +9,7 @@ import {
   type SandboxBridge,
 } from "./shell.js";
 import type { DisplayPlayer } from "@hubbub/sdk";
+import { sfx } from "@hubbub/sdk";
 
 /** Ports deliver asynchronously, so a single macrotask tick is not a reliable barrier under a
  * loaded suite. Polls for the expected call count instead. */
@@ -255,6 +256,28 @@ describe("connectSandbox", () => {
 
     expect(onError).toHaveBeenCalledTimes(2);
     expect(onMessage).toHaveBeenCalledExactlyOnceWith({ t: "state", state: { ok: true } });
+    bridge.close();
+  });
+
+  it("sends the shell's mute state once the frame is ready, and again on every flip", async () => {
+    const { iframe, posted, fire } = fakeIframe();
+    const bridge = connectSandbox({ iframe, role: "screen", players: [], onMessage: vi.fn(), onError: vi.fn() });
+    fire();
+    const framePort = posted[0]!.ports[0]!;
+    const received: unknown[] = [];
+    framePort.onmessage = (event: MessageEvent) => received.push(event.data);
+
+    const startedMuted = sfx.muted;
+    framePort.postMessage({ t: "ready" });
+    await until(() => received.length >= 1);
+    expect(received).toEqual([{ t: "audio", muted: startedMuted }]);
+
+    sfx.setMuted(!startedMuted);
+    await until(() => received.length >= 2);
+    expect(received[1]).toEqual({ t: "audio", muted: !startedMuted });
+
+    sfx.setMuted(startedMuted); // restore so this test leaves no state behind for its siblings
+    await until(() => received.length >= 3);
     bridge.close();
   });
 

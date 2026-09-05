@@ -2,6 +2,7 @@ import { createElement, type ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { GameInstance } from "./runtime.js";
 import { ShellToFrameSchema, type FrameToShell, type GameBundle } from "./bridge.js";
+import { sfx } from "./sfx.js";
 import type { DisplayPlayer, GameLogic } from "./types.js";
 
 export type { GameBundle };
@@ -27,6 +28,10 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
     attach({ root, port, role }) {
       const reactRoot: Root = createRoot(root);
       const post = (msg: FrameToShell) => port.postMessage(msg);
+
+      // A click inside the frame (a game's own UI) unlocks audio too - the shell's own
+      // installAutoUnlock covers clicks on shell chrome, but the frame is a separate document.
+      if (role === "screen") sfx.installAutoUnlock();
 
       let players: DisplayPlayer[] = [];
       let instance: GameInstance<State, Action> | null = null;
@@ -65,6 +70,13 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
         const parsed = ShellToFrameSchema.safeParse(event.data);
         if (!parsed.success) return;
         const msg = parsed.data;
+
+        if (msg.t === "audio") {
+          // Both roles track mute (a controller-role frame never plays, but a shared bundle
+          // still reads sfx.muted consistently); only the screen role's TV speaker is ever heard.
+          sfx.setMuted(msg.muted);
+          return;
+        }
 
         if (role === "controller") {
           if (msg.t === "state") {

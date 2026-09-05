@@ -60,7 +60,7 @@ export function SandboxFrame(props: SandboxFrameProps) {
       src={src}
       title="Game"
       sandbox="allow-scripts"
-      allow=""
+      allow="autoplay"
       referrerPolicy="no-referrer"
       style={FRAME_STYLE}
     />

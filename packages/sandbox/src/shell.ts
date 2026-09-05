@@ -1,4 +1,4 @@
-import { floorDelay } from "@hubbub/sdk";
+import { floorDelay, sfx } from "@hubbub/sdk";
 import type { DisplayPlayer, GameResult } from "@hubbub/sdk";
 import {
   BOOTSTRAP_TYPE,
@@ -73,10 +73,18 @@ export function connectSandbox(opts: BridgeOptions): SandboxBridge {
   const channel = new MessageChannel();
   let closed = false;
   let ready = false;
+  let unsubscribeSfx: (() => void) | null = null;
 
   const readyTimer = setTimeout(() => {
     if (!ready && !closed) onError("The game did not respond in time.");
   }, opts.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS);
+
+  // The TV is the only speaker: mute state rides into the frame over this same channel so a
+  // controller-role frame (which never plays) and a screen-role frame both track it, without a
+  // second postMessage("*", ...) call site for S4's structural test to worry about.
+  function sendMuted() {
+    if (!closed) channel.port1.postMessage({ t: "audio", muted: sfx.muted });
+  }
 
   channel.port1.onmessage = (event: MessageEvent) => {
     if (closed) return;
@@ -88,6 +96,8 @@ export function connectSandbox(opts: BridgeOptions): SandboxBridge {
     if (parsed.data.t === "ready") {
       ready = true;
       clearTimeout(readyTimer);
+      sendMuted();
+      unsubscribeSfx = sfx.subscribe(sendMuted);
     }
     onMessage(parsed.data);
   };
@@ -114,6 +124,8 @@ export function connectSandbox(opts: BridgeOptions): SandboxBridge {
       clearTimeout(readyTimer);
       channel.port1.onmessage = null;
       channel.port1.close();
+      unsubscribeSfx?.();
+      unsubscribeSfx = null;
     },
   };
 }
