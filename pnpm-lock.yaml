@@ -135,6 +135,9 @@ importers:
       '@hubbub/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@hubbub/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

@@ -10,7 +10,8 @@
   "dependencies": {
     "@hubbub/games-manifest": "workspace:*",
     "@hubbub/sandbox": "workspace:*",
-    "@hubbub/sdk": "workspace:*"
+    "@hubbub/sdk": "workspace:*",
+    "@hubbub/ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.0",

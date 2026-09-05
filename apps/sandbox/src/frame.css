@@ -1,0 +1,6 @@
+/* Loaded after @hubbub/ui/styles.css on purpose: that sheet paints the body in felt, but the
+   frame sits over the shell's own felt and must stay see-through so the TV shows one ground,
+   not a flat rectangle inside a textured one. */
+body {
+  background: transparent;
+}

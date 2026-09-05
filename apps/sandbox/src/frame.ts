@@ -1,3 +1,9 @@
+// The platform stylesheet ships with the frame document, not with each game: tokens and the
+// bundled fonts cannot cross the iframe boundary from the shell, and a game that keeps the
+// platform styleguide (Tap Race, Tic-Tac-Toe) reads `var(--surface-1)` and `Archivo` from here.
+// Games that own their canvas set their own root and never see a token they did not ask for.
+import "@hubbub/ui/styles.css";
+import "./frame.css";
 import { awaitBootstrap } from "@hubbub/sdk/bridge";
 import type { GameBundle } from "@hubbub/sdk/bridge";
 
