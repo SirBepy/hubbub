@@ -15,17 +15,12 @@
         background: transparent;
         overflow: hidden;
       }
-      #error {
-        display: none;
-        font: 500 14px/1.5 system-ui, sans-serif;
-        color: #fff;
-        padding: 16px;
-      }
     </style>
     <script type="module" src="/src/frame.ts"></script>
   </head>
   <body>
+    <!-- No error element on purpose: failures go to the shell over the port, so this document
+         never renders a second, competing error surface. -->
     <div id="root"></div>
-    <p id="error"></p>
   </body>
 </html>
