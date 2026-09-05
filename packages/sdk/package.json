@@ -10,7 +10,8 @@
     "./avatars": "./src/avatars/index.ts",
     "./input": "./src/input/index.ts",
     "./bridge": "./src/bridge.ts",
-    "./bundle": "./src/bundle.tsx"
+    "./bundle": "./src/bundle.tsx",
+    "./sfx": "./src/sfx.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "dependencies": { "@hubbub/protocol": "workspace:*", "zod": "^3.23.0" },

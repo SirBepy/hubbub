@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { sfx } from "@hubbub/sdk";
+import { sfx } from "@hubbub/sdk/sfx";
 import { colorHex, IdentityCard, hexToRgba } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Cell, TTTState } from "./logic.js";

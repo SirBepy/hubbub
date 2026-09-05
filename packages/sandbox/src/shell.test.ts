@@ -9,7 +9,7 @@ import {
   type SandboxBridge,
 } from "./shell.js";
 import type { DisplayPlayer } from "@hubbub/sdk";
-import { sfx } from "@hubbub/sdk";
+import { sfx } from "@hubbub/sdk/sfx";
 
 /** Ports deliver asynchronously, so a single macrotask tick is not a reliable barrier under a
  * loaded suite. Polls for the expected call count instead. */

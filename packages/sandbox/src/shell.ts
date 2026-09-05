@@ -1,4 +1,5 @@
-import { floorDelay, sfx } from "@hubbub/sdk";
+import { floorDelay } from "@hubbub/sdk";
+import { sfx } from "@hubbub/sdk/sfx";
 import type { DisplayPlayer, GameResult } from "@hubbub/sdk";
 import {
   BOOTSTRAP_TYPE,
