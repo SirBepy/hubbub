@@ -22,7 +22,9 @@ export function frameCsp(o: CspOrigins): string {
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${IMAGE_HOSTS.join(" ")}`,
     `media-src 'self' blob: ${MEDIA_HOSTS.join(" ")}`,
-    "font-src 'self'",
+    // data: because a game ships its own face base64-inlined in its single bundle (a bundle has
+    // no second URL to fetch a font file from); a font parser is not an exfiltration channel.
+    "font-src 'self' data:",
     `connect-src ${connect}`,
     "frame-src 'none'",
     "child-src 'none'",
