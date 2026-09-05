@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 // Relative, not by package name: the config is bundled by esbuild, which externalises bare
 // specifiers, and these workspace packages ship raw TypeScript with no dist for Node to load.
-import { BUNDLE_HEADERS, frameCsp } from "../../packages/sandbox/src/csp";
+import { BUNDLE_HEADERS, FRAME_SECURITY_HEADERS, frameCsp } from "../../packages/sandbox/src/csp";
 import { GAME_BUNDLE_PATHS } from "../../packages/games-manifest/src/sources";
 import { gameRepoFsAllow } from "../../vite.game-repos";
 
@@ -45,8 +45,7 @@ export default defineConfig({
     cors: true, // the frame is opaque-origin, so even its own module fetches are CORS requests
     fs: { allow: gameRepoFsAllow() },
     headers: {
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer",
+      ...FRAME_SECURITY_HEADERS,
       "Content-Security-Policy": frameCsp({
         shellOrigin: SHELL_ORIGIN,
         // Vite's HMR socket is the only dev-only addition; everything else matches production.

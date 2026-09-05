@@ -46,8 +46,15 @@ export const BUNDLE_HEADERS: Record<string, string> = {
   "Cache-Control": "public, max-age=31536000, immutable",
 };
 
-export const FRAME_DOC_HEADERS: Record<string, string> = {
-  "Content-Type": "text/html; charset=utf-8",
+// Policy headers only, no Content-Type: the dev server applies this to every response on the
+// origin (JS, CSS, assets), not just the frame document, so a fixed Content-Type here would
+// mislabel everything else Vite serves.
+export const FRAME_SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
+};
+
+export const FRAME_DOC_HEADERS: Record<string, string> = {
+  "Content-Type": "text/html; charset=utf-8",
+  ...FRAME_SECURITY_HEADERS,
 };
