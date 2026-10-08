@@ -55,3 +55,11 @@ describe("S3: allow-same-origin never reaches an iframe", () => {
     expect(offenders(/allow-same-origin/, [])).toEqual([]);
   });
 });
+
+// The package root re-exports ~3000 icon modules. Under vitest that one import cost 8s per test
+// file normally and over 60s on a loaded machine, enough to time out whole-App render tests.
+describe("Phosphor icons are imported per module", () => {
+  it("never imports the @phosphor-icons/react package root", () => {
+    expect(offenders(/from\s+["']@phosphor-icons\/react["']/, [])).toEqual([]);
+  });
+});
