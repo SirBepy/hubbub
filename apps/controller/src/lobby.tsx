@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
-import { CaretLeft, CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 import { IdentityHeader } from "./header";
 import { GameRow, VoteBadge } from "./game-row";

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { HandArrowDown } from "@phosphor-icons/react";
+import { HandArrowDown } from "@phosphor-icons/react/dist/csr/HandArrowDown";
 import { Avatar } from "@hubbub/ui";
 import type { Player } from "@hubbub/protocol";
 import { BackHeader, NEUTRAL_RING } from "./header";

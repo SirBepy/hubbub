@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
+import { SpeakerHigh } from "@phosphor-icons/react/dist/csr/SpeakerHigh";
+import { SpeakerSlash } from "@phosphor-icons/react/dist/csr/SpeakerSlash";
 import { sfx } from "@hubbub/sdk/sfx";
 
 /**

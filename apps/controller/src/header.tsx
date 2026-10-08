@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { CaretLeft } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { Avatar, ConnectionBadge, NEUTRAL_RING } from "@hubbub/ui";
 
 // Re-exported so this app's existing `./header` importers keep resolving it from one place.

@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
-import { CaretUp, CaretDown, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretUp } from "@phosphor-icons/react/dist/csr/CaretUp";
+import { CaretDown } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { GlowButton, NeutralButton, colorHex } from "@hubbub/ui";
 import type { SettingsField } from "@hubbub/sdk";
 

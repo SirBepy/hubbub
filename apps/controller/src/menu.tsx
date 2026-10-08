@@ -1,5 +1,11 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ShareNetwork, HandArrowDown, UserCircle, Question, Info, SignOut, X } from "@phosphor-icons/react";
+import { ShareNetwork } from "@phosphor-icons/react/dist/csr/ShareNetwork";
+import { HandArrowDown } from "@phosphor-icons/react/dist/csr/HandArrowDown";
+import { UserCircle } from "@phosphor-icons/react/dist/csr/UserCircle";
+import { Question } from "@phosphor-icons/react/dist/csr/Question";
+import { Info } from "@phosphor-icons/react/dist/csr/Info";
+import { SignOut } from "@phosphor-icons/react/dist/csr/SignOut";
+import { X } from "@phosphor-icons/react/dist/csr/X";
 import { Avatar } from "@hubbub/ui";
 import type { Player } from "@hubbub/protocol";
 import { NEUTRAL_RING } from "./header";

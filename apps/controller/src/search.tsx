@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from "react";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import type { GameSummary, Suggestion } from "@hubbub/protocol";
 import { BackHeader } from "./header";
 import { GameRow, VoteBadge } from "./game-row";

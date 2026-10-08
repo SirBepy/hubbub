@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import type { GameSummary, Player, Suggestion } from "@hubbub/protocol";
 import { Avatar, KeyArt, colorHex, gameKeyArtHexes } from "@hubbub/ui";
 import { sfx } from "@hubbub/sdk/sfx";
-import { User } from "@phosphor-icons/react";
+import { User } from "@phosphor-icons/react/dist/csr/User";
 
 /** Sounds for a whole first-mount roster are capped, so a room that reconnects with twelve
  * people already seated doesn't fire twelve overlapping join chimes at once. */
