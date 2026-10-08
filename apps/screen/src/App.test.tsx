@@ -5,43 +5,23 @@
 // matches. The pre-fix App.tsx returned solely GameLoadingScreen while `game` was null, which is
 // a deadlock under the sandbox driver - SandboxFrame lived inside the branch that never rendered,
 // so its onConnect never fired, so nothing ever produced the first `game` state to satisfy the
-// very guard blocking it. This test cannot exercise the sandbox branch itself (the root
-// vitest.config.ts pins `__HUBBUB_DEV_LOADER__` to `true` for every test, which is what lets
-// production rollup drop the sandbox-vs-direct branch entirely - see LazyDirectGameView in
-// App.tsx), but the render-gating fix lives OUTSIDE that branch and applies identically to both
-// drivers: it asserts the shared scaffold (GameTopBar) is present the instant a game is pending,
-// before any `game` state has arrived.
+// very guard blocking it. This file runs the direct-loader branch (the vitest.setup.ts default);
+// App.sandbox.test.tsx runs the same launch through the sandbox branch.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { harness, launchPendingGame } from "./app-test-harness";
 
-type Handler = (msg: any) => void;
-
-class FakeTransport {
-  private handlers: Handler[] = [];
-  async connect() {}
-  onMessage(fn: Handler) {
-    this.handlers.push(fn);
-    return () => {
-      this.handlers = this.handlers.filter((h) => h !== fn);
-    };
-  }
-  send() {}
-  close() {}
-  emit(msg: any) {
-    for (const h of this.handlers) h(msg);
-  }
-}
-
-let lastTransport: FakeTransport;
-
-vi.mock("@hubbub/protocol/webrtc", () => ({
-  // A plain function, not an arrow: App.tsx instantiates this with `new`, and only a
-  // function/class can be called as a constructor.
-  WebRtcClientTransport: vi.fn(function WebRtcClientTransport() {
-    lastTransport = new FakeTransport();
-    return lastTransport;
-  }),
-}));
+vi.mock("@hubbub/protocol/webrtc", async () => {
+  const { FakeTransport, harness } = await import("./app-test-harness");
+  return {
+    // A plain function, not an arrow: App.tsx instantiates this with `new`, and only a
+    // function/class can be called as a constructor.
+    WebRtcClientTransport: vi.fn(function WebRtcClientTransport() {
+      harness.last = new FakeTransport();
+      return harness.last;
+    }),
+  };
+});
 
 vi.mock("@hubbub/protocol", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@hubbub/protocol")>();
@@ -68,28 +48,8 @@ describe("game view mount gate (todo 85)", () => {
     // Generous vs. the suite's default 5000ms: a jsdom render of the whole App plus its real
     // async effects (QRCode.toDataURL, several microtask hops) measurably slows down under the
     // full suite's parallel load, not just in isolation - flaked at 4000/5000ms (2026-09-05).
-    await waitFor(() => expect(lastTransport).toBeDefined(), { timeout: 10000 });
-
-    lastTransport.emit({ t: "roomCreated", code: "ABCD" });
-    lastTransport.emit({
-      t: "roomState",
-      players: [{ id: "p1", name: "Bepy", colorId: 0, avatarId: "bear", connected: true }],
-      hostId: "p1",
-      mode: "in-game",
-      currentGameId: "tap-race",
-      cursorIndex: 0,
-      games: [{ id: "tap-race", name: "Tap Race", minPlayers: 1 }],
-      suggestions: [],
-      config: null,
-      inputLegend: [],
-    });
-    lastTransport.emit({
-      t: "gameLaunch",
-      gameId: "tap-race",
-      players: [{ id: "p1", name: "Bepy" }],
-      setupData: null,
-      now: Date.now(),
-    });
+    await waitFor(() => expect(harness.last).toBeDefined(), { timeout: 10000 });
+    launchPendingGame(harness.last!);
 
     // The deadlocked pre-fix render returned ONLY GameLoadingScreen here - no room code, no game
     // title bar - because the whole game-view branch was gated behind `game` matching
