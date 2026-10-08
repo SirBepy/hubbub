@@ -1,4 +1,5 @@
 import { flushSync } from "react-dom";
+import { prefersReducedMotion } from "./motion";
 
 /**
  * Runs `update` inside document.startViewTransition when the browser supports it and the user
@@ -15,7 +16,7 @@ export function transitionView(update: () => void): void {
     update();
   };
   try {
-    const reduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = prefersReducedMotion();
     const supported = typeof document !== "undefined" && typeof document.startViewTransition === "function";
     if (!supported || reduced) {
       run();

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { sfx } from "@hubbub/sdk/sfx";
-import { colorHex, IdentityCard, hexToRgba } from "@hubbub/ui";
+import { colorHex, IdentityCard, hexToRgba, useInjectedStyles } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Cell, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
@@ -56,20 +56,8 @@ const MOTION_CSS = `
 }
 `;
 
-/** Injects this game's keyframes once per document; guarded so remounts (StrictMode,
- * reconnects) never duplicate the <style> tag. */
-function useMotionStyles() {
-  useEffect(() => {
-    if (typeof document === "undefined" || document.getElementById(MOTION_STYLE_ID)) return;
-    const style = document.createElement("style");
-    style.id = MOTION_STYLE_ID;
-    style.textContent = MOTION_CSS;
-    document.head.appendChild(style);
-  }, []);
-}
-
 export function TTTScreen({ state, players }: TTTScreenProps) {
-  useMotionStyles();
+  useInjectedStyles(MOTION_STYLE_ID, MOTION_CSS);
   const xColor = colorHex(X_COLOR_ID);
   const oColor = colorHex(O_COLOR_ID);
   const xPlayer = players.find((p) => state.assignments[p.id] === "X") ?? null;

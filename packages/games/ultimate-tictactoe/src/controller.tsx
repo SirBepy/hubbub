@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { colorHex, hexToRgba, MiniIdentity } from "@hubbub/ui";
+import { colorHex, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { BoardResult, Cell, Mark, UTTTAction, UTTTState } from "./logic.js";
 import { utttLogic } from "./logic.js";
@@ -17,13 +17,6 @@ const [X_COLOR_ID, O_COLOR_ID] = utttLogic.meta.identityColors ?? [3, 5];
 // 3-across sub-board grid gets on a 390px phone; the sub-board's own width still shrinks to
 // fit its column, only its height is pinned.
 const MINI_CELL_PX = 46;
-
-/** Feature-detected: desktop test browsers and iOS Safari have no Vibration API. */
-function vibrate(pattern: number | number[]) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
-}
 
 function MiniSubBoard({
   cells,

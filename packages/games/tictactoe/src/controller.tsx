@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { colorHex, hexToRgba, MiniIdentity } from "@hubbub/ui";
+import { colorHex, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
 import type { Mark, TTTAction, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
@@ -12,13 +12,6 @@ export type TTTControllerProps = {
 };
 
 const [X_COLOR_ID, O_COLOR_ID] = tttLogic.meta.identityColors ?? [1, 0];
-
-/** Feature-detected: desktop test browsers and iOS Safari have no Vibration API. */
-function vibrate(pattern: number | number[]) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
-}
 
 export function TTTController({ state, playerId, players, send }: TTTControllerProps) {
   const mark = state.assignments[playerId];

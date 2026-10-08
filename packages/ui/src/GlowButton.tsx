@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { colorHex, hexToRgba } from "./palette";
-
-/** navigator.vibrate is phone-only; a TV browser simply has no such API, so the guard
- * doubles as the platform check without a separate device sniff. */
-function vibratePress() {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(12);
-}
+import { vibrate } from "./motion";
 
 export type GlowButtonProps = {
   /** The one glow this screen is allowed to spend. Defaults to cyan. */
@@ -38,7 +33,7 @@ export function GlowButton({
       onPointerDown={() => {
         if (disabled) return;
         setPressed(true);
-        vibratePress();
+        vibrate(12);
       }}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
@@ -87,7 +82,7 @@ export function NeutralButton({ height = 60, label, onClick, disabled, fullWidth
       onPointerDown={() => {
         if (disabled) return;
         setPressed(true);
-        vibratePress();
+        vibrate(12);
       }}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}

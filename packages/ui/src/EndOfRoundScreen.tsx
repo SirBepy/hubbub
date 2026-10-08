@@ -3,10 +3,7 @@ import { sfx } from "@hubbub/sdk/sfx";
 import { colorHex } from "./palette";
 import { GlowButton, NeutralButton } from "./GlowButton";
 import { Avatar, NEUTRAL_RING } from "./Avatar";
-
-function reducedMotion(): boolean {
-  return typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+import { prefersReducedMotion } from "./motion";
 
 /** One-shot confetti in the ink/kraft ramp, never the retired player palette: a win is a
  * platform moment, not a player-coloured one. Winner-only, so a draw never reads as a party. */
@@ -47,10 +44,10 @@ function Confetti({ startDelayMs }: { startDelayMs: number }) {
 /** rAF-driven ease-out count, held at 0 until startDelayMs so a tier's score visibly climbs
  * only once its own medallion has landed, not all at once with the rest of the screen. */
 function useCountUp(target: number, startDelayMs: number, durationMs = 600): number {
-  const [value, setValue] = useState(() => (reducedMotion() ? target : 0));
+  const [value, setValue] = useState(() => (prefersReducedMotion() ? target : 0));
 
   useEffect(() => {
-    if (reducedMotion() || !Number.isFinite(target)) {
+    if (prefersReducedMotion() || !Number.isFinite(target)) {
       setValue(target);
       return;
     }
@@ -253,7 +250,7 @@ export function EndOfRoundScreen({
   // between the game view and this screen), so an empty dep array is the whole lifecycle, not a
   // stale closure risk.
   useEffect(() => {
-    const instant = reducedMotion();
+    const instant = prefersReducedMotion();
     sfx.play("reveal");
     popOrder.forEach((place, orderIndex) => {
       sfx.play("pop", { index: orderIndex, delayMs: instant ? 0 : orderIndex * POP_STEP_MS });
