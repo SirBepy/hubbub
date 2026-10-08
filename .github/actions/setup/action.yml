@@ -20,7 +20,7 @@ inputs:
 runs:
   using: composite
   steps:
-    # Games depend on the platform by relative path (file:../hubbub/packages/sdk), so the two
+    # Games depend on the platform by relative path (link:../hubbub/packages/sdk), so the two
     # repos must sit side by side. actions/checkout refuses paths above the workspace, hence
     # both go UNDER it as siblings of each other rather than the game living at the root.
     - name: Check out the platform beside the game
@@ -47,7 +47,18 @@ runs:
         # 20.20.2, measured 2026-09-02. Nothing shipped needs a Node 22 global.
         node-version: 22
         cache: pnpm
-        cache-dependency-path: ${{ inputs.game-path }}/package.json
+        cache-dependency-path: |
+          ${{ inputs.game-path }}/package.json
+          ${{ inputs.platform-checkout == 'true' && 'hubbub/pnpm-lock.yaml' || format('{0}/package.json', inputs.game-path) }}
+
+    # A link: package is a symlink into ../hubbub/packages/*, so tsc and Vite resolve the
+    # platform's own imports (zod, react, @hubbub/protocol) from hubbub/node_modules. Without this
+    # install that tree is empty and every game typecheck fails inside the platform's sources.
+    - name: Install the platform
+      if: inputs.platform-checkout == 'true'
+      shell: bash
+      working-directory: hubbub
+      run: pnpm install --frozen-lockfile
 
     # No --frozen-lockfile on purpose: game repos gitignore their lockfile because the platform
     # is a live sibling rather than a versioned dependency, so a pinned lockfile would go stale
