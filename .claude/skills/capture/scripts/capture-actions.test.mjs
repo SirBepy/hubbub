@@ -35,14 +35,17 @@ describe("waitIn", () => {
   });
 });
 
-// A locator over `matches` elements that records which element got which kind of click.
+// A locator over `matches` elements (a number, or a function returning the count at each look)
+// that records which element got which kind of click.
 function stubLocator(matches) {
   const calls = [];
+  const total = typeof matches === "function" ? matches : () => matches;
   const element = (i) => ({
+    count: async () => (i < total() ? 1 : 0),
     click: async (opts) => calls.push({ i, kind: "click", force: opts.force }),
     dispatchEvent: async (type) => calls.push({ i, kind: `dispatch:${type}` }),
   });
-  const loc = { count: async () => matches, first: () => element(0), nth: (i) => element(i) };
+  const loc = { first: () => element(0), nth: (i) => element(i) };
   return { build: () => loc, calls };
 }
 
@@ -73,6 +76,13 @@ describe("clickMatch", () => {
     const { build, calls } = stubLocator(1);
     expect(await clickMatch(fakePage(), build, { required: false, timeout: 0 }, 2)).toBe(false);
     expect(calls).toEqual([]);
+  });
+
+  it("keeps waiting while a list grows toward the clickNth index", async () => {
+    let looks = 0;
+    const { build, calls } = stubLocator(() => (++looks < 3 ? 1 : 3));
+    expect(await clickMatch(fakePage(), build, { required: false, timeout: 5000 }, 2)).toBe(true);
+    expect(calls).toEqual([{ i: 2, kind: "click", force: false }]);
   });
 
   it("skips an optional click when nothing matches", async () => {
