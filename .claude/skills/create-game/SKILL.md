@@ -117,7 +117,8 @@ All three must pass on the renamed sample game alone. Game repos commit `pnpm-lo
 installs with `--frozen-lockfile`), so the lock this install writes goes into Step 6's initial
 commit. Do NOT remove the
 `pnpm.overrides` block in the new repo's `package.json` - it resolves the
-`file:../hubbub/packages/*` deps and is load-bearing.
+`link:../hubbub/packages/*` deps and is load-bearing. Keep the copied `packageManager` field too:
+hubbub's shared setup action fails CI when it differs from `../hubbub/package.json`'s.
 
 ## Step 4 - kickoff docs
 

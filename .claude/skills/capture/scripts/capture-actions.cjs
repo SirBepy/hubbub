@@ -139,17 +139,17 @@ async function waitIn(page, build, opts = {}) {
   });
 }
 
-// Shared body of the click/clickRole/clickNth steps. `required: false` makes a miss a no-op,
-// for controls only the active phone renders; for clickNth a miss includes fewer than index+1
-// matches, which would otherwise sit in Playwright's own 30s action wait. `force` still lands a
-// real pointer click at the element's centre, so a full-screen cover (Split Opinions' 7s
-// "You're up") swallows it; `dispatch` fires the DOM click on the element itself instead.
-// Returns whether anything was clicked.
+// Shared body of the click/clickRole/clickNth steps. The wait is on the exact element to click,
+// so clickNth keeps polling while a list is still growing toward index+1 entries instead of
+// handing a missing nth() to Playwright's own 30s action wait. `required: false` makes a miss a
+// no-op, for controls only the active phone renders. `force` still lands a real pointer click at
+// the element's centre, so a full-screen cover (Split Opinions' 7s "You're up") swallows it;
+// `dispatch` fires the DOM click on the element itself instead. Returns whether anything was
+// clicked.
 async function clickMatch(page, build, step, index) {
-  const loc = await waitIn(page, build, { timeoutMs: step.timeout, required: step.required });
-  if (!loc) return false;
-  if (index !== undefined && step.required === false && (await loc.count()) <= index) return false;
-  const target = index === undefined ? loc.first() : loc.nth(index);
+  const pick = index === undefined ? (root) => build(root).first() : (root) => build(root).nth(index);
+  const target = await waitIn(page, pick, { timeoutMs: step.timeout, required: step.required });
+  if (!target) return false;
   if (step.dispatch) await target.dispatchEvent('click');
   else await target.click({ force: !!step.force });
   return true;
@@ -161,7 +161,8 @@ async function clickMatch(page, build, step, index) {
 // 0 means "check right now and move on".
 async function pollUntil(page, predicate, opts) {
   const intervalMs = opts.intervalMs || 250;
-  const deadline = Date.now() + opts.timeoutMs;
+  // A NaN deadline never trips `>=`, so a missing timeout would poll forever.
+  const deadline = Date.now() + (Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : 15000);
   for (;;) {
     const hit = await predicate();
     if (hit) return hit;

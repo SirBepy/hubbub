@@ -51,8 +51,8 @@ runs:
           ${{ inputs.game-path }}/package.json
           ${{ inputs.platform-checkout == 'true' && 'hubbub/pnpm-lock.yaml' || format('{0}/package.json', inputs.game-path) }}
 
-    # CI already runs the platform's pnpm whatever the game pins, so this guards the LOCAL loop: a
-    # game repo's own pin is what `corepack pnpm` resolves there, and it must not drift.
+    # A game repo's own pin is what `corepack pnpm` resolves in its local loop, so it must equal the
+    # platform's. Unpinned, a local install got pnpm 12, which drops pnpm.overrides from the lock.
     - name: Check the game pins the platform's pnpm
       if: inputs.platform-checkout == 'true'
       shell: bash
