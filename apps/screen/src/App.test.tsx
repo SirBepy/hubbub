@@ -58,8 +58,8 @@ describe("game view mount gate (todo 85)", () => {
     // screen on top of it instead of replacing it.
     await screen.findByText("Loading", {}, { timeout: 10000 });
     // "ABCD" (the room code) only ever appears in GameTopBar, so its presence alone proves the
-    // scaffold mounted - "Tap Race" appears twice once mounted (top bar title + loading key art).
+    // scaffold mounted - "Tic-Tac-Toe" appears twice once mounted (top bar title + loading key art).
     await screen.findByText("ABCD", {}, { timeout: 10000 });
-    expect(screen.getAllByText("Tap Race").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Tic-Tac-Toe").length).toBeGreaterThanOrEqual(2);
   }, 20000);
 });
