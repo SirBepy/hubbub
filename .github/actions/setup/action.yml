@@ -32,8 +32,8 @@ runs:
         path: hubbub
 
     # Must precede setup-node: its pnpm cache shells out to `pnpm store path`.
-    # Pointed at the PLATFORM's package.json, the only one in the estate carrying
-    # `packageManager`; the default resolves to the workspace root, which a game repo leaves empty.
+    # Pointed at the PLATFORM's package.json, the estate's source of truth for `packageManager`;
+    # the default resolves to the workspace root, which is not where a game repo is checked out.
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
       with:
@@ -50,6 +50,13 @@ runs:
         cache-dependency-path: |
           ${{ inputs.game-path }}/package.json
           ${{ inputs.platform-checkout == 'true' && 'hubbub/pnpm-lock.yaml' || format('{0}/package.json', inputs.game-path) }}
+
+    # CI already runs the platform's pnpm whatever the game pins, so this guards the LOCAL loop: a
+    # game repo's own pin is what `corepack pnpm` resolves there, and it must not drift.
+    - name: Check the game pins the platform's pnpm
+      if: inputs.platform-checkout == 'true'
+      shell: bash
+      run: node "${{ github.action_path }}/check-package-manager.mjs" hubbub/package.json "${{ inputs.game-path }}/package.json"
 
     # A link: package is a symlink into ../hubbub/packages/*, so tsc and Vite resolve the
     # platform's own imports (zod, react, @hubbub/protocol) from hubbub/node_modules. Without this
