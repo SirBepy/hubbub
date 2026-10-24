@@ -113,7 +113,9 @@ pnpm --dir ..\hubbub-game-<gameId> install
 pnpm --dir ..\hubbub-game-<gameId> typecheck
 pnpm --dir ..\hubbub-game-<gameId> test
 ```
-All three must pass on the renamed sample game alone. Do NOT remove the
+All three must pass on the renamed sample game alone. Game repos commit `pnpm-lock.yaml` (CI
+installs with `--frozen-lockfile`), so the lock this install writes goes into Step 6's initial
+commit. Do NOT remove the
 `pnpm.overrides` block in the new repo's `package.json` - it resolves the
 `file:../hubbub/packages/*` deps and is load-bearing.
 
