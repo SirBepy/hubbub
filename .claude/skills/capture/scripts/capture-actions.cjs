@@ -139,6 +139,22 @@ async function waitIn(page, build, opts = {}) {
   });
 }
 
+// Shared body of the click/clickRole/clickNth steps. `required: false` makes a miss a no-op,
+// for controls only the active phone renders; for clickNth a miss includes fewer than index+1
+// matches, which would otherwise sit in Playwright's own 30s action wait. `force` still lands a
+// real pointer click at the element's centre, so a full-screen cover (Split Opinions' 7s
+// "You're up") swallows it; `dispatch` fires the DOM click on the element itself instead.
+// Returns whether anything was clicked.
+async function clickMatch(page, build, step, index) {
+  const loc = await waitIn(page, build, { timeoutMs: step.timeout, required: step.required });
+  if (!loc) return false;
+  if (index !== undefined && step.required === false && (await loc.count()) <= index) return false;
+  const target = index === undefined ? loc.first() : loc.nth(index);
+  if (step.dispatch) await target.dispatchEvent('click');
+  else await target.click({ force: !!step.force });
+  return true;
+}
+
 // The one deadline loop in this file. The predicate's truthy value is what the caller gets back,
 // so a poll can carry a phase string as easily as a boolean; `required: false` turns a timeout
 // into a quiet null instead of a throw. The predicate always runs at least once, so a timeout of
@@ -302,6 +318,7 @@ module.exports = {
   surfaces,
   findIn,
   waitIn,
+  clickMatch,
   getRoomCode,
   joinRoom,
   doIdentity,
