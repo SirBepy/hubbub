@@ -90,9 +90,9 @@ field needed either way.
 | `identity` | `page`, `name`, `emoji` (optional), `shot` (optional) | Welcome -> fills identity form; `shot` screenshots before Save |
 | `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for the lobby ("Search games") |
 | `screenshot` | `page`, `out` | Settles (`fonts.ready` + 400ms) then screenshots |
-| `click` | `page`, `selector` | Raw CSS click |
-| `clickRole` | `page`, `role`, `name`, `exact` | `getByRole(...).click()`; `name` is a substring/regex source when `exact:false` |
-| `clickNth` | `page`, `selector`, `index` | `locator(selector).nth(index).click()` - use for grid cells (e.g. TTT board) |
+| `click` | `page`, `selector`, `force`, `dispatch`, `required`, `timeout` | Raw CSS click |
+| `clickRole` | `page`, `role`, `name`, `exact`, `force`, `dispatch`, `required`, `timeout` | `getByRole(...).click()`; `name` is a substring/regex source when `exact:false` |
+| `clickNth` | `page`, `selector`, `index`, `force`, `dispatch`, `required`, `timeout` | `locator(selector).nth(index).click()` - use for grid cells (e.g. TTT board) |
 | `waitText` | `page`, `text`, `exact`, `timeout` | `getByText(...).waitFor()` |
 | `waitRole` | `page`, `role`, `name`, `exact`, `timeout` | `getByRole(...).waitFor()` |
 | `pollUntilText` | `page`, `text`, `exact`, `timeout`, `interval`, `shot` | Polls instead of a fixed sleep; screenshots the instant the text appears, not after a guessed delay |
@@ -104,6 +104,22 @@ field needed either way.
 | `unthrottle` | `page` | Clears any throttle set on that page |
 | `wait` | `ms`, `page` (default `tv`) | Plain pause - prefer `pollUntilText` when waiting for a state, not a duration |
 | `evaluate` | `page`, `js` | Runs `page.evaluate(js)` - `js` is a string, must be an IIFE |
+
+**The three click steps share four optional fields.**
+
+- `force: true` passes through to Playwright's `click({ force: true })`, skipping the
+  actionability checks. Use it for a control with an infinite pulse or breathing animation, whose
+  box never holds still long enough to pass the stability check, so a plain click times out.
+- `dispatch: true` fires a DOM `click` on the element itself instead of a pointer click. `force`
+  is not enough when a full-screen cover sits on top (Split Opinions' 7s "You're up"): the pointer
+  lands on the cover. A real player could not tap through it, so use this only when the plan
+  must not wait the cover out.
+- `required: false` makes the click a silent no-op when nothing matches, instead of throwing. Use
+  it in a turn-based game where only the active phone renders the control, and repeat the step
+  once per phone.
+- `timeout` (ms, default 15000) is how long to look for a match first. `0` checks once and moves
+  on; pair it with `required: false`, since even a short wait per absent phone adds up across a
+  pass and can outlast a timed phase (an 8s reveal ran out before the plan polled for it).
 
 **Join two players when you need to observe anything mid-round.** A one-player room resolves the
 instant the only player answers, so a pressed button or a lock-in marker is never on screen long

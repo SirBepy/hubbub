@@ -132,7 +132,7 @@ async function findIn(page, build) {
 // Polls every surface until `build` matches, then hands back that locator.
 async function waitIn(page, build, opts = {}) {
   return pollUntil(page, () => findIn(page, build), {
-    timeoutMs: opts.timeoutMs || 15000,
+    timeoutMs: opts.timeoutMs ?? 15000,
     intervalMs: opts.intervalMs || 250,
     required: opts.required,
     errorMsg: opts.errorMsg || 'waitIn: nothing matched in the page or its frames',
@@ -141,13 +141,15 @@ async function waitIn(page, build, opts = {}) {
 
 // The one deadline loop in this file. The predicate's truthy value is what the caller gets back,
 // so a poll can carry a phase string as easily as a boolean; `required: false` turns a timeout
-// into a quiet null instead of a throw.
+// into a quiet null instead of a throw. The predicate always runs at least once, so a timeout of
+// 0 means "check right now and move on".
 async function pollUntil(page, predicate, opts) {
   const intervalMs = opts.intervalMs || 250;
   const deadline = Date.now() + opts.timeoutMs;
-  while (Date.now() < deadline) {
+  for (;;) {
     const hit = await predicate();
     if (hit) return hit;
+    if (Date.now() >= deadline) break;
     await page.waitForTimeout(intervalMs);
   }
   if (opts.required === false) return null;

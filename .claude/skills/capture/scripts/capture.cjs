@@ -24,6 +24,19 @@ const {
 } = actions;
 const { chromium } = resolvePlaywright();
 
+// `required: false` makes a click a no-op when nothing matches, for controls only one phone
+// renders (the active player's turn). Leaving `timeout` unset keeps waitIn's own default.
+function clickWait(step) {
+  return { timeoutMs: step.timeout, required: step.required };
+}
+
+// `force` still lands a real pointer click at the element's centre, so a full-screen cover
+// (Split Opinions' 7s "You're up") swallows it; `dispatch` fires the DOM click on the element
+// itself, which is what a plan's old `evaluate` + `.click()` did.
+function clickOn(loc, step) {
+  return step.dispatch ? loc.dispatchEvent('click') : loc.click({ force: !!step.force });
+}
+
 function runFromCli() {
   const args = process.argv.slice(2);
   const get = (flag, def = null) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : def; };
@@ -123,17 +136,20 @@ function runFromCli() {
           }
           case 'click': {
             const page = await getPage(step.page);
-            await (await waitIn(page, (root) => root.locator(step.selector))).first().click();
+            const loc = await waitIn(page, (root) => root.locator(step.selector), clickWait(step));
+            if (loc) await clickOn(loc.first(), step);
             break;
           }
           case 'clickRole': {
             const page = await getPage(step.page);
-            await (await waitIn(page, (root) => root.getByRole(step.role, { name: step.name, exact: step.exact !== false }))).first().click();
+            const loc = await waitIn(page, (root) => root.getByRole(step.role, { name: step.name, exact: step.exact !== false }), clickWait(step));
+            if (loc) await clickOn(loc.first(), step);
             break;
           }
           case 'clickNth': {
             const page = await getPage(step.page);
-            await (await waitIn(page, (root) => root.locator(step.selector))).nth(step.index).click();
+            const loc = await waitIn(page, (root) => root.locator(step.selector), clickWait(step));
+            if (loc) await clickOn(loc.nth(step.index), step);
             break;
           }
           case 'waitText': {
