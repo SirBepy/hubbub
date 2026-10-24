@@ -20,7 +20,11 @@ export class FakeTransport {
 
 export const harness: { last?: FakeTransport } = {};
 
-/** Creates a room and launches Tap Race, leaving the game pending: no `game` state has arrived. */
+/**
+ * Creates a room and launches Tic-Tac-Toe, leaving the game pending: no `game` state has arrived.
+ * A core game, never a sibling one: CI checks hubbub out alone, so the generated registry there
+ * holds only ttt and uttt, and a sibling id renders the "game hit a problem" fallback instead.
+ */
 export function launchPendingGame(transport: FakeTransport) {
   transport.emit({ t: "roomCreated", code: "ABCD" });
   transport.emit({
@@ -28,16 +32,16 @@ export function launchPendingGame(transport: FakeTransport) {
     players: [{ id: "p1", name: "Bepy", colorId: 0, avatarId: "bear", connected: true }],
     hostId: "p1",
     mode: "in-game",
-    currentGameId: "tap-race",
+    currentGameId: "ttt",
     cursorIndex: 0,
-    games: [{ id: "tap-race", name: "Tap Race", minPlayers: 1 }],
+    games: [{ id: "ttt", name: "Tic-Tac-Toe", minPlayers: 1 }],
     suggestions: [],
     config: null,
     inputLegend: [],
   });
   transport.emit({
     t: "gameLaunch",
-    gameId: "tap-race",
+    gameId: "ttt",
     players: [{ id: "p1", name: "Bepy" }],
     setupData: null,
     now: Date.now(),

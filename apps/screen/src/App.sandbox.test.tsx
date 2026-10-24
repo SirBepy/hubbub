@@ -50,7 +50,7 @@ describe("sandbox branch", () => {
     const frame = await waitFor(
       () => {
         const el = document.querySelector("iframe");
-        expect(el?.getAttribute("src")).toBe("http://localhost:5176/frame.html?game=tap-race&role=screen&v=dev");
+        expect(el?.getAttribute("src")).toBe("http://localhost:5176/frame.html?game=ttt&role=screen&v=dev");
         return el!;
       },
       { timeout: 10000 },
