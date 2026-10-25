@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 
-const { waitIn, clickMatch } = createRequire(import.meta.url)("./capture-actions.cjs");
+const { waitIn, clickMatch, pollUntil, fillSessionPlaceholder } = createRequire(import.meta.url)("./capture-actions.cjs");
 
 // A page with no game frames whose waits resolve instantly, so a poll loop's cost is its number
 // of checks rather than wall-clock time.
@@ -89,5 +89,51 @@ describe("clickMatch", () => {
     const { build, calls } = stubLocator(0);
     expect(await clickMatch(fakePage(), build, { required: false, timeout: 0 })).toBe(false);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("pollUntil", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("gives up after a default deadline when no timeout is passed", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // Each wait advances the faked clock, so the loop ends on the fallback deadline rather than
+    // wall-clock time; the call cap turns a missing fallback into a fast failure, not a hang.
+    const page = { waitForTimeout: async (ms) => vi.advanceTimersByTime(ms) };
+    let calls = 0;
+    const predicate = () => {
+      if (++calls > 1000) throw new Error("polled forever");
+      return false;
+    };
+    expect(await pollUntil(page, predicate, { required: false })).toBeNull();
+    expect(calls).toBeLessThan(1000);
+  });
+});
+
+describe("fillSessionPlaceholder", () => {
+  it("swaps the SESSION segment in out and shot paths for the session id", () => {
+    const steps = [
+      { type: "screenshot", page: "tv", out: ".for_bepy/screenshots/SESSION/tv.png" },
+      { type: "identity", page: "p1", shot: ".for_bepy\\screenshots\\SESSION\\p1.png" },
+    ];
+    expect(fillSessionPlaceholder(steps, "123-456")).toEqual([
+      { type: "screenshot", page: "tv", out: ".for_bepy/screenshots/123-456/tv.png" },
+      { type: "identity", page: "p1", shot: ".for_bepy\\screenshots\\123-456\\p1.png" },
+    ]);
+  });
+
+  it("leaves paths where SESSION is only part of a segment", () => {
+    const steps = [{ type: "screenshot", out: "shots/SESSIONS/x.png" }];
+    expect(fillSessionPlaceholder(steps, "123-456")).toEqual(steps);
+  });
+
+  it("throws naming the step when a placeholder is used without a session id", () => {
+    const steps = [{ type: "wait", ms: 1 }, { type: "screenshot", out: "a/SESSION/b.png" }];
+    expect(() => fillSessionPlaceholder(steps, null)).toThrow(/Step 1 \(screenshot\)/);
+  });
+
+  it("passes placeholder-free plans through without a session id", () => {
+    const steps = [{ type: "screenshot", out: "out/tv.png" }];
+    expect(fillSessionPlaceholder(steps, null)).toEqual(steps);
   });
 });

@@ -1,5 +1,5 @@
 {
-  "_comment": "Worked example: a settings-carrying game driven from lobby to podium. Replace SESSION with the id from rename-session.ps1 -GetId before running.",
+  "_comment": "Worked example: a settings-carrying game driven from lobby to podium. SESSION in out paths is filled from --session-id (rename-session.ps1 -GetId) by the driver.",
   "baseUrl": "http://localhost:5175",
   "steps": [
     { "type": "waitRoomCode" },

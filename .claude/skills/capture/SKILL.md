@@ -145,7 +145,8 @@ node "C:/Users/tecno/Desktop/Projects/hubbub/.claude/skills/capture/scripts/capt
 
 `plans/music-guesser-podium.json` next to this file is a worked example of the harder shape: a
 settings-carrying game, its config remote driven explicitly, then five rounds answered to a podium.
-Swap `SESSION` for the real session id before running it.
+Run it as committed: the driver replaces a `SESSION` path segment in any step's `out` or `shot`
+with the `--session-id` it was given, and refuses to run a plan using it without one.
 
 `--out-dir <dir>` also works if you already have the resolved absolute path. One command, one
 browser session, all pages. On failure it dumps `debug-<pageId>.png` + truncated DOM + console
