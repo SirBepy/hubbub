@@ -43,6 +43,26 @@ async function settle(page) {
   await page.waitForTimeout(400);
 }
 
+// Committed plans write to `.for_bepy/screenshots/SESSION/...`; the literal segment stands in for
+// the caller's session id so a plan never needs a throwaway copy per run. Without an id, a plan
+// that uses the placeholder would create a `SESSION/` folder no session can be attributed, so it
+// throws before any browser opens. Only whole path segments match: `SESSIONS/x.png` is left alone.
+const SESSION_SEGMENT = /(^|[\\/])SESSION(?=[\\/]|$)/g;
+
+function fillSessionPlaceholder(steps, sessionId) {
+  return steps.map((step, i) => {
+    const filled = { ...step };
+    for (const key of ['out', 'shot']) {
+      if (typeof step[key] !== 'string' || !step[key].match(SESSION_SEGMENT)) continue;
+      if (!sessionId) {
+        throw new Error(`Step ${i} (${step.type}) writes to a SESSION placeholder in "${key}" but no --session-id/HUBBUB_CAPTURE_SESSION_ID was given.`);
+      }
+      filled[key] = step[key].replace(SESSION_SEGMENT, (_, sep) => sep + sessionId);
+    }
+    return filled;
+  });
+}
+
 async function shot(page, outPath) {
   await settle(page);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -335,6 +355,8 @@ module.exports = {
   firstEnabledEmoji,
   settle,
   shot,
+  fillSessionPlaceholder,
+  pollUntil,
   attachConsole,
   CODE_ALPHABET,
   ROOM_CODE_LENGTH,

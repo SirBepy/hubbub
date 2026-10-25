@@ -22,6 +22,7 @@ const {
   waitIn,
   clickMatch,
   surfaces,
+  fillSessionPlaceholder,
 } = actions;
 const { chromium } = resolvePlaywright();
 
@@ -52,6 +53,13 @@ function runFromCli() {
   if (!outDir) {
     console.error('No --out-dir given and no --session-id/HUBBUB_CAPTURE_SESSION_ID set.');
     console.error('Refusing to default to the screenshots root - pass one explicitly.');
+    process.exit(1);
+  }
+
+  try {
+    plan.steps = fillSessionPlaceholder(plan.steps || [], sessionId);
+  } catch (e) {
+    console.error(e.message);
     process.exit(1);
   }
 
