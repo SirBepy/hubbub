@@ -47,9 +47,13 @@ runs:
         # 20.20.2, measured 2026-09-02. Nothing shipped needs a Node 22 global.
         node-version: 22
         cache: pnpm
+        # Every lockfile that pins an install feeds the key. An entry matching no file is skipped:
+        # setup-node v4 only fails when the whole list hashes to nothing (src/cache-restore.ts), and
+        # package.json always exists, so a game branch that predates its tracked lock still passes.
         cache-dependency-path: |
           ${{ inputs.game-path }}/package.json
-          ${{ inputs.platform-checkout == 'true' && 'hubbub/pnpm-lock.yaml' || format('{0}/package.json', inputs.game-path) }}
+          ${{ inputs.game-path }}/pnpm-lock.yaml
+          ${{ inputs.platform-checkout == 'true' && 'hubbub/pnpm-lock.yaml' || format('{0}/pnpm-lock.yaml', inputs.game-path) }}
 
     # A game repo's own pin is what `corepack pnpm` resolves in its local loop, so it must equal the
     # platform's. Unpinned, a local install got pnpm 12, which drops pnpm.overrides from the lock.
