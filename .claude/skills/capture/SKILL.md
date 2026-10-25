@@ -148,7 +148,8 @@ settings-carrying game, its config remote driven explicitly, then five rounds an
 Run it as committed: the driver replaces a `SESSION` path segment in any step's `out` or `shot`
 with the `--session-id` it was given, and refuses to run a plan using it without one.
 
-`--out-dir <dir>` also works if you already have the resolved absolute path. One command, one
+`--out-dir <dir>` also works if you already have the resolved absolute path, but only for plans
+with no `SESSION` segment: step paths are cwd-relative, so `--out-dir` cannot fill it. One command, one
 browser session, all pages. On failure it dumps `debug-<pageId>.png` + truncated DOM + console
 logs for every open page into `--out-dir` before exiting 1.
 
