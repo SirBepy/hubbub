@@ -1,10 +1,16 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { env, reset, evictDurableObject, runInDurableObject, runDurableObjectAlarm } from "cloudflare:test";
 import { createRoom, attach, type Conn } from "./helpers.js";
+import { catalog } from "../src/catalog.js";
+
+// Whatever the lobby's cursor starts on. The production catalogue omits the unbundled core
+// games, so a checkout without the sibling game repos lists nothing and has nothing to launch.
+const GAME_ID = catalog.summaries[0]?.id ?? "";
+const describeWithGame = GAME_ID ? describe : describe.skip;
 
 afterEach(async () => { await reset(); });
 
-/** Joins two players and launches ttt (cursorIndex 0, no settings schema) so gameStatePush is
+/** Joins two players and launches the first catalogue game (cursorIndex 0, no settings schema) so gameStatePush is
  * legal (mode must be "in-game" and gameId must match currentGameId). */
 async function setupInGameRoom(): Promise<{ code: string; screen: Conn; p1: Conn; p2: Conn }> {
   const code = await createRoom();
@@ -31,7 +37,7 @@ async function setupInGameRoom(): Promise<{ code: string; screen: Conn; p1: Conn
   return { code, screen, p1, p2 };
 }
 
-describe("gameStatePush write coalescing", () => {
+describeWithGame("gameStatePush write coalescing", () => {
   it("collapses N pushes into a single storage write, flushed by the alarm", async () => {
     const { code, screen } = await setupInGameRoom();
     const stub = env.ROOM.get(env.ROOM.idFromName(code));
@@ -48,7 +54,7 @@ describe("gameStatePush write coalescing", () => {
 
     const N = 20;
     for (let i = 0; i < N; i++) {
-      screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: "ttt", state: { tick: i } }));
+      screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: GAME_ID, state: { tick: i } }));
       await screen.next(); // gameState echo proves this push was fully handled before the next send
     }
     expect(putCount).toBe(0); // still coalescing - nothing flushed yet
@@ -62,11 +68,11 @@ describe("gameStatePush write coalescing", () => {
     const { code, screen } = await setupInGameRoom();
     const stub = env.ROOM.get(env.ROOM.idFromName(code));
 
-    screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: "ttt", state: { tick: "durable" } }));
+    screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: GAME_ID, state: { tick: "durable" } }));
     await screen.next();
     expect(await runDurableObjectAlarm(stub)).toBe(true); // flushed: "durable" is now in storage
 
-    screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: "ttt", state: { tick: "pending" } }));
+    screen.ws.send(JSON.stringify({ t: "gameStatePush", gameId: GAME_ID, state: { tick: "pending" } }));
     await screen.next(); // processed in-memory, but its own alarm has not fired yet
 
     // Tears down the in-memory Room (holding "pending") while keeping storage (holding

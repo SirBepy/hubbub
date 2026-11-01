@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { reset } from "cloudflare:test";
+import { GAME_LOGICS, SANDBOX_GAME_IDS } from "@hubbub/games-manifest";
 import { createRoom, attach } from "./helpers.js";
 
 afterEach(async () => { await reset(); });
@@ -21,7 +22,10 @@ describe("room lobby, through the real Worker + Durable Object", () => {
     let state = await screen.next(); // roomState reaching the screen
     expect(state.players.map((p: any) => p.name)).toEqual(["Bepy"]);
     expect(state.mode).toBe("lobby");
-    expect(state.games.length).toBeGreaterThan(0); // the real @hubbub/games-manifest catalog, not a stub
+    // The real @hubbub/games-manifest catalog, not a stub. Compared to the manifest rather than
+    // `> 0`: a checkout without sibling game repos has only the two unbundled core games, which
+    // the production catalogue deliberately omits.
+    expect(state.games.length).toBe(SANDBOX_GAME_IDS.filter((id) => id in GAME_LOGICS).length);
 
     const p2 = await attach(code);
     p2.ws.send(JSON.stringify({ t: "joinRoom", name: "Mira", colorId: 1, avatarId: "🐶" }));
