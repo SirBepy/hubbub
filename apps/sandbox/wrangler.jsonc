@@ -7,6 +7,9 @@
   "compatibility_date": "2026-08-04",
   "workers_dev": true,
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    // The shell requests frame.html by that exact name. The default html_handling 307s it to
+    // /frame, which then misses the /frame.html no-cache rule in _headers.
+    "html_handling": "none"
   }
 }
