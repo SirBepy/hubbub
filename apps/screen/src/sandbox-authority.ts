@@ -19,7 +19,10 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
   // does, and dropping the bridge then left the launch pending forever (TV stuck on "Loading").
   let bridge: SandboxBridge | null = null;
   let gameId: string | null = null;
-  let pending: { players: DisplayPlayer[]; setupData: unknown; now: number } | null = null;
+  // The latest launch, kept after delivery: a rematch relaunches while the end-of-round screen
+  // has unmounted the old frame, so that launch goes into a closed bridge and the NEW frame's
+  // attach has to replay it. A fresh frame has no game running, so a replay never doubles one.
+  let last: { players: DisplayPlayer[]; setupData: unknown; now: number } | null = null;
 
   function callbacksFor(id: string) {
     return {
@@ -32,18 +35,15 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
   return {
     launch(id, players, setupData, now) {
       gameId = id;
+      last = { players, setupData, now };
       if (!inner && bridge) inner = createSandboxAuthority(bridge, callbacksFor(id));
-      if (inner) inner.launch(players, setupData, now);
-      else pending = { players, setupData, now };
+      inner?.launch(players, setupData, now);
     },
     attach(next) {
       bridge = next;
       if (!gameId) return;
       inner = createSandboxAuthority(next, callbacksFor(gameId));
-      if (pending) {
-        inner.launch(pending.players, pending.setupData, pending.now);
-        pending = null;
-      }
+      if (last) inner.launch(last.players, last.setupData, last.now);
     },
     handle(msg) {
       inner?.handle(msg);
@@ -52,8 +52,8 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
       inner?.action(playerId, payload, now);
     },
     playersChanged(players) {
-      if (inner) inner.playersChanged(players);
-      else if (pending) pending.players = players;
+      if (last) last.players = players;
+      inner?.playersChanged(players);
     },
     currentGameId: () => gameId,
     reset() {
@@ -62,7 +62,7 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
       // reset is the return to the lobby, which unmounts the frame and closes this bridge.
       bridge = null;
       gameId = null;
-      pending = null;
+      last = null;
     },
   };
 }
