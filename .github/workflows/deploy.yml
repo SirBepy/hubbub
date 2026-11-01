@@ -18,6 +18,11 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # One place for the two origins: the sandbox CSP bakes the shell/relay origin in at build
+    # time, and the web build must point at the sandbox origin the same deploy publishes.
+    env:
+      SHELL_URL: https://hubbub.tabsxlabs.workers.dev
+      SANDBOX_URL: https://hubbub-games.tabsxlabs.workers.dev
     steps:
       # The games are pinned with link: paths that point BOTH ways - games-manifest reaches out
       # to ../../../hubbub-game-*, and each game reaches back to ../hubbub/packages/*. So every
@@ -61,6 +66,7 @@ jobs:
           games=$(node -e "const p=require('./packages/games-manifest/package.json');const all=Object.assign({},p.dependencies,p.optionalDependencies,p.devDependencies);console.log(Object.values(all).filter(v=>typeof v==='string'&&v.startsWith('link:')).map(v=>v.split('/').pop()).join(' '))")
           if [ -z "$games" ]; then echo "::error::no link: games found in games-manifest"; exit 1; fi
           echo "linked games: $games"
+          echo "LINKED_GAMES=$games" >> "$GITHUB_ENV"
           for g in $games; do
             echo "::group::$g"
             git clone --depth 1 --branch "${GAME_REF}" "https://github.com/${OWNER}/${g}.git" "${GITHUB_WORKSPACE}/${g}"
@@ -72,9 +78,44 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: hubbub
 
+      # The sandbox origin copies each game's dist/bundle.js, so the games build first. Their
+      # own node_modules came from the per-game install above.
+      - name: Build linked games
+        working-directory: hubbub
+        run: |
+          for g in $LINKED_GAMES; do
+            echo "::group::$g"
+            pnpm --dir "${GITHUB_WORKSPACE}/${g}" build
+            echo "::endgroup::"
+          done
+
+      - name: Build sandbox origin
+        run: pnpm --filter @hubbub/sandbox-app build
+        working-directory: hubbub
+        env:
+          HUBBUB_SHELL_ORIGIN: ${{ env.SHELL_URL }}
+          HUBBUB_RELAY_ORIGIN: ${{ env.SHELL_URL }}
+
+      # The build falls back to a localhost CSP when the origins are missing; shipping that would
+      # make every game frame refuse to embed under the real shell.
+      - name: Assert the sandbox CSP names the real shell
+        working-directory: hubbub
+        run: grep -F "frame-ancestors ${SHELL_URL}" apps/sandbox/dist/_headers
+
       - name: Build web
         run: pnpm --filter @hubbub/web build
         working-directory: hubbub
+        env:
+          VITE_SANDBOX_URL: ${{ env.SANDBOX_URL }}
+
+      # Before the main worker: the shell would otherwise go live pointing at an origin that
+      # does not exist yet.
+      - name: Deploy sandbox worker
+        run: pnpm --filter @hubbub/worker exec wrangler deploy -c ../sandbox/wrangler.jsonc
+        working-directory: hubbub
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       # wrangler.jsonc serves its assets from ../web/dist, so the build above is what ships.
       - name: Deploy worker
