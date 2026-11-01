@@ -15,6 +15,9 @@ export interface SandboxScreenAuthority extends ScreenAuthority {
  * frame's own `onConnect` race each other, and either can win. */
 export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScreenAuthority {
   let inner: SandboxAuthority | null = null;
+  // Held even before a gameId exists: a warm frame's onConnect routinely lands before gameLaunch
+  // does, and dropping the bridge then left the launch pending forever (TV stuck on "Loading").
+  let bridge: SandboxBridge | null = null;
   let gameId: string | null = null;
   let pending: { players: DisplayPlayer[]; setupData: unknown; now: number } | null = null;
 
@@ -29,12 +32,14 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
   return {
     launch(id, players, setupData, now) {
       gameId = id;
+      if (!inner && bridge) inner = createSandboxAuthority(bridge, callbacksFor(id));
       if (inner) inner.launch(players, setupData, now);
       else pending = { players, setupData, now };
     },
-    attach(bridge) {
+    attach(next) {
+      bridge = next;
       if (!gameId) return;
-      inner = createSandboxAuthority(bridge, callbacksFor(gameId));
+      inner = createSandboxAuthority(next, callbacksFor(gameId));
       if (pending) {
         inner.launch(pending.players, pending.setupData, pending.now);
         pending = null;
@@ -54,6 +59,8 @@ export function createSandboxScreenAuthority(cb: AuthorityCallbacks): SandboxScr
     reset() {
       inner?.reset();
       inner = null;
+      // reset is the return to the lobby, which unmounts the frame and closes this bridge.
+      bridge = null;
       gameId = null;
       pending = null;
     },
