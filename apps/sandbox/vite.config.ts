@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import { selectBundles, sandboxHeadersFile } from "./build-assets";
+import { DEFAULT_RELAY_ORIGIN, DEFAULT_SHELL_ORIGIN, selectBundles, sandboxHeadersFile } from "./build-assets";
 // Relative, not by package name: the config is bundled by esbuild, which externalises bare
 // specifiers, and these workspace packages ship raw TypeScript with no dist for Node to load.
 import { BUNDLE_HEADERS, FRAME_SECURITY_HEADERS, frameCsp } from "../../packages/sandbox/src/csp";
@@ -9,8 +9,8 @@ import { GAME_BUNDLE_PATHS } from "../../packages/games-manifest/src/sources";
 import { gameRepoFsAllow } from "../../vite.game-repos";
 
 const PORT = 5176;
-const SHELL_ORIGIN = process.env.HUBBUB_SHELL_ORIGIN ?? "http://localhost:5175";
-const RELAY_ORIGIN = process.env.HUBBUB_RELAY_ORIGIN ?? "http://localhost:7787";
+const SHELL_ORIGIN = process.env.HUBBUB_SHELL_ORIGIN ?? DEFAULT_SHELL_ORIGIN;
+const RELAY_ORIGIN = process.env.HUBBUB_RELAY_ORIGIN ?? DEFAULT_RELAY_ORIGIN;
 
 const BUNDLE_ROUTE = /^\/games\/([a-zA-Z0-9._-]{1,64})\/[a-zA-Z0-9._-]{1,64}\.js$/;
 
