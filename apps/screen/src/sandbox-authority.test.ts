@@ -46,6 +46,29 @@ describe("createSandboxScreenAuthority", () => {
     expect(cb.onState).toHaveBeenCalledWith("tap-race", { n: 1 });
   });
 
+  // A rematch keeps the room in-game, so no reset() runs, but the end-of-round screen has
+  // unmounted the old frame: the relaunch lands on the dead bridge and the new frame must get it.
+  it("replays a rematch launch into the frame that mounts after it", () => {
+    const authority = createSandboxScreenAuthority(callbacks());
+    const first = fakeBridge();
+    authority.attach(first);
+    authority.launch("split-opinions", players, { round: 1 }, 1);
+    authority.launch("split-opinions", players, { round: 2 }, 2);
+    const second = fakeBridge();
+    authority.attach(second);
+    expect(launches(second)).toEqual([{ t: "launch", players, setupData: { round: 2 }, now: 2 }]);
+  });
+
+  it("replays the roster as it stood when the new frame attaches", () => {
+    const authority = createSandboxScreenAuthority(callbacks());
+    authority.launch("tap-race", players, null, 0);
+    const later = [...players, { id: "p2", name: "Mira" }] as unknown as DisplayPlayer[];
+    authority.playersChanged(later);
+    const bridge = fakeBridge();
+    authority.attach(bridge);
+    expect(launches(bridge)[0].players).toEqual(later);
+  });
+
   // reset() is the return to the lobby, which unmounts the frame and closes its bridge, so the
   // next game must wait for its own frame's attach rather than post into the closed one.
   it("does not send a later launch into a bridge from before reset", () => {
