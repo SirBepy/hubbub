@@ -15,9 +15,13 @@ const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".
 const srcDir = path.join(packageDir, "src");
 
 // `dir` locates a game's built bundle: repo-relative for core games, sibling-relative below.
+// `noBundle` marks a core game with no bundler, so no dist/bundle.js ever exists for the
+// production sandbox origin to serve. It still runs in-process in the dev loops and on the local
+// server; it is only left out of SANDBOX_GAME_IDS, which gates the cloud catalogue.
 const CORE_GAMES = [
   {
     id: "ttt",
+    noBundle: true,
     pkg: "@hubbub/game-tictactoe",
     dir: "packages/games/tictactoe",
     screen: "TTTScreen",
@@ -26,6 +30,7 @@ const CORE_GAMES = [
   },
   {
     id: "uttt",
+    noBundle: true,
     pkg: "@hubbub/game-ultimate-tictactoe",
     dir: "packages/games/ultimate-tictactoe",
     screen: "UTTTScreen",
@@ -97,6 +102,10 @@ const games = [...CORE_GAMES, ...present, ...dev];
 function logicsSource() {
   const imports = games.map((g) => `import { ${g.logic} } from "${g.pkg}";`).join("\n");
   const entries = games.map((g) => `  ${key(g.id)}: ${g.logic},`).join("\n");
+  const sandboxIds = games
+    .filter((g) => !g.noBundle)
+    .map((g) => JSON.stringify(g.id))
+    .join(", ");
   return `// GENERATED and untracked: rewritten on install by scripts/generate.mjs.
 // Eager registry for the SERVER and host-desktop; browsers use ./lazy.ts instead. A sibling
 // game repo absent on disk is omitted here rather than left as an unresolvable import.
@@ -108,6 +117,10 @@ ${entries}
 };
 
 export const GAME_IDS = Object.keys(GAME_LOGICS);
+
+/** Games the production sandbox origin can serve, i.e. those with a built dist/bundle.js. The
+ * cloud catalogue lists only these; the local server and dev loops list every game above. */
+export const SANDBOX_GAME_IDS: readonly string[] = [${sandboxIds}];
 
 export function getLogic(gameId: string | null) {
   return gameId ? GAME_LOGICS[gameId] ?? null : null;
