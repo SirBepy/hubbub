@@ -1,5 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
+import { selectBundles, sandboxHeadersFile } from "./build-assets";
 // Relative, not by package name: the config is bundled by esbuild, which externalises bare
 // specifiers, and these workspace packages ship raw TypeScript with no dist for Node to load.
 import { BUNDLE_HEADERS, FRAME_SECURITY_HEADERS, frameCsp } from "../../packages/sandbox/src/csp";
@@ -37,8 +39,49 @@ function devBundleRoute(): Plugin {
   };
 }
 
+/** Completes `dist/` into a deployable static origin: the games' bundles at the URL the shell
+ * asks for, plus the `_headers` file that carries the CSP and CORS the dev server sets in code.
+ * Bundles are copied from the sibling repos' own builds, so those must be built first. */
+function productionAssets(): Plugin {
+  let outDir = "";
+  // A deploy sets both origins; CI's plain `pnpm build` sets neither and has no sibling game
+  // repos checked out, so it legitimately finds nothing to copy and must still pass.
+  const deployShaped = () => !!process.env.HUBBUB_SHELL_ORIGIN && !!process.env.HUBBUB_RELAY_ORIGIN;
+  return {
+    name: "hubbub-production-assets",
+    apply: "build",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+      if (!deployShaped()) {
+        config.logger.warn(
+          `\n[hubbub-sandbox] HUBBUB_SHELL_ORIGIN / HUBBUB_RELAY_ORIGIN not both set: building a CSP for ` +
+            `${SHELL_ORIGIN} / ${RELAY_ORIGIN}. Fine for a local check, never deploy this output.\n`,
+        );
+      }
+    },
+    writeBundle() {
+      const { found, missing } = selectBundles(GAME_BUNDLE_PATHS, existsSync);
+      if (found.length === 0) {
+        const msg = "No game bundles found. Build each game repo first (`pnpm build` in it).";
+        // An origin that serves no games is a deploy that looks healthy and plays nothing.
+        if (deployShaped()) throw new Error(msg);
+        console.warn(`[hubbub-sandbox] ${msg}`);
+      }
+      for (const id of missing) console.warn(`[hubbub-sandbox] no built bundle for "${id}", skipped`);
+      for (const { src, dest } of found) {
+        mkdirSync(dirname(resolve(outDir, dest)), { recursive: true });
+        copyFileSync(src, resolve(outDir, dest));
+      }
+      writeFileSync(
+        resolve(outDir, "_headers"),
+        sandboxHeadersFile({ shellOrigin: SHELL_ORIGIN, relayOrigin: RELAY_ORIGIN }),
+      );
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [devBundleRoute()],
+  plugins: [devBundleRoute(), productionAssets()],
   server: {
     host: true,
     port: PORT,
