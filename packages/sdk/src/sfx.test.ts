@@ -11,6 +11,7 @@ async function freshSfx(): Promise<{ sfx: SfxEngine; storageKey: string }> {
 }
 
 class FakeAudioParam {
+  value = 1;
   setValueAtTime = vi.fn();
   linearRampToValueAtTime = vi.fn();
   exponentialRampToValueAtTime = vi.fn();
@@ -29,12 +30,15 @@ class FakeAudioContext {
   state: "suspended" | "running" | "closed" = "suspended";
   destination = {};
   oscillators: { type: string; frequency: FakeAudioParam }[] = [];
+  gains: { gain: FakeAudioParam }[] = [];
 
   constructor() {
     FakeAudioContext.instances.push(this);
   }
   createGain() {
-    return { ...fakeNode(), gain: new FakeAudioParam() };
+    const node = { ...fakeNode(), gain: new FakeAudioParam() };
+    this.gains.push(node);
+    return node;
   }
   createBiquadFilter() {
     return { ...fakeNode(), type: "lowpass", frequency: new FakeAudioParam() };
@@ -84,10 +88,183 @@ describe("mute persistence", () => {
     expect(sfx.muted).toBe(false);
 
     sfx.setMuted(true);
-    expect(localStorage.getItem(storageKey)).toBe("muted");
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual({ volume: 1, muted: true });
 
     const reloaded = await freshSfx();
     expect(reloaded.sfx.muted).toBe(true);
+  });
+
+  it("still reads the bare string the engine wrote before volume existed", async () => {
+    localStorage.setItem("hubbub:sound", "muted");
+    expect((await freshSfx()).sfx.muted).toBe(true);
+
+    localStorage.setItem("hubbub:sound", "on");
+    const on = (await freshSfx()).sfx;
+    expect(on.muted).toBe(false);
+    expect(on.volume).toBe(1);
+  });
+});
+
+describe("volume", () => {
+  /** The engine's master node is the first gain it creates; every voice gain comes after. */
+  async function unlockedEngine() {
+    const { sfx } = await freshSfx();
+    (window as unknown as { AudioContext: unknown }).AudioContext = FakeAudioContext;
+    await sfx.unlock();
+    const ctx = FakeAudioContext.instances[0]!;
+    return { sfx, ctx, master: ctx.gains[0]!.gain };
+  }
+
+  it("defaults to full volume at exactly the engine's original gain of 0.5", async () => {
+    const { sfx, master } = await unlockedEngine();
+    expect(sfx.volume).toBe(1);
+    expect(master.value).toBe(0.5);
+  });
+
+  it("scales the master gain, and a lower setting is quieter than a higher one", async () => {
+    const { sfx, master } = await unlockedEngine();
+    sfx.setVolume(0.5);
+    const half = master.value;
+    expect(half).toBeGreaterThan(0);
+    expect(half).toBeLessThan(0.5);
+
+    sfx.setVolume(0.25);
+    expect(master.value).toBeLessThan(half);
+
+    sfx.setVolume(0);
+    expect(master.value).toBe(0);
+  });
+
+  it("applies a volume set before the context exists once the context is created", async () => {
+    const { sfx } = await freshSfx();
+    sfx.setVolume(0.4);
+    (window as unknown as { AudioContext: unknown }).AudioContext = FakeAudioContext;
+    await sfx.unlock();
+    const master = FakeAudioContext.instances[0]!.gains[0]!.gain;
+    expect(master.value).toBeGreaterThan(0);
+    expect(master.value).toBeLessThan(0.5);
+  });
+
+  it("zeroes the master gain while muted and restores it on unmute", async () => {
+    const { sfx, master } = await unlockedEngine();
+    sfx.setVolume(0.8);
+    const audible = master.value;
+
+    sfx.setMuted(true);
+    expect(master.value).toBe(0);
+
+    sfx.setMuted(false);
+    expect(master.value).toBe(audible);
+  });
+
+  it("round-trips through localStorage alongside mute", async () => {
+    const { sfx, storageKey } = await freshSfx();
+    sfx.setVolume(0.3);
+    sfx.setMuted(true);
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual({ volume: 0.3, muted: true });
+
+    const reloaded = (await freshSfx()).sfx;
+    expect(reloaded.volume).toBe(0.3);
+    expect(reloaded.muted).toBe(true);
+  });
+
+  it("clamps out-of-range setter values and ignores NaN", async () => {
+    const { sfx } = await freshSfx();
+    sfx.setVolume(7);
+    expect(sfx.volume).toBe(1);
+    sfx.setVolume(-3);
+    expect(sfx.volume).toBe(0);
+    sfx.setVolume(0.6);
+    sfx.setVolume(Number.NaN);
+    expect(sfx.volume).toBe(0.6);
+  });
+
+  it("reads garbage storage defensively: bad JSON, wrong types, out-of-range numbers", async () => {
+    localStorage.setItem("hubbub:sound", "{not json");
+    expect((await freshSfx()).sfx.volume).toBe(1);
+
+    localStorage.setItem("hubbub:sound", JSON.stringify({ volume: "loud", muted: "yes" }));
+    const wrongTypes = (await freshSfx()).sfx;
+    expect(wrongTypes.volume).toBe(1);
+    expect(wrongTypes.muted).toBe(false);
+
+    localStorage.setItem("hubbub:sound", JSON.stringify({ volume: 9, muted: false }));
+    expect((await freshSfx()).sfx.volume).toBe(1);
+
+    localStorage.setItem("hubbub:sound", JSON.stringify({ volume: -2 }));
+    expect((await freshSfx()).sfx.volume).toBe(0);
+
+    localStorage.setItem("hubbub:sound", "null");
+    expect((await freshSfx()).sfx.volume).toBe(1);
+  });
+
+  it("never throws when storage is unavailable", async () => {
+    const { sfx } = await freshSfx();
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    expect(() => {
+      sfx.setVolume(0.2);
+      sfx.setMuted(true);
+    }).not.toThrow();
+    expect(sfx.volume).toBe(0.2);
+    setItem.mockRestore();
+
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("denied");
+    });
+    expect((await freshSfx()).sfx.volume).toBe(1);
+    getItem.mockRestore();
+  });
+
+  it("notifies subscribers on a volume change but not on a repeat", async () => {
+    const { sfx } = await freshSfx();
+    const listener = vi.fn();
+    sfx.subscribe(listener);
+    sfx.setVolume(0.5);
+    sfx.setVolume(0.5);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("installAutoUnlock", () => {
+  it("resumes a suspended context on the first user gesture anywhere on the page", async () => {
+    const { sfx } = await freshSfx();
+    (window as unknown as { AudioContext: unknown }).AudioContext = FakeAudioContext;
+    const dispose = sfx.installAutoUnlock();
+    expect(sfx.unlocked).toBe(false);
+
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    await vi.waitFor(() => expect(sfx.unlocked).toBe(true));
+    dispose();
+  });
+
+  it("keeps listening until a gesture actually unlocks, then removes itself", async () => {
+    const { sfx } = await freshSfx();
+    // A context that refuses the first resume() (a gesture Chrome did not count) and accepts the next.
+    let attempts = 0;
+    class StubbornContext extends FakeAudioContext {
+      override async resume() {
+        attempts += 1;
+        if (attempts >= 2) this.state = "running";
+      }
+    }
+    (window as unknown as { AudioContext: unknown }).AudioContext = StubbornContext;
+    sfx.installAutoUnlock();
+
+    document.dispatchEvent(new Event("pointerdown"));
+    await vi.waitFor(() => expect(attempts).toBe(1));
+    expect(sfx.unlocked).toBe(false);
+
+    document.dispatchEvent(new Event("keydown"));
+    await vi.waitFor(() => expect(sfx.unlocked).toBe(true));
+    // resume() flips the state synchronously inside dispatch; the listener removal rides the
+    // promise that follows it, so let that settle before the next gesture.
+    await new Promise((r) => setTimeout(r, 10));
+
+    document.dispatchEvent(new Event("click"));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(attempts).toBe(2);
   });
 });
 

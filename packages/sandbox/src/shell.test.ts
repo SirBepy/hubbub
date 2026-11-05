@@ -268,15 +268,38 @@ describe("connectSandbox", () => {
     framePort.onmessage = (event: MessageEvent) => received.push(event.data);
 
     const startedMuted = sfx.muted;
+    const startedVolume = sfx.volume;
     framePort.postMessage({ t: "ready" });
     await until(() => received.length >= 1);
-    expect(received).toEqual([{ t: "audio", muted: startedMuted }]);
+    expect(received).toEqual([{ t: "audio", muted: startedMuted, volume: startedVolume, unlocked: sfx.unlocked }]);
 
     sfx.setMuted(!startedMuted);
     await until(() => received.length >= 2);
-    expect(received[1]).toEqual({ t: "audio", muted: !startedMuted });
+    expect(received[1]).toMatchObject({ t: "audio", muted: !startedMuted });
 
     sfx.setMuted(startedMuted); // restore so this test leaves no state behind for its siblings
+    await until(() => received.length >= 3);
+    bridge.close();
+  });
+
+  it("mirrors volume into the frame, which has its own engine and cannot share it by reference", async () => {
+    const { iframe, posted, fire } = fakeIframe();
+    const bridge = connectSandbox({ iframe, role: "screen", players: [], onMessage: vi.fn(), onError: vi.fn() });
+    fire();
+    const framePort = posted[0]!.ports[0]!;
+    const received: { volume?: number }[] = [];
+    framePort.onmessage = (event: MessageEvent) => received.push(event.data);
+
+    const startedVolume = sfx.volume;
+    const target = startedVolume === 0.37 ? 0.62 : 0.37;
+    framePort.postMessage({ t: "ready" });
+    await until(() => received.length >= 1);
+
+    sfx.setVolume(target);
+    await until(() => received.length >= 2);
+    expect(received[1]!.volume).toBe(target);
+
+    sfx.setVolume(startedVolume);
     await until(() => received.length >= 3);
     bridge.close();
   });

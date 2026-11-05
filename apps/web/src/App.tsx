@@ -47,7 +47,7 @@ export function App() {
 
 // Mirrors join.tsx's "Host instead": plain muted text, no fill/border/glow.
 // Corner-anchored, not centred, since nothing on the hero anchors it like the phone's CTA does.
-// Sits one 44px control above the corner: TVStage's sound pill owns the corner itself. Rendered
+// Sits one 44px control above the corner: TVStage's settings gear owns the corner itself. Rendered
 // inside the TV's hero and lobby only (see ScreenApp's preplayCorner), never over a game.
 const switcherStyle: CSSProperties = {
   position: "absolute",

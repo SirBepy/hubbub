@@ -75,6 +75,10 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
           // Both roles track mute (a controller-role frame never plays, but a shared bundle
           // still reads sfx.muted consistently); only the screen role's TV speaker is ever heard.
           sfx.setMuted(msg.muted);
+          if (msg.volume !== undefined) sfx.setVolume(msg.volume);
+          // The shell has already had its gesture; allow="autoplay" on the iframe lets the frame
+          // ride it, so resuming here needs no click inside the game.
+          if (msg.unlocked && role === "screen") void sfx.unlock();
           return;
         }
 

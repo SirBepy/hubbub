@@ -74,9 +74,17 @@ export const ShellToFrameSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("playersChanged"), players: z.array(DisplayPlayerSchema) }),
   z.object({ t: z.literal("timeout"), now: z.number() }),
   z.object({ t: z.literal("state"), state: z.unknown(), playerId: z.string() }),
-  // TV-only mute state, forwarded to both roles: a controller-role frame never plays a sound but
-  // still needs to track it so a later screen-role remount (or a shared bundle) reads it correctly.
-  z.object({ t: z.literal("audio"), muted: z.boolean() }),
+  // TV-only mute and volume state, forwarded to both roles: a controller-role frame never plays a
+  // sound but still needs to track it so a later screen-role remount (or a shared bundle) reads it
+  // correctly. `volume` and `unlocked` are optional so a bundle built against an older SDK, whose
+  // copy of this schema strips unknown keys, keeps working. `unlocked` is the shell telling the
+  // frame its own AudioContext is running, so the frame can resume without a click inside it.
+  z.object({
+    t: z.literal("audio"),
+    muted: z.boolean(),
+    volume: z.number().min(0).max(1).optional(),
+    unlocked: z.boolean().optional(),
+  }),
 ]);
 export type ShellToFrame = z.infer<typeof ShellToFrameSchema>;
 

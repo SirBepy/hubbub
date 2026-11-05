@@ -83,8 +83,12 @@ export function connectSandbox(opts: BridgeOptions): SandboxBridge {
   // The TV is the only speaker: mute state rides into the frame over this same channel so a
   // controller-role frame (which never plays) and a screen-role frame both track it, without a
   // second postMessage("*", ...) call site for S4's structural test to worry about.
+  // The frame has its own sfx engine and AudioContext (separate document), so volume cannot be
+  // shared by reference: it is mirrored here on every change, the same way mute is.
   function sendMuted() {
-    if (!closed) channel.port1.postMessage({ t: "audio", muted: sfx.muted });
+    if (!closed) {
+      channel.port1.postMessage({ t: "audio", muted: sfx.muted, volume: sfx.volume, unlocked: sfx.unlocked });
+    }
   }
 
   channel.port1.onmessage = (event: MessageEvent) => {

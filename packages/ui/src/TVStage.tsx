@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import type { InputLegendEntry } from "@hubbub/sdk/input";
 import { sfx } from "@hubbub/sdk/sfx";
 import { InputLegendTray } from "./InputLegendTray";
-import { SoundToggle } from "./SoundToggle";
+import { TVSettings } from "./TVSettings";
 
 /**
  * Fluid full-viewport TV container: felt ground gradient + dot texture, sets
@@ -43,7 +43,7 @@ export function TVStage({ children, inputLegend }: { children: ReactNode; inputL
       >
         {children}
         <InputLegendTray entries={inputLegend ?? []} />
-        <SoundToggle />
+        <TVSettings />
       </div>
     </div>
   );
