@@ -6,19 +6,43 @@ import { randomSlogan } from "./slogans";
 export function Hero({ code, qr, error }: { code: string; qr: string; error?: string }) {
   const [slogan] = useState(randomSlogan);
 
+  // The card holds the QR and the room code, neither of which exists on the first frame. It keeps
+  // its layout slot but stays invisible until the code is real, then deals in, so the viewer never
+  // sees an empty QR box or a placeholder code. An error reveals it at once so "Offline" is legible.
+  // The QR is deliberately not part of this gate: if QR generation ever failed, the code must
+  // still show.
+  const ready = Boolean(error) || Boolean(code);
+
   return (
-    <div className="hb-anim-deal" style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
-      <div style={heroGlow} />
+    <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
+      <div className="hb-anim-enter" style={{ ...heroGlow, animation: "hb-fade-in 600ms ease-out 1 both" }} />
       <div style={cluster}>
-        <p style={wordmark}>
+        <p className="hb-anim-deal" style={{ ...wordmark, "--i": 0 } as CSSProperties}>
           HUB<span style={{ color: "var(--accent)" }}>BUB</span>
         </p>
-        <p style={sloganStyle}>{slogan}</p>
-        <div style={kraftCard} data-measure="kraft-card">
-          <div style={qrBox}>{qr ? <img src={qr} alt="Join QR" style={qrImg} /> : null}</div>
-          <div style={kraftText}>
+        <p className="hb-anim-deal" style={{ ...sloganStyle, "--i": 1 } as CSSProperties}>{slogan}</p>
+        <div
+          className={ready ? "hb-anim-deal" : undefined}
+          style={{ ...kraftCard, "--i": 2, ...(ready ? null : { opacity: 0 }) } as CSSProperties}
+          aria-hidden={ready ? undefined : true}
+          data-measure="kraft-card"
+          data-ready={ready}
+        >
+          <div style={qrBox}>
+            {qr ? (
+              <img
+                className="hb-anim-enter"
+                src={qr}
+                alt="Join QR"
+                style={{ ...qrImg, ...(ready ? { animation: "hb-fade-in 300ms ease-out 200ms 1 both" } : null) }}
+              />
+            ) : null}
+          </div>
+          <div className={ready ? "hb-anim-enter" : undefined} style={{ ...kraftText, ...(ready ? { animation: "hb-fade-in 300ms ease-out 280ms 1 both" } : null) }}>
             <p style={joinLabel}>{error ? "Can't connect" : "Join anytime"}</p>
-            <p style={roomCode} data-measure="room-code">{error ? "Offline" : code || "…"}</p>
+            {/* A non-breaking space keeps the line height while hidden. Never a fake code: the capture
+                driver scrapes this node and a lookalike would be mistaken for the real room. */}
+            <p style={roomCode} data-measure="room-code">{error ? "Offline" : code || " "}</p>
             <p style={joinHint}>{error ?? "Scan or type the code"}</p>
           </div>
         </div>
