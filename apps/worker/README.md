@@ -56,8 +56,9 @@ The root `pnpm test` runs this suite too, via the `test:worker` script.
    Paid only after actually hitting a limit; the write budget is the one to watch (see below).
 2. Register `sirbepy.dev` through Cloudflare Registrar on that same account, which puts it on
    Cloudflare DNS with no transfer step. `wrangler.jsonc`'s `routes` entry attaches
-   `hubbub.sirbepy.dev` to the Worker; **deploying before the zone exists will fail.** Delete
-   that block to fall back to the `workers.dev` subdomain.
+   `hubbub.sirbepy.dev` to the Worker; **deploying before the zone exists will fail.** Deleting
+   that block falls back to the `workers.dev` subdomain, but games stay blocked there until
+   `SHELL_URL`, `SANDBOX_URL` and the sandbox `routes` entry are changed to match.
 3. `wrangler login` from `apps/worker` to authenticate the CLI. This opens a browser consent page.
 4. `wrangler deploy`.
 
