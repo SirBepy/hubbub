@@ -79,7 +79,7 @@ function GameSlot({ aspectRatio, children }: { aspectRatio?: number; children: R
 
 /** `preplayCorner` is the shell's escape hatch (the web app's "Join instead"), shown only where
  * the role decision still matters: the hero and the lobby. Once a game is up the corner belongs to
- * the game and TVStage's sound pill. */
+ * the game and TVStage's settings gear. */
 export function App({ preplayCorner }: { preplayCorner?: ReactNode } = {}) {
   const [code, setCode] = useState<string>("");
   const [qr, setQr] = useState<string>("");

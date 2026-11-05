@@ -12,9 +12,10 @@ const RESTORED_VOLUME = 1;
  * Bottom-right settings button on every TV surface. Opens a compact panel; volume is its only
  * row today, and `SettingsRow` is the seam for the next one.
  *
- * Sound unlock does not live here: TVStage installs a once-per-page gesture listener, so the
- * AudioContext resumes on the first click or key anywhere. The explicit `sfx.unlock()` calls
- * below only make sure that using this panel counts as a gesture too.
+ * Sound unlock does not live here: TVStage installs a page-wide gesture listener that stays until
+ * the AudioContext is actually running, so the first gesture that unlocks it can be a click or key
+ * anywhere. The explicit `sfx.unlock()` calls below only make sure that using this panel counts as
+ * a gesture too.
  */
 export function TVSettings() {
   const [open, setOpen] = useState(false);
