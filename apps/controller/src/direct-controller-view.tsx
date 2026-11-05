@@ -1,4 +1,4 @@
-import { createActionSender } from "@hubbub/sdk/react";
+import { createActionSender, PlatformProvider } from "@hubbub/sdk/react";
 import type { Player } from "@hubbub/protocol";
 import type { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
 import { loadGameController } from "./game";
@@ -16,6 +16,7 @@ export default function DirectControllerView({
   playerId,
   players,
   transport,
+  isHost,
   onResult,
 }: {
   gameId: string;
@@ -23,6 +24,7 @@ export default function DirectControllerView({
   playerId: string;
   players: Player[];
   transport: WebRtcClientTransport;
+  isHost: boolean;
   onResult: (result: GameResult | null) => void;
 }) {
   const { value: loaded } = useLoadingGate(gameId, loadGameController);
@@ -31,6 +33,8 @@ export default function DirectControllerView({
   if (!loaded) return null;
   const Controller = loaded.Controller;
   return (
-    <Controller state={state} playerId={playerId} players={players} send={createActionSender<any>(transport)} />
+    <PlatformProvider isHost={isHost} onAction={(action) => transport.send({ t: action })}>
+      <Controller state={state} playerId={playerId} players={players} send={createActionSender<any>(transport)} />
+    </PlatformProvider>
   );
 }

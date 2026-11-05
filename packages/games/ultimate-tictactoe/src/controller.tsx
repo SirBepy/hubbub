@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { colorHex, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
+import { colorHex, GameEndControls, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
+import { usePlatform } from "@hubbub/sdk/react";
 import type { BoardResult, Cell, Mark, UTTTAction, UTTTState } from "./logic.js";
 import { utttLogic } from "./logic.js";
 
@@ -127,6 +128,7 @@ function MiniSubBoard({
 }
 
 export function UTTTController({ state, playerId, players, send }: UTTTControllerProps) {
+  const platform = usePlatform();
   const mark = state.assignments[playerId];
   const opponentMark: Mark = mark === "O" ? "X" : "O";
   const yourColor = colorHex(mark === "O" ? O_COLOR_ID : X_COLOR_ID);
@@ -201,6 +203,15 @@ export function UTTTController({ state, playerId, players, send }: UTTTControlle
           emphasized={!yourTurn && !state.winner && !!opponent}
         />
       </div>
+
+      {state.winner ? (
+        <GameEndControls
+          isHost={platform.isHost}
+          rematchPending={platform.rematchPending}
+          onRematch={platform.rematch}
+          onReturnToLobby={platform.returnToLobby}
+        />
+      ) : null}
     </div>
   );
 }

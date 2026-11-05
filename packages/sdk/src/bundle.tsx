@@ -2,6 +2,7 @@ import { createElement, type ComponentType } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { GameInstance } from "./runtime.js";
 import { ShellToFrameSchema, type FrameToShell, type GameBundle } from "./bridge.js";
+import { PlatformProvider } from "./platform.js";
 import { sfx } from "./sfx.js";
 import type { DisplayPlayer, GameLogic } from "./types.js";
 
@@ -43,15 +44,21 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
         reactRoot.render(createElement(parts.Screen, { state, players }));
       }
 
+      let isHost = false;
+
       function renderController() {
         if (state === null) return;
         reactRoot.render(
-          createElement(parts.Controller, {
-            state,
-            playerId,
-            players,
-            send: (action: Action) => post({ t: "action", action }),
-          }),
+          createElement(
+            PlatformProvider,
+            { isHost, onAction: (action) => post({ t: "platform", action }) },
+            createElement(parts.Controller, {
+              state,
+              playerId,
+              players,
+              send: (action: Action) => post({ t: "action", action }),
+            }),
+          ),
         );
       }
 
@@ -87,6 +94,9 @@ export function defineGameBundle<State, Action>(parts: GameBundleParts<State, Ac
             state = msg.state as State;
             playerId = msg.playerId;
             post({ t: "result", result: parts.logic.result?.(state) ?? null });
+            renderController();
+          } else if (msg.t === "platform") {
+            isHost = msg.isHost;
             renderController();
           } else if (msg.t === "playersChanged" || msg.t === "launch") {
             players = msg.players;

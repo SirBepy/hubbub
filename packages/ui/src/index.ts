@@ -33,6 +33,8 @@ export type { MiniIdentityProps } from "./MiniIdentity";
 
 export { GlowButton, NeutralButton } from "./GlowButton";
 export type { GlowButtonProps, NeutralButtonProps } from "./GlowButton";
+export { GameEndControls } from "./GameEndControls";
+export type { GameEndControlsProps } from "./GameEndControls";
 
 export { GameTopBar } from "./GameTopBar";
 export type { GameTopBarProps, GameTopBarPlayer } from "./GameTopBar";

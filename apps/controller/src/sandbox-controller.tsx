@@ -12,6 +12,7 @@ export function SandboxController({
   playerId,
   players,
   transport,
+  isHost,
   onResult,
   onFailure,
 }: {
@@ -20,6 +21,7 @@ export function SandboxController({
   playerId: string;
   players: Player[];
   transport: WebRtcClientTransport;
+  isHost: boolean;
   onResult: (result: GameResult | null) => void;
   onFailure: () => void;
 }) {
@@ -29,6 +31,10 @@ export function SandboxController({
   useEffect(() => {
     bridgeRef.current?.send({ t: "state", state, playerId });
   }, [state, playerId]);
+
+  useEffect(() => {
+    bridgeRef.current?.send({ t: "platform", isHost });
+  }, [isHost]);
 
   // The bootstrap postMessage only carries {id,name} (S12) and the bundle's controller branch
   // never gets a `launch` (only the screen role's reducer does), so without this the roster the
@@ -49,6 +55,7 @@ export function SandboxController({
       onConnect={(bridge: SandboxBridge) => {
         bridgeRef.current = bridge;
         bridge.send({ t: "playersChanged", players });
+        bridge.send({ t: "platform", isHost });
         bridge.send({ t: "state", state, playerId });
       }}
       onMessage={(msg) => {
@@ -57,6 +64,8 @@ export function SandboxController({
         // result its own copy of the logic derived from the state it was given.
         if (msg.t === "action") transport.send({ t: "action", payload: msg.action });
         else if (msg.t === "result") onResult(msg.result);
+        // The frame is untrusted: only the host's phone forwards, and the relay gates it again.
+        else if (msg.t === "platform" && isHost) transport.send({ t: msg.action });
       }}
       onError={onFailure}
     />

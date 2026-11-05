@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { CaretLeft } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { Avatar, ConnectionBadge, NEUTRAL_RING } from "@hubbub/ui";
+import { ExitGameButton } from "./exit-game";
 
 // Re-exported so this app's existing `./header` importers keep resolving it from one place.
 export { NEUTRAL_RING };
@@ -14,6 +15,7 @@ export function IdentityHeader({
   onOpenMenu,
   connectionTier = null,
   connectionRttMs = null,
+  onExit,
 }: {
   name: string;
   avatarId: string;
@@ -21,6 +23,8 @@ export function IdentityHeader({
   onOpenMenu: () => void;
   connectionTier?: "direct" | "relay" | null;
   connectionRttMs?: number | null;
+  /** In-game only, host only: shows the top-right exit (with its own confirm). */
+  onExit?: () => void;
 }) {
   return (
     <div className="hb-anim-deal" style={bar}>
@@ -30,6 +34,7 @@ export function IdentityHeader({
         {isHost ? <span style={hostTag}>HOST</span> : null}
       </button>
       <ConnectionBadge tier={connectionTier} rttMs={connectionRttMs} />
+      {onExit ? <ExitGameButton onExit={onExit} /> : null}
     </div>
   );
 }

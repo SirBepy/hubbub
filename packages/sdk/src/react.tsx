@@ -19,3 +19,5 @@ export function createActionSender<Action>(
 ): (action: Action) => void {
   return (action: Action) => transport.send({ t: "action", payload: action });
 }
+
+export { usePlatform, PlatformProvider, REMATCH_PENDING_MS, type PlatformAction, type PlatformControls } from "./platform.js";

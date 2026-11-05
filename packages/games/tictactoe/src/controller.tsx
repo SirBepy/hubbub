@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { colorHex, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
+import { colorHex, GameEndControls, hexToRgba, MiniIdentity, vibrate } from "@hubbub/ui";
 import type { DisplayPlayer as Player } from "@hubbub/sdk";
+import { usePlatform } from "@hubbub/sdk/react";
 import type { Mark, TTTAction, TTTState } from "./logic.js";
 import { tttLogic } from "./logic.js";
 
@@ -14,6 +15,7 @@ export type TTTControllerProps = {
 const [X_COLOR_ID, O_COLOR_ID] = tttLogic.meta.identityColors ?? [1, 0];
 
 export function TTTController({ state, playerId, players, send }: TTTControllerProps) {
+  const platform = usePlatform();
   const mark = state.assignments[playerId];
   const opponentMark: Mark = mark === "O" ? "X" : "O";
   const yourColor = colorHex(mark === "O" ? O_COLOR_ID : X_COLOR_ID);
@@ -107,6 +109,15 @@ export function TTTController({ state, playerId, players, send }: TTTControllerP
           emphasized={!yourTurn && !state.winner && !!opponent}
         />
       </div>
+
+      {state.winner ? (
+        <GameEndControls
+          isHost={platform.isHost}
+          rematchPending={platform.rematchPending}
+          onRematch={platform.rematch}
+          onReturnToLobby={platform.returnToLobby}
+        />
+      ) : null}
     </div>
   );
 }

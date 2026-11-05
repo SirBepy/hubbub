@@ -1,11 +1,7 @@
 import { lazy, Suspense, useState, type CSSProperties } from "react";
 import { visibleSettingsFields } from "@hubbub/sdk";
-import {
-  InputActionProvider,
-  useRegisterInputActions,
-  type InputAction,
-} from "@hubbub/sdk/input";
-import { GlowButton, NeutralButton, GameLoadingScreen, transitionView } from "@hubbub/ui";
+import { InputActionProvider } from "@hubbub/sdk/input";
+import { GameLoadingScreen, transitionView } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
 import { GameFailed } from "./game-failed";
 import { usePublishInputLegend } from "./input-legend";
@@ -44,13 +40,6 @@ export function App(props: { initialCode?: string } = {}) {
       <ControllerApp {...props} />
     </InputActionProvider>
   );
-}
-
-/** Declares its actions for as long as it is mounted, so the legend follows the screen the
- * player is actually on rather than being hoisted into one big conditional. */
-function BindActions({ actions }: { actions: InputAction[] }) {
-  useRegisterInputActions(actions);
-  return null;
 }
 
 function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
@@ -215,6 +204,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
             onOpenMenu={() => openView("menu")}
             connectionTier={tier.tier}
             connectionRttMs={tier.rttMs}
+            onExit={isHost ? () => transportRef.current?.send({ t: "returnToLobby" }) : undefined}
           />
           <div style={gameBody}>
             {/* Before the game's own end view, not after: a game's controller fills the body, so a
@@ -231,6 +221,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
                     playerId={playerId}
                     players={room.players}
                     transport={transportRef.current}
+                    isHost={isHost}
                     onResult={setGameResult}
                   />
                 </Suspense>
@@ -241,6 +232,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
                   playerId={playerId}
                   players={room.players}
                   transport={transportRef.current}
+                  isHost={isHost}
                   onResult={setGameResult}
                   onFailure={() => setFailedGameId(live.gameId)}
                 />
@@ -251,43 +243,6 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
                 identityColors={pendingSummary?.identityColors}
                 category={pendingSummary?.category}
               />
-            )}
-          </div>
-          <div style={gameFooter}>
-            {result ? (
-              isHost ? (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <BindActions
-                    actions={[
-                      { id: "rematch", label: "Rematch", run: () => transportRef.current?.send({ t: "rematch" }) },
-                      { id: "back", label: "Back to lobby", run: () => transportRef.current?.send({ t: "returnToLobby" }) },
-                    ]}
-                  />
-                  <GlowButton
-                    height={56}
-                    label="Rematch"
-                    fullWidth={false}
-                    onClick={() => transportRef.current?.send({ t: "rematch" })}
-                  />
-                  <NeutralButton
-                    height={56}
-                    label="Back to lobby"
-                    fullWidth={false}
-                    onClick={() => transportRef.current?.send({ t: "returnToLobby" })}
-                  />
-                </div>
-              ) : (
-                <div style={waitingCaption}>Waiting for the host…</div>
-              )
-            ) : (
-              isHost && (
-                <NeutralButton
-                  height={40}
-                  label="Back to lobby"
-                  fullWidth={false}
-                  onClick={() => transportRef.current?.send({ t: "returnToLobby" })}
-                />
-              )
             )}
           </div>
         </main>
@@ -358,5 +313,3 @@ const gamePage: CSSProperties = {
   color: "var(--text-primary)",
 };
 const gameBody: CSSProperties = { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px" };
-const gameFooter: CSSProperties = { flex: "none", padding: "12px 16px 16px", display: "flex", justifyContent: "center" };
-const waitingCaption: CSSProperties = { font: "500 13px var(--font-ui)", color: "var(--text-faint)" };

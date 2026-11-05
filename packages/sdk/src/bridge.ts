@@ -74,6 +74,8 @@ export const ShellToFrameSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("playersChanged"), players: z.array(DisplayPlayerSchema) }),
   z.object({ t: z.literal("timeout"), now: z.number() }),
   z.object({ t: z.literal("state"), state: z.unknown(), playerId: z.string() }),
+  // Controller-role only: whether this phone is the host, which gates usePlatform()'s actions.
+  z.object({ t: z.literal("platform"), isHost: z.boolean() }),
   // TV-only mute and volume state, forwarded to both roles: a controller-role frame never plays a
   // sound but still needs to track it so a later screen-role remount (or a shared bundle) reads it
   // correctly. `volume` and `unlocked` are optional so a bundle built against an older SDK, whose
@@ -97,6 +99,9 @@ export const FrameToShellSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("deadline"), at: z.number().nullable() }),
   z.object({ t: z.literal("result"), result: GameResultSchema.nullable() }),
   z.object({ t: z.literal("action"), action: z.unknown() }),
+  // A game asking the platform to do something only the platform can (usePlatform()). Closed
+  // enum: the shell acts on these, so a frame cannot invent new ones.
+  z.object({ t: z.literal("platform"), action: z.enum(["rematch", "returnToLobby"]) }),
   z.object({ t: z.literal("error"), message: z.string().max(500) }),
 ]);
 export type FrameToShell = z.infer<typeof FrameToShellSchema>;
