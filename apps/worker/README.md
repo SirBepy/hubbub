@@ -54,10 +54,10 @@ The root `pnpm test` runs this suite too, via the `test:worker` script.
    13,000 GB-s duration/day, 100k SQL rows written/day and 5 GB stored. This Worker's DOs are
    SQLite-backed (see the `new_sqlite_classes` migration), so they qualify. Upgrade to Workers
    Paid only after actually hitting a limit; the write budget is the one to watch (see below).
-2. Register `hubbub.tv` (chosen 2026-08-07) and add it as a zone on that same account.
-   Registering it through Cloudflare Registrar puts it on Cloudflare DNS with no transfer step.
-   `wrangler.jsonc`'s `routes` entry already points at it; **deploying before the zone exists
-   will fail.** Delete that block to fall back to the `workers.dev` subdomain.
+2. Register `sirbepy.dev` through Cloudflare Registrar on that same account, which puts it on
+   Cloudflare DNS with no transfer step. `wrangler.jsonc`'s `routes` entry attaches
+   `hubbub.sirbepy.dev` to the Worker; **deploying before the zone exists will fail.** Delete
+   that block to fall back to the `workers.dev` subdomain.
 3. `wrangler login` from `apps/worker` to authenticate the CLI. This opens a browser consent page.
 4. `wrangler deploy`.
 

@@ -21,8 +21,8 @@ jobs:
     # One place for the two origins: the sandbox CSP bakes the shell/relay origin in at build
     # time, and the web build must point at the sandbox origin the same deploy publishes.
     env:
-      SHELL_URL: https://hubbub.tabsxlabs.workers.dev
-      SANDBOX_URL: https://hubbub-games.tabsxlabs.workers.dev
+      SHELL_URL: https://hubbub.sirbepy.dev
+      SANDBOX_URL: https://hubbub-games.sirbepy.dev
     steps:
       # The games are pinned with link: paths that point BOTH ways - games-manifest reaches out
       # to ../../../hubbub-game-*, and each game reaches back to ../hubbub/packages/*. So every

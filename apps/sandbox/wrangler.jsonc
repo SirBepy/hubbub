@@ -5,6 +5,8 @@
   // the CSP and CORS headers come from dist/_headers, written by the sandbox vite build.
   "name": "hubbub-games",
   "compatibility_date": "2026-08-04",
+  // A sibling host of the shell under the same zone, so the two stay distinct origins.
+  "routes": [{ "pattern": "hubbub-games.sirbepy.dev", "custom_domain": true }],
   "workers_dev": true,
   "assets": {
     "directory": "./dist",

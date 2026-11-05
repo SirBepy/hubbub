@@ -4,8 +4,11 @@
   "name": "hubbub",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-04",
-  // No custom domain yet: served from the workers.dev subdomain. Adding one later means a
-  // "routes" entry with custom_domain plus the zone on this account, and no code change.
+  // The sirbepy.dev zone lives on this Cloudflare account (registered through Cloudflare
+  // Registrar), so wrangler can attach the hostname itself; deploying before the zone exists
+  // fails. workers_dev stays on as a fallback URL, but games do not load there: the sandbox CSP
+  // only lets the custom-domain shell embed them (see .github/workflows/deploy.yml).
+  "routes": [{ "pattern": "hubbub.sirbepy.dev", "custom_domain": true }],
   "workers_dev": true,
   "assets": {
     "directory": "../web/dist",
