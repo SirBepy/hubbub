@@ -3,6 +3,7 @@ import { GlowButton } from "@hubbub/ui";
 import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { IdentityHeader } from "../../controller/src/header";
 import type { Identity } from "../../controller/src/identity";
+import { QrScanButton } from "../../controller/src/qr-scan";
 
 /** Returning-visit phone screen: real IdentityHeader, then code entry centered
  * between header and footer, then a muted "Host instead" escape at the bottom. */
@@ -26,13 +27,16 @@ export function JoinScreen({
       <div style={main}>
         <p style={label}>On this phone</p>
         <h1 style={heading}>Ready to play?</h1>
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="CODE"
-          maxLength={ROOM_CODE_LENGTH}
-          style={codeInput}
-        />
+        <div style={codeRow}>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="CODE"
+            maxLength={ROOM_CODE_LENGTH}
+            style={codeInput}
+          />
+          <QrScanButton onCode={setCode} />
+        </div>
         <GlowButton height={60} label="Join room" disabled={code.length !== ROOM_CODE_LENGTH} onClick={() => onJoin(code)} />
       </div>
 
@@ -64,10 +68,13 @@ const main: CSSProperties = {
 };
 const label: CSSProperties = { margin: 0, font: "700 11px var(--font-ui)", letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-muted)" };
 const heading: CSSProperties = { margin: 0, font: "700 26px var(--font-display)", textAlign: "center" };
+const codeRow: CSSProperties = { position: "relative", width: "100%", marginTop: 8 };
+// Side padding mirrors the scan button's width so the code stays visually centred.
 const codeInput: CSSProperties = {
-  marginTop: 8,
+  boxSizing: "border-box",
   height: 64,
   width: "100%",
+  padding: "0 56px",
   textAlign: "center",
   background: "var(--surface-1)",
   border: "1px solid var(--divider)",

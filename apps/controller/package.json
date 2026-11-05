@@ -13,15 +13,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hubbub/games-manifest": "workspace:*",
     "@hubbub/protocol": "workspace:*",
+    "@hubbub/sandbox": "workspace:*",
     "@hubbub/sdk": "workspace:*",
     "@hubbub/ui": "workspace:*",
-    "@hubbub/games-manifest": "workspace:*",
     "@phosphor-icons/react": "^2.1.7",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
+    "jsqr": "1.4.0",
     "qrcode": "^1.5.3",
-    "@hubbub/sandbox": "workspace:*"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
