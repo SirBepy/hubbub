@@ -2,6 +2,7 @@ import { type CSSProperties } from "react";
 import { ROOM_CODE_LENGTH } from "@hubbub/protocol";
 import { Avatar, GlowButton } from "@hubbub/ui";
 import { NEUTRAL_RING } from "./header";
+import { QrScanButton } from "./qr-scan";
 import { Settings } from "./settings";
 import type { Identity } from "./identity";
 
@@ -44,13 +45,16 @@ export function JoinScreen({
         <Settings initial={identity} onSave={onSaveIdentity} onCancel={onCancelSettings} />
       ) : (
         <>
-          <input
-            value={code}
-            onChange={(e) => onCodeChange(e.target.value.toUpperCase())}
-            placeholder="CODE"
-            maxLength={ROOM_CODE_LENGTH}
-            style={codeInput}
-          />
+          <div style={codeRow}>
+            <input
+              value={code}
+              onChange={(e) => onCodeChange(e.target.value.toUpperCase())}
+              placeholder="CODE"
+              maxLength={ROOM_CODE_LENGTH}
+              style={codeInput}
+            />
+            <QrScanButton onCode={onCodeChange} />
+          </div>
           <GlowButton
             height={56}
             label={status === "joining" ? "Joining…" : "Join room"}
@@ -94,9 +98,13 @@ const editButton: CSSProperties = {
   padding: "8px 12px",
   cursor: "pointer",
 };
+const codeRow: CSSProperties = { position: "relative" };
 const codeInput: CSSProperties = {
   height: 56,
-  padding: "0 12px",
+  width: "100%",
+  boxSizing: "border-box",
+  // Side padding clears the scan button on the right while keeping the code centred.
+  padding: "0 56px",
   textAlign: "center",
   background: "var(--surface-1)",
   border: "1px solid var(--divider)",

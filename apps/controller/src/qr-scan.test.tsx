@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QrScanButton } from "./qr-scan";
 import { JoinScreen } from "../../web/src/join";
+import { JoinScreen as ControllerJoinScreen } from "./join";
 
 const identity = { name: "Mira", avatarId: "bear", colorId: 0 } as never;
 
@@ -139,5 +140,33 @@ describe("web JoinScreen wiring", () => {
     render(<JoinScreen identity={identity} onEditIdentity={() => undefined} onJoin={() => undefined} onHostInstead={() => undefined} />);
     expect(screen.queryByLabelText("Scan QR code")).toBeNull();
     expect(screen.getByPlaceholderText("CODE")).toBeTruthy();
+  });
+});
+
+describe("controller JoinScreen wiring", () => {
+  it("hands a scanned code to onCodeChange without joining", async () => {
+    const { stream } = fakeStream();
+    stubCamera({ getUserMedia: vi.fn().mockResolvedValue(stream) });
+    stubDetector(["https://hubbub.sirbepy.dev/?room=K7QX"]);
+    const onJoin = vi.fn();
+    const onCodeChange = vi.fn();
+    render(
+      <ControllerJoinScreen
+        identity={identity}
+        code=""
+        onCodeChange={onCodeChange}
+        status="idle"
+        error=""
+        onJoin={onJoin}
+        settingsOpen={false}
+        onOpenSettings={() => undefined}
+        onSaveIdentity={() => undefined}
+        onCancelSettings={() => undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("Scan QR code"));
+    await waitFor(() => expect(onCodeChange).toHaveBeenCalledWith("K7QX"));
+    expect(onJoin).not.toHaveBeenCalled();
   });
 });
