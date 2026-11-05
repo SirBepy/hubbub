@@ -31,7 +31,9 @@ export function ControllerEntry({ onHostInstead }: { onHostInstead: () => void }
         onSave={(id) => {
           saveIdentity(id);
           setIdentity(id);
-          transitionView(() => setPhase("join"));
+          // Editing an existing identity auto-saves repeatedly and leaves via onCancel; only the
+          // first-run Continue moves on to joining.
+          if (!identity) transitionView(() => setPhase("join"));
         }}
       />
     );

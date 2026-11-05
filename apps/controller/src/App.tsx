@@ -116,7 +116,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
       saveIdentity(id);
       setIdentityState(id);
       transportRef.current?.send({ t: "setIdentity", name: id.name, colorId: id.colorId, avatarId: id.avatarId });
-      openSettings(false);
+      // No close here: Settings auto-saves and calls this on every change; only its back path closes it.
     };
 
     if (settingsOpen) {
@@ -334,7 +334,7 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
       onSaveIdentity={(id) => {
         saveIdentity(id);
         setIdentityState(id);
-        openSettings(false);
+        // Stays open: Settings auto-saves repeatedly and closes only through onCancelSettings.
       }}
       onCancelSettings={() => openSettings(false)}
     />

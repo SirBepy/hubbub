@@ -117,13 +117,23 @@ async function doIdentity(page, name, emoji, shotOut) {
 
   await page.getByPlaceholder('Your name').waitFor({ timeout: 15000 });
   await page.getByPlaceholder('Your name').fill(name);
+  // The identity screen is a profile (avatar + name) and a separate tabbed picker; Continue
+  // lives on the profile, so go in, choose, and come back out.
+  await page.getByRole('button', { name: 'Change avatar', exact: true }).click();
   if (emoji) {
-    await page.getByRole('button', { name: emoji, exact: true }).click();
+    const target = page.getByRole('button', { name: emoji, exact: true });
+    if (!(await target.count())) {
+      const tabs = page.getByRole('tab');
+      const tabCount = await tabs.count();
+      for (let i = 0; i < tabCount && !(await target.count()); i++) await tabs.nth(i).click();
+    }
+    await target.click();
   } else {
     await (await firstEnabledEmoji(page)).click();
   }
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
   if (shotOut) await shot(page, shotOut);
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
 
 async function joinRoom(page, code) {
