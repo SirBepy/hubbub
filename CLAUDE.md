@@ -9,7 +9,7 @@ Deploy: other (cloud = hosted server + screen over wss; local = Electron host ap
 
 ## Status
 
-Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.tabsxlabs.workers.dev (Cloudflare, free plan). The design specs in `docs/superpowers/specs/` are history/rationale now, not the current source of truth - `packages/games-manifest/scripts/generate.mjs` and this file are.
+Scaffolded, deployed and playable: 6 apps, 6 packages, live at hubbub.sirbepy.dev, games sandbox at hubbub-games.sirbepy.dev (Cloudflare, free plan; the old hubbub.tabsxlabs.workers.dev still answers but its games are blocked by the sandbox CSP). The design specs in `docs/superpowers/specs/` are history/rationale now, not the current source of truth - `packages/games-manifest/scripts/generate.mjs` and this file are.
 
 ## Structure
 
