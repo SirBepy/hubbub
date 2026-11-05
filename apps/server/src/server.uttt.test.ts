@@ -99,7 +99,8 @@ describe("rematch", () => {
 
     // non-host rematch is ignored: no new gameState arrives, board stays played
     guest.send(JSON.stringify({ t: "rematch" }));
-    await new Promise((r) => setTimeout(r, 150));
+    // Also outlasts the relay's rematch cooldown (2s from launch), which would drop an instant one.
+    await new Promise((r) => setTimeout(r, 2_100));
 
     host.send(JSON.stringify({ t: "rematch" }));
     const fresh = await nextOf(screen, "gameState");

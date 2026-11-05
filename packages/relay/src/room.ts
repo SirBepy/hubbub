@@ -18,6 +18,9 @@ const ACTION_LIMIT: RateLimitConfig = { max: 120, windowMs: 1_000 };
 // Same 60fps ceiling as ACTION_LIMIT; generous headroom for the taps/signaling limits below.
 const GAME_STATE_PUSH_LIMIT: RateLimitConfig = { max: 120, windowMs: 1_000 };
 const UI_ACTION_LIMIT: RateLimitConfig = { max: 20, windowMs: 1_000 };
+// A host's phone shows no pressed state for a beat, so they mash Rematch; repeats inside this
+// window are the same intent, not N relaunches.
+const REMATCH_COOLDOWN_MS = 2_000;
 const RTC_SIGNAL_LIMIT: RateLimitConfig = { max: 60, windowMs: 1_000 };
 
 export type RoomMode = "lobby" | "configuring" | "in-game";
@@ -265,6 +268,7 @@ export class Room {
       }
       // rematch
       if (this.data.mode !== "in-game" || !this.data.currentGameId) return [];
+      if (now - this.lastLaunchAt < REMATCH_COOLDOWN_MS) return [];
       const summary = this.catalog.summaries.find((s) => s.id === this.data.currentGameId);
       if (!summary) return [];
       return this.launch(summary.id, this.data.lastOptions, connId, now);
@@ -405,7 +409,22 @@ export class Room {
     return [];
   }
 
+  // setup() can await a network fetch for seconds; without this a second launch request arriving
+  // during it starts a second setup and a second gameLaunch.
+  private launching = false;
+  private lastLaunchAt = Number.NEGATIVE_INFINITY;
+
   private async launch(gameId: string, options: unknown, notifyConnId: string | undefined, now: number): Promise<Outbound[]> {
+    if (this.launching) return [];
+    this.launching = true;
+    try {
+      return await this.launchInner(gameId, options, notifyConnId, now);
+    } finally {
+      this.launching = false;
+    }
+  }
+
+  private async launchInner(gameId: string, options: unknown, notifyConnId: string | undefined, now: number): Promise<Outbound[]> {
     const summary = this.catalog.summaries.find((s) => s.id === gameId);
     if (!summary) return [];
     const players = Object.values(this.data.players).filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name }));
@@ -432,6 +451,7 @@ export class Room {
       return out;
     }
     this.info(`game launched gameId=${gameId}`);
+    this.lastLaunchAt = now;
     this.data.lastOptions = options;
     this.data.lastGameState = null;
     this.data.failedGameId = null;

@@ -371,6 +371,50 @@ describe("Room", () => {
     });
   });
 
+  describe("rematch idempotency", () => {
+    async function inGame(setup?: GameCatalog["setup"]) {
+      const room = Room.create("ABCD", fakeCatalog(setup ? { setup } : {}), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      await room.handleMessage("c1", join("Ann"), 0);
+      await room.handleMessage("c1", { t: "lobbyConfirm" }, 0);
+      return room;
+    }
+
+    it("mashing Rematch relaunches once, not once per press", async () => {
+      const room = await inGame();
+      let launches = 0;
+      for (let i = 0; i < 5; i++) {
+        const out = await room.handleMessage("c1", { t: "rematch" }, 10_000 + i * 50);
+        if (findConn(out, "s", "gameLaunch")) launches++;
+      }
+      expect(launches).toBe(1);
+    });
+
+    it("a rematch after the cooldown launches again", async () => {
+      const room = await inGame();
+      await room.handleMessage("c1", { t: "rematch" }, 10_000);
+      const out = await room.handleMessage("c1", { t: "rematch" }, 20_000);
+      expect(findConn(out, "s", "gameLaunch")).toBeDefined();
+    });
+
+    it("a rematch arriving while a launch's setup is still awaiting is dropped", async () => {
+      let setups = 0;
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      const room = await inGame(async (_id, options) => {
+        setups++;
+        if (setups > 1) await gate;
+        return options;
+      });
+      const first = room.handleMessage("c1", { t: "rematch" }, 10_000);
+      const second = await room.handleMessage("c1", { t: "rematch" }, 20_000);
+      expect(second).toEqual([]);
+      release();
+      expect(findConn(await first, "s", "gameLaunch")).toBeDefined();
+      expect(setups).toBe(2);
+    });
+  });
+
   describe("joinRoom flood protection", () => {
     it("a single connection resending joinRoom cannot grow room membership past its first slot", async () => {
       const room = Room.create("ABCD", fakeCatalog(), fakeTokens());
