@@ -1,17 +1,17 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { env, reset, evictDurableObject, runInDurableObject, runDurableObjectAlarm } from "cloudflare:test";
 import { createRoom, attach, type Conn } from "./helpers.js";
-import { catalog } from "../src/catalog.js";
 
-// Whatever the lobby's cursor starts on. The production catalogue omits the unbundled core
-// games, so a checkout without the sibling game repos lists nothing and has nothing to launch.
-const GAME_ID = catalog.summaries[0]?.id ?? "";
-const describeWithGame = GAME_ID ? describe : describe.skip;
+// Not a catalogue game: the relay only checks that the room is in-game and the id matches, so
+// seeding the room into that state keeps these tests independent of which sibling game repos
+// happen to be cloned (the production catalogue is empty on a CI checkout).
+const GAME_ID = "coalescing-fixture";
 
 afterEach(async () => { await reset(); });
 
-/** Joins two players and launches the first catalogue game (cursorIndex 0, no settings schema) so gameStatePush is
- * legal (mode must be "in-game" and gameId must match currentGameId). */
+/** Joins two players, then puts the room into `in-game` for GAME_ID by rewriting its stored
+ * snapshot and evicting the in-memory Room, so gameStatePush is legal (mode must be "in-game"
+ * and gameId must match currentGameId) without launching a catalogue game. */
 async function setupInGameRoom(): Promise<{ code: string; screen: Conn; p1: Conn; p2: Conn }> {
   const code = await createRoom();
   const screen = await attach(code);
@@ -31,13 +31,16 @@ async function setupInGameRoom(): Promise<{ code: string; screen: Conn; p1: Conn
   await p2.next(); // roomState
   await screen.next(); // roomState reflecting Mira
 
-  p1.ws.send(JSON.stringify({ t: "lobbyConfirm" })); // Bepy is host
-  await screen.next(); // roomState (mode: in-game)
-  await screen.next(); // gameLaunch
+  const stub = env.ROOM.get(env.ROOM.idFromName(code));
+  await runInDurableObject(stub, async (instance, state) => {
+    const snap = (await state.storage.get("room")) as Record<string, unknown>;
+    await state.storage.put("room", { ...snap, mode: "in-game", currentGameId: GAME_ID });
+    (instance as unknown as { room: undefined }).room = undefined; // next message reloads the seeded snapshot
+  });
   return { code, screen, p1, p2 };
 }
 
-describeWithGame("gameStatePush write coalescing", () => {
+describe("gameStatePush write coalescing", () => {
   it("collapses N pushes into a single storage write, flushed by the alarm", async () => {
     const { code, screen } = await setupInGameRoom();
     const stub = env.ROOM.get(env.ROOM.idFromName(code));
