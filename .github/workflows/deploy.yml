@@ -80,10 +80,14 @@ jobs:
 
       # The sandbox origin copies each game's dist/bundle.js, so the games build first. Their
       # own node_modules came from the per-game install above.
+      # The template is a dev-only teaching game (generate.mjs DEV_GAMES) that never ships, so a
+      # broken template build must not block a production deploy. It is still cloned and installed
+      # above because games-manifest links to it.
       - name: Build linked games
         working-directory: hubbub
         run: |
           for g in $LINKED_GAMES; do
+            if [ "$g" = "hubbub-game-template" ]; then echo "skipping dev-only $g"; continue; fi
             echo "::group::$g"
             pnpm --dir "${GITHUB_WORKSPACE}/${g}" build
             echo "::endgroup::"
