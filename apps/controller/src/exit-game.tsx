@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { SignOut } from "@phosphor-icons/react/dist/csr/SignOut";
 import { GlowButton, NeutralButton } from "@hubbub/ui";
 
@@ -12,7 +13,10 @@ export function ExitGameButton({ onExit }: { onExit: () => void }) {
       <button type="button" aria-label="Exit game" onClick={() => setAsking(true)} style={iconButton}>
         <SignOut size={18} weight="bold" />
       </button>
-      {asking ? (
+      {/* Portaled to body: the header it sits in carries an entrance animation, and a transformed
+          ancestor becomes the containing block of `position: fixed`, which clipped this dialog to
+          the header's 58px strip. */}
+      {asking ? createPortal(
         <div role="dialog" aria-modal="true" aria-label="Exit game" style={backdrop} onClick={() => setAsking(false)}>
           <div style={card} onClick={(e) => e.stopPropagation()}>
             <div style={title}>Exit the game?</div>
@@ -30,7 +34,8 @@ export function ExitGameButton({ onExit }: { onExit: () => void }) {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
