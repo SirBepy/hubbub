@@ -20,7 +20,8 @@
     "host:package": "pnpm host:build && pnpm --filter @hubbub/host-desktop package",
     "dev:sandbox:on": "node packages/games-manifest/scripts/sandbox-mode.mjs on",
     "dev:sandbox:off": "node packages/games-manifest/scripts/sandbox-mode.mjs off",
-    "dev:sandbox": "turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/sandbox-app"
+    "prod:local": "node scripts/local-production.mjs",
+    "dev:sandbox":"turbo run dev --concurrency=5 --filter=@hubbub/server --filter=@hubbub/web --filter=@hubbub/sandbox-app"
   },
   "devDependencies": {
     "turbo": "^2.1.0",
