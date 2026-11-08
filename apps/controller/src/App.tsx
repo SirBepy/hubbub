@@ -218,12 +218,26 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
             {/* Before the game's own end view, not after: a game's controller fills the body, so a
                 scoreboard appended below it lands off-screen on a phone nobody scrolls. */}
             {result?.standings?.length ? <Scoreboard standings={result.standings} players={room.players} meId={playerId} /> : null}
-            {failedGameId ? (
-              <GameFailed isHost={isHost} />
-            ) : live && transportRef.current ? (
-              LazyDirectControllerView ? (
-                <Suspense fallback={null}>
-                  <LazyDirectControllerView
+            {/* The game gets the height the scoreboard leaves, so a view sized to 100% (its own
+                end buttons pinned at the bottom) fits instead of overflowing the body. */}
+            <div style={gameStage}>
+              {failedGameId ? (
+                <GameFailed isHost={isHost} />
+              ) : live && transportRef.current ? (
+                LazyDirectControllerView ? (
+                  <Suspense fallback={null}>
+                    <LazyDirectControllerView
+                      gameId={live.gameId}
+                      state={live.state}
+                      playerId={playerId}
+                      players={room.players}
+                      transport={transportRef.current}
+                      isHost={isHost}
+                      onResult={setGameResult}
+                    />
+                  </Suspense>
+                ) : (
+                  <SandboxController
                     gameId={live.gameId}
                     state={live.state}
                     playerId={playerId}
@@ -231,27 +245,17 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
                     transport={transportRef.current}
                     isHost={isHost}
                     onResult={setGameResult}
+                    onFailure={() => setFailedGameId(live.gameId)}
                   />
-                </Suspense>
+                )
               ) : (
-                <SandboxController
-                  gameId={live.gameId}
-                  state={live.state}
-                  playerId={playerId}
-                  players={room.players}
-                  transport={transportRef.current}
-                  isHost={isHost}
-                  onResult={setGameResult}
-                  onFailure={() => setFailedGameId(live.gameId)}
+                <GameLoadingScreen
+                  gameName={pendingSummary?.name ?? "Game"}
+                  identityColors={pendingSummary?.identityColors}
+                  category={pendingSummary?.category}
                 />
-              )
-            ) : (
-              <GameLoadingScreen
-                gameName={pendingSummary?.name ?? "Game"}
-                identityColors={pendingSummary?.identityColors}
-                category={pendingSummary?.category}
-              />
-            )}
+              )}
+            </div>
           </div>
         </main>
       );
@@ -320,4 +324,5 @@ const gamePage: CSSProperties = {
   background: "var(--surface-0)",
   color: "var(--text-primary)",
 };
-const gameBody: CSSProperties = { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px" };
+const gameBody: CSSProperties = { flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px", display: "flex", flexDirection: "column" };
+const gameStage: CSSProperties = { flex: 1, minHeight: 0 };
