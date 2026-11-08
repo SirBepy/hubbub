@@ -258,7 +258,7 @@ async function startGame(page, gameName, opts = {}) {
 // during a reveal phase dropped the room twice and both times read as a game crash.
 // Matched as a PREFIX, not a whole name: a menu row's accessible name carries its hint too
 // ("Share the room QR, link, or send it"), which an anchored full-string test walks straight past.
-const NEVER_CLICK = /^(back to lobby|back|rematch|leave the room|close|start|search games|share the room|pass the remote|change my avatar|how to play|about|previous|next|field up|field down)\b/i;
+const NEVER_CLICK = /^(back to lobby|back|rematch|leave the room|close|start|search games|share the room|pass the remote|change my avatar|how to play|about|previous|next|field up|field down|exit game)\b/i;
 
 async function buttonName(button) {
   const aria = await button.getAttribute('aria-label');
@@ -358,6 +358,7 @@ module.exports = {
   waitForInGame,
   pressStart,
   answerRound,
+  NEVER_CLICK,
   pollUntilText,
   playToEndOfRound,
   setThrottle,

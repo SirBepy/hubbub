@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 
-const { waitIn, clickMatch, pollUntil, fillSessionPlaceholder } = createRequire(import.meta.url)("./capture-actions.cjs");
+const { waitIn, clickMatch, pollUntil, fillSessionPlaceholder, NEVER_CLICK } = createRequire(import.meta.url)("./capture-actions.cjs");
 
 // A page with no game frames whose waits resolve instantly, so a poll loop's cost is its number
 // of checks rather than wall-clock time.
@@ -16,6 +16,16 @@ function counter(matches) {
   build.calls = 0;
   return build;
 }
+
+describe("NEVER_CLICK", () => {
+  it("keeps a round-answering driver off the header's exit button", () => {
+    expect(NEVER_CLICK.test("Exit game")).toBe(true);
+  });
+
+  it("still lets a round's own choices through", () => {
+    expect(NEVER_CLICK.test("Billie Jean")).toBe(false);
+  });
+});
 
 describe("waitIn", () => {
   it("with timeout 0, checks exactly once and returns null when nothing matches and required is false", async () => {

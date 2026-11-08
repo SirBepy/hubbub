@@ -1,0 +1,403 @@
+{
+  "_comment": "Tap Race to its end screen, the host's own Rematch button, then a second full game. The two waits are deliberate: the TAP clicks use force, which skips actionability, so only a pause keeps them off a stale or disabled button. SESSION in out paths is filled from --session-id.",
+  "baseUrl": "http://localhost:5175",
+  "steps": [
+    {
+      "type": "waitRoomCode"
+    },
+    {
+      "page": "host",
+      "name": "Bepy",
+      "type": "identity"
+    },
+    {
+      "type": "join",
+      "page": "host"
+    },
+    {
+      "page": "guest",
+      "name": "Mira",
+      "type": "identity"
+    },
+    {
+      "type": "join",
+      "page": "guest"
+    },
+    {
+      "page": "tv",
+      "text": "Mira",
+      "type": "waitText"
+    },
+    {
+      "page": "host",
+      "game": "Tap Race",
+      "type": "startGame"
+    },
+    {
+      "type": "wait",
+      "ms": 3000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "page": "host",
+      "timeout": 30000,
+      "text": "Rematch",
+      "type": "pollUntilText"
+    },
+    {
+      "page": "tv",
+      "out": ".for_bepy/screenshots/SESSION/tr-end1-tv.png",
+      "type": "screenshot"
+    },
+    {
+      "page": "host",
+      "name": "Rematch",
+      "role": "button",
+      "type": "clickRole"
+    },
+    {
+      "type": "wait",
+      "ms": 5000
+    },
+    {
+      "page": "tv",
+      "out": ".for_bepy/screenshots/SESSION/tr-rematch-tv.png",
+      "type": "screenshot"
+    },
+    {
+      "page": "host",
+      "out": ".for_bepy/screenshots/SESSION/tr-rematch-host.png",
+      "type": "screenshot"
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "type": "clickRole",
+      "page": "host",
+      "role": "button",
+      "name": "TAP",
+      "force": true,
+      "timeout": 20000
+    },
+    {
+      "page": "host",
+      "timeout": 30000,
+      "text": "Rematch",
+      "type": "pollUntilText"
+    },
+    {
+      "page": "tv",
+      "out": ".for_bepy/screenshots/SESSION/tr-end2-tv.png",
+      "type": "screenshot"
+    }
+  ]
+}

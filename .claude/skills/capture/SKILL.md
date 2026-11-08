@@ -33,6 +33,14 @@ instead. This skill exists specifically for the screen+controller multi-client f
   - `wrangler dev` (8788) or a deployed URL: same single-origin flow, pass `--base-url`.
   - Legacy standalone `apps/screen` (5173) + `apps/controller` (5174): set `screenUrl` /
     `controllerUrl` in the plan (see Step 3). No welcome screen on this pair.
+  - **A local copy of production (shell Worker + sandbox Worker, games in the cross-origin
+    iframe): `pnpm prod:local`.** It builds the sandbox origin and `apps/web` the way
+    `deploy.yml` does, with both pointed at `localhost:8788` / `:8789`, then prints the two
+    `sv.ps1 ensure` commands that serve them. Build each sibling game repo first
+    (`pnpm build` in it), since the sandbox copies their `dist/bundle.js`. Pass
+    `--base-url http://localhost:8788`. Any turbo floor run (`pnpm -w typecheck`, `build`)
+    rebuilds `apps/web` WITHOUT `VITE_SANDBOX_URL`, after which every game reads "Games can't
+    run on this setup": re-run `pnpm prod:local` and restart nothing else.
 
 ## Step 2 - Pick the output directory
 
@@ -87,7 +95,7 @@ field needed either way.
 | Type | Fields | Notes |
 |---|---|---|
 | `waitRoomCode` | `page` (default `tv`) | Scrapes the 4-char code off the TV DOM; run before any `join` |
-| `identity` | `page`, `name`, `emoji` (optional), `shot` (optional) | Welcome -> fills identity form; `shot` screenshots before Save |
+| `identity` | `page`, `name`, `emoji` (optional), `shot` (optional) | Welcome -> fills the name, opens "Change avatar", picks `emoji` (walks the picker tabs to find it, else the first enabled avatar), goes Back, then clicks Continue; `shot` screenshots the profile view after the avatar is chosen, before Continue |
 | `join` | `page` | Fills room code (from `waitRoomCode`), clicks Join, waits for the lobby ("Search games") |
 | `screenshot` | `page`, `out` | Settles (`fonts.ready` + 400ms) then screenshots |
 | `click` | `page`, `selector`, `force`, `dispatch`, `required`, `timeout` | Raw CSS click |
@@ -145,6 +153,10 @@ node "C:/Users/tecno/Desktop/Projects/hubbub/.claude/skills/capture/scripts/capt
 
 `plans/music-guesser-podium.json` next to this file is a worked example of the harder shape: a
 settings-carrying game, its config remote driven explicitly, then five rounds answered to a podium.
+`plans/music-guesser-rematch.json` extends it with the host's own Rematch button and a first
+answer in the relaunched game, and `plans/tap-race-rematch.json` plays two full Tap Race games
+through a rematch. The Music Guesser plan matches its key with `exact: false` because the game
+labels it `REMATCH`.
 Run it as committed: the driver replaces a `SESSION` path segment in any step's `out` or `shot`
 with the `--session-id` it was given, and refuses to run a plan using it without one.
 
