@@ -101,6 +101,13 @@ describe("protocol messages", () => {
     expect(GameSummarySchema.parse(raw)).toEqual(raw);
   });
 
+  it("parses configAdjust with and without a field", () => {
+    const withField = { t: "configAdjust", field: "rounds", dir: "left" };
+    const bare = { t: "configAdjust", dir: "right" };
+    expect(parseClientMessage(JSON.stringify(withField))).toEqual(withField);
+    expect(parseClientMessage(JSON.stringify(bare))).toEqual(bare);
+  });
+
   it("accepts a GameSummary omitting aspectRatio", () => {
     const raw = { id: "ttt", name: "Tic-Tac-Toe", minPlayers: 2, maxPlayers: 2 };
     expect(GameSummarySchema.parse(raw).aspectRatio).toBeUndefined();

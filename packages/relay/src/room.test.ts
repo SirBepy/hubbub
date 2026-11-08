@@ -415,6 +415,34 @@ describe("Room", () => {
     });
   });
 
+  describe("configAdjust without a field", () => {
+    const SCHEMA = [
+      { key: "rounds", type: "choice" as const, default: "5", options: ["5", "10", "15"].map((v) => ({ value: v, label: v })) },
+      { key: "mode", type: "choice" as const, default: "a", options: ["a", "b"].map((v) => ({ value: v, label: v })) },
+    ];
+    async function configuring() {
+      const room = Room.create("ABCD", fakeCatalog({ settingsSchema: () => SCHEMA }), fakeTokens());
+      await room.handleMessage("s", { t: "attachScreen" }, 0);
+      await room.handleMessage("c1", join("Ann"), 0);
+      await room.handleMessage("c1", { t: "configStart" }, 0);
+      return room;
+    }
+
+    it("adjusts the field under the relay's cursor, so a press cannot land on a field the phone had not caught up to", async () => {
+      const room = await configuring();
+      // The phone sends both presses before the roomState for the first one reaches it.
+      await room.handleMessage("c1", { t: "configCursor", dir: "down" }, 0);
+      await room.handleMessage("c1", { t: "configAdjust", dir: "right" }, 0);
+      expect(room.snapshot().config?.values).toEqual({ rounds: "5", mode: "b" });
+    });
+
+    it("still honours an explicit field", async () => {
+      const room = await configuring();
+      await room.handleMessage("c1", { t: "configAdjust", field: "rounds", dir: "right" }, 0);
+      expect(room.snapshot().config?.values).toEqual({ rounds: "10", mode: "a" });
+    });
+  });
+
   describe("joinRoom flood protection", () => {
     it("a single connection resending joinRoom cannot grow room membership past its first slot", async () => {
       const room = Room.create("ABCD", fakeCatalog(), fakeTokens());

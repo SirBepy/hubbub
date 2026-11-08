@@ -183,7 +183,8 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
           isHost={isHost}
           error={configError}
           onCursor={(dir) => transportRef.current?.send({ t: "configCursor", dir })}
-          onAdjust={(field, dir) => transportRef.current?.send({ t: "configAdjust", field, dir })}
+          // No field: the relay applies it to its own cursor, which is never staler than the phone's.
+          onAdjust={(dir) => transportRef.current?.send({ t: "configAdjust", dir })}
           onSet={(field, value) => transportRef.current?.send({ t: "configSet", field, value })}
           onConfirm={() => { setConfigError(""); transportRef.current?.send({ t: "configConfirm" }); }}
           onCancel={() => { setConfigError(""); transportRef.current?.send({ t: "configCancel" }); }}

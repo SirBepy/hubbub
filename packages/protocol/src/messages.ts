@@ -89,7 +89,9 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   // the remote. Schema-less games never see these; their lobbyConfirm path is untouched above.
   z.object({ t: z.literal("configStart") }),
   z.object({ t: z.literal("configCursor"), dir: z.enum(["up", "down"]) }),
-  z.object({ t: z.literal("configAdjust"), field: z.string(), dir: z.enum(["left", "right"]) }),
+  // `field` is optional on purpose: omitted, the relay adjusts whichever field ITS cursor is on,
+  // so a press can never land on a stale field when taps outrun the roomState round trip.
+  z.object({ t: z.literal("configAdjust"), field: z.string().optional(), dir: z.enum(["left", "right"]) }),
   z.object({ t: z.literal("configSet"), field: z.string(), value: z.string() }),
   z.object({ t: z.literal("configConfirm") }),
   z.object({ t: z.literal("configCancel") }),

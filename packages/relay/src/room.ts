@@ -310,13 +310,14 @@ export class Room {
         return this.broadcastRoomState();
       }
       if (msg.t === "configAdjust") {
-        const field = schema.find((f) => f.key === msg.field && f.type === "choice");
-        if (!field?.options?.length) return [];
-        const curIdx = Math.max(0, field.options.findIndex((o) => o.value === cfg.values[msg.field]));
+        const key = msg.field ?? visibleFields(schema, cfg.values)[cfg.cursorIndex]?.key;
+        const field = schema.find((f) => f.key === key && f.type === "choice");
+        if (!key || !field?.options?.length) return [];
+        const curIdx = Math.max(0, field.options.findIndex((o) => o.value === cfg.values[key]));
         const delta = msg.dir === "left" ? -1 : 1;
         const opts = field.options;
         const nextIdx = ((curIdx + delta) % opts.length + opts.length) % opts.length;
-        cfg.values[msg.field] = opts[nextIdx].value;
+        cfg.values[key] = opts[nextIdx].value;
         const fieldCount = visibleFields(schema, cfg.values).length;
         if (fieldCount > 0) cfg.cursorIndex = Math.min(fieldCount - 1, Math.max(0, cfg.cursorIndex));
         return this.broadcastRoomState();

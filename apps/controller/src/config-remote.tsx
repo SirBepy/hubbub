@@ -28,7 +28,7 @@ export function ConfigRemote({
   isHost: boolean;
   error?: string;
   onCursor: (dir: "up" | "down") => void;
-  onAdjust: (field: string, dir: "left" | "right") => void;
+  onAdjust: (dir: "left" | "right") => void;
   onSet: (field: string, value: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -66,11 +66,11 @@ export function ConfigRemote({
             />
           ) : (
             <div style={valueRow}>
-              <button type="button" aria-label="Previous" onClick={() => onAdjust(field.key, "left")} style={dpadButton}>
+              <button type="button" aria-label="Previous" onClick={() => onAdjust("left")} style={dpadButton}>
                 <CaretLeft size={24} weight="bold" />
               </button>
               <span style={valueLabel}>{field.options?.find((o) => o.value === values[field.key])?.label ?? values[field.key]}</span>
-              <button type="button" aria-label="Next" onClick={() => onAdjust(field.key, "right")} style={dpadButton}>
+              <button type="button" aria-label="Next" onClick={() => onAdjust("right")} style={dpadButton}>
                 <CaretRight size={24} weight="bold" />
               </button>
             </div>
