@@ -18,7 +18,16 @@ export function relayConnectOrigins(relayOrigin: string): string[] {
   return [origin, origin.replace(/^http/, "ws")];
 }
 
-type HeaderRule = { path: string; headers: Record<string, string> };
+/** The frame CSP for both the dev server and the built `_headers`, so a malformed or trailing-slash
+ * origin is normalised in exactly one place. `extraConnect` is for dev-only sockets (Vite's HMR). */
+export function frameCspFor(o: { shellOrigin: string; relayOrigin: string; extraConnect?: string[] }): string {
+  return frameCsp({
+    shellOrigin: new URL(o.shellOrigin).origin,
+    connectOrigins: [...relayConnectOrigins(o.relayOrigin), ...(o.extraConnect ?? [])],
+  });
+}
+
+type HeaderRule ={ path: string; headers: Record<string, string> };
 
 /** Cloudflare Workers static-assets `_headers`: a path line, then indented `Name: value` lines.
  * Rules whose paths both match a request are merged, so `/frame.html` gets the `/*` rule and
@@ -40,10 +49,7 @@ export function sandboxHeadersFile(o: { shellOrigin: string; relayOrigin: string
         // The frame is opaque-origin (no allow-same-origin), so every module, stylesheet and
         // bundle it loads is a CORS request carrying `Origin: null`.
         "Access-Control-Allow-Origin": "*",
-        "Content-Security-Policy": frameCsp({
-          shellOrigin: new URL(o.shellOrigin).origin,
-          connectOrigins: relayConnectOrigins(o.relayOrigin),
-        }),
+        "Content-Security-Policy": frameCspFor(o),
       },
     },
     {

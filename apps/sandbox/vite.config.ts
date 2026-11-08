@@ -1,10 +1,10 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
-import { DEFAULT_RELAY_ORIGIN, DEFAULT_SHELL_ORIGIN, selectBundles, sandboxHeadersFile } from "./build-assets";
+import { DEFAULT_RELAY_ORIGIN, DEFAULT_SHELL_ORIGIN, frameCspFor, selectBundles, sandboxHeadersFile } from "./build-assets";
 // Relative, not by package name: the config is bundled by esbuild, which externalises bare
 // specifiers, and these workspace packages ship raw TypeScript with no dist for Node to load.
-import { BUNDLE_HEADERS, FRAME_SECURITY_HEADERS, frameCsp } from "../../packages/sandbox/src/csp";
+import { BUNDLE_HEADERS, FRAME_SECURITY_HEADERS } from "../../packages/sandbox/src/csp";
 import { GAME_BUNDLE_PATHS } from "../../packages/games-manifest/src/sources";
 import { gameRepoFsAllow } from "../../vite.game-repos";
 
@@ -89,10 +89,11 @@ export default defineConfig({
     fs: { allow: gameRepoFsAllow() },
     headers: {
       ...FRAME_SECURITY_HEADERS,
-      "Content-Security-Policy": frameCsp({
+      // Vite's HMR socket is the only dev-only addition; everything else matches production.
+      "Content-Security-Policy": frameCspFor({
         shellOrigin: SHELL_ORIGIN,
-        // Vite's HMR socket is the only dev-only addition; everything else matches production.
-        connectOrigins: [RELAY_ORIGIN, RELAY_ORIGIN.replace(/^http/, "ws"), `ws://localhost:${PORT}`],
+        relayOrigin: RELAY_ORIGIN,
+        extraConnect: [`ws://localhost:${PORT}`],
       }),
     },
   },

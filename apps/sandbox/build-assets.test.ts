@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { relayConnectOrigins, sandboxHeadersFile, selectBundles } from "./build-assets";
+import { frameCspFor, relayConnectOrigins, sandboxHeadersFile, selectBundles } from "./build-assets";
 
 describe("sandboxHeadersFile", () => {
   const text = sandboxHeadersFile({
@@ -39,6 +39,20 @@ describe("relayConnectOrigins", () => {
   it("maps http to ws and https to wss, dropping any path", () => {
     expect(relayConnectOrigins("http://localhost:8788/x")).toEqual(["http://localhost:8788", "ws://localhost:8788"]);
     expect(relayConnectOrigins("https://a.dev")).toEqual(["https://a.dev", "wss://a.dev"]);
+  });
+});
+
+describe("frameCspFor", () => {
+  it("gives the dev and production CSP the same connect-src for a trailing-slash relay origin", () => {
+    const dev = frameCspFor({
+      shellOrigin: "http://localhost:5175/",
+      relayOrigin: "http://localhost:7787/",
+      extraConnect: ["ws://localhost:5176"],
+    });
+    const prod = sandboxHeadersFile({ shellOrigin: "http://localhost:5175/", relayOrigin: "http://localhost:7787/" });
+    expect(dev).toContain("connect-src 'self' http://localhost:7787 ws://localhost:7787 ws://localhost:5176;");
+    expect(prod).toContain("connect-src 'self' http://localhost:7787 ws://localhost:7787;");
+    expect(dev).toContain("frame-ancestors http://localhost:5175;");
   });
 });
 
