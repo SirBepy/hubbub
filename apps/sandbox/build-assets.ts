@@ -27,7 +27,7 @@ export function frameCspFor(o: { shellOrigin: string; relayOrigin: string; extra
   });
 }
 
-type HeaderRule ={ path: string; headers: Record<string, string> };
+type HeaderRule = { path: string; headers: Record<string, string> };
 
 /** Cloudflare Workers static-assets `_headers`: a path line, then indented `Name: value` lines.
  * Rules whose paths both match a request are merged, so `/frame.html` gets the `/*` rule and
