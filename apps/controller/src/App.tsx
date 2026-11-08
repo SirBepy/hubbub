@@ -3,6 +3,7 @@ import { visibleSettingsFields } from "@hubbub/sdk";
 import { InputActionProvider } from "@hubbub/sdk/input";
 import { GameLoadingScreen, transitionView } from "@hubbub/ui";
 import { getSettingsSchema } from "./game";
+import { EndActions } from "./end-actions";
 import { GameFailed } from "./game-failed";
 import { usePublishInputLegend } from "./input-legend";
 import { useRoomState } from "./use-room-state";
@@ -206,6 +207,12 @@ function ControllerApp({ initialCode }: { initialCode?: string } = {}) {
             connectionRttMs={tier.rttMs}
             onExit={isHost ? () => transportRef.current?.send({ t: "returnToLobby" }) : undefined}
           />
+          {result && isHost ? (
+            <EndActions
+              onRematch={() => transportRef.current?.send({ t: "rematch" })}
+              onBack={() => transportRef.current?.send({ t: "returnToLobby" })}
+            />
+          ) : null}
           <div style={gameBody}>
             {/* Before the game's own end view, not after: a game's controller fills the body, so a
                 scoreboard appended below it lands off-screen on a phone nobody scrolls. */}
