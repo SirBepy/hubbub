@@ -2,7 +2,7 @@ import { createActionSender, PlatformProvider } from "@hubbub/sdk/react";
 import type { Player } from "@hubbub/protocol";
 import type { WebRtcClientTransport } from "@hubbub/protocol/webrtc";
 import { loadGameController } from "./game";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useLoadingGate } from "@hubbub/ui";
 import type { GameResult } from "@hubbub/sdk";
 
@@ -28,7 +28,9 @@ export default function DirectControllerView({
   onResult: (result: GameResult | null) => void;
 }) {
   const { value: loaded } = useLoadingGate(gameId, loadGameController);
-  const result = loaded?.logic.result?.(state) ?? null;
+  // Memoised on the inputs: logic.result builds a fresh object every call, and onResult sets state
+  // in the parent, so an unmemoised result re-rendered this view into an endless update loop.
+  const result = useMemo(() => loaded?.logic.result?.(state) ?? null, [loaded, state]);
   useEffect(() => { onResult(result); }, [result, onResult]);
   if (!loaded) return null;
   const Controller = loaded.Controller;
